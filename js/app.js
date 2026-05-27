@@ -269,3 +269,34 @@ window.addEventListener('load', function() {
         } catch(e) { console.warn('Daily greeting timing error:', e); }
     }, 4500);
 }, { once: true });
+
+// ============================================
+// 陪伴模式 (Companion Mode) - 新增功能
+// ============================================
+function selectCompanionMode(mode) {
+    // mode 可以是: 'study' | 'work' | 'exercise' | 'sleep'
+    const modeNames = {
+        study: '陪我学习',
+        work: '陪我工作',
+        exercise: '陪我运动',
+        sleep: '陪我睡觉'
+    };
+
+    const modeName = modeNames[mode] || '陪伴';
+
+    // 关闭陪伴主弹窗
+    const modal = document.getElementById('companion-modal');
+    if (modal && typeof hideModal === 'function') {
+        hideModal(modal);
+    }
+
+    // 子页面占位 —— 后续可在此处接入对应子功能
+    // TODO: 后续接入 study / work / exercise / sleep 各自的子页面
+    setTimeout(() => {
+        if (typeof window.showToast === 'function') {
+            window.showToast(`已选择「${modeName}」，子页面开发中...`);
+        } else {
+            alert(`已选择「${modeName}」，子页面开发中...`);
+        }
+    }, 300);
+}
