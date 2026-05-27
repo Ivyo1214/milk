@@ -606,7 +606,7 @@
     function bindEvents() {
         // 顶部按钮
         const entryBtn = $('companion-btn');
-        if (entryBtn) entryBtn.addEventListener('click', openCompanionModal);
+        if (entryBtn) entryBtn.addEventListener('click', handleEntryClick);
 
         // 陪伴选择弹窗
         const modal = $('companion-modal');
@@ -703,11 +703,43 @@
 
     // ─── 入口 ────────────────────────────────────────────────────────────────
 
+    let dataLoaded = false;
+
+    // 等待 SESSION_ID 就绪（最多等 10 秒）
+    async function waitForSession(maxWait = 10000) {
+        const start = Date.now();
+        while (Date.now() - start < maxWait) {
+            if (typeof window.SESSION_ID !== 'undefined' && window.SESSION_ID) return true;
+            await new Promise(r => setTimeout(r, 200));
+        }
+        return false;
+    }
+
+    // 懒加载数据：在用户首次打开陪伴功能时才加载
+    async function ensureDataLoaded() {
+        if (dataLoaded) return true;
+        const ready = await waitForSession();
+        if (!ready) {
+            notify('系统还在初始化，请稍后再试', 'warning');
+            return false;
+        }
+        await loadCompanionData();
+        dataLoaded = true;
+        return true;
+    }
+
+    // 用户点击顶部"陪伴"按钮的真正入口
+    async function handleEntryClick() {
+        const ok = await ensureDataLoaded();
+        if (!ok) return;
+        openCompanionModal();
+    }
+
     async function init() {
         try {
-            await loadCompanionData();
+            // 先绑定事件，这样按钮立刻可用
             bindEvents();
-            console.log('[companion] 模块加载完成');
+            console.log('[companion] 模块加载完成（数据将在首次使用时加载）');
         } catch (e) {
             console.error('[companion] 初始化失败，已跳过陪伴模块以保护主功能', e);
         }
@@ -717,7 +749,6 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        // 即使 DOM 已就绪，也延迟到下一个事件循环，确保主功能先初始化
         setTimeout(init, 0);
     }
 
