@@ -615,10 +615,10 @@
             }
         }, true); // 用捕获阶段，确保抢在其他监听器之前
 
-        // 陪伴模式卡片 —— 也用事件委托
+        // 陪伴模式卡片 —— 用 data-mode 属性识别（class 可能被原项目清理）
         document.addEventListener('click', function (e) {
-            const card = e.target.closest && e.target.closest('.companion-mode-card');
-            if (card && card.dataset.mode) {
+            const card = e.target.closest && e.target.closest('[data-mode]');
+            if (card && card.closest && card.closest('#companion-modal')) {
                 e.stopPropagation();
                 e.preventDefault();
                 selectMode(card.dataset.mode);
