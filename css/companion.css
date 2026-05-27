@@ -36,6 +36,66 @@
     transform: translateY(0) scale(1);
 }
 
+/* ── 陪伴模式选择网格（独立样式，不依赖 settings-card）─────────── */
+.companion-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 10px 5px;
+    margin: 6px 0 10px;
+}
+.companion-mode-card {
+    background-color: var(--primary-bg, #fff);
+    border-radius: 16px;
+    padding: 25px 15px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid var(--border-color, rgba(0,0,0,0.08));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+}
+.companion-mode-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.10);
+    border-color: var(--accent-color, #c5a47e);
+    background-color: var(--secondary-bg, #f9f9f9);
+}
+.companion-mode-card i {
+    font-size: 28px;
+    color: var(--accent-color, #c5a47e);
+    width: 64px;
+    height: 64px;
+    background-color: rgba(var(--accent-color-rgb, 197,164,126), 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+}
+.companion-mode-card:hover i {
+    background-color: var(--accent-color, #c5a47e);
+    color: #fff;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(var(--accent-color-rgb, 197,164,126), 0.28);
+}
+.companion-mode-card span {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a1a);
+    letter-spacing: 0.5px;
+}
+html[data-theme="dark"] .companion-mode-card i {
+    background-color: rgba(var(--accent-color-rgb, 197,164,126), 0.2);
+}
+
 /* ── 初始化流程 ────────────────────────────────────────────────── */
 .companion-setup-desc {
     font-size: 13px;
