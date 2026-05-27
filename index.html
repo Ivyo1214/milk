@@ -198,6 +198,7 @@
                 <button id="session-manager-btn" class="action-btn" title="会话管理"><i class="fas fa-comments"></i></button>
                 <button id="group-chat-btn" class="action-btn" title="群聊设置"><i class="fas fa-users"></i></button>
                 <button id="daily-greeting-btn" class="action-btn" title="今日公告" onclick="reopenDailyGreeting()"><i class="fas fa-newspaper"></i></button>
+                <button id="companion-btn" class="action-btn" title="陪伴" onclick="showModal(document.getElementById('companion-modal'))"><i class="fas fa-hand-holding-heart"></i></button>
                 <button id="theme-toggle" class="action-btn" title="切换主题"><i class="fas fa-moon"></i></button>
                 <button id="settings-btn" class="action-btn" title="设置"><i class="fas fa-cog"></i></button>
             </div>
@@ -647,6 +648,39 @@
 
             <div class="modal-buttons">
                 <button class="modal-btn modal-btn-secondary" id="cancel-settings">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 陪伴模式选择弹窗 -->
+    <div class="modal" id="companion-modal">
+        <div class="modal-content">
+            <div class="modal-title">
+                <i class="fas fa-hand-holding-heart"></i><span>陪伴</span>
+            </div>
+
+            <div class="settings-grid">
+                <div class="settings-card" id="companion-study" onclick="selectCompanionMode('study')">
+                    <i class="fas fa-book-open-reader"></i>
+                    <span>陪我学习</span>
+                </div>
+                <div class="settings-card" id="companion-work" onclick="selectCompanionMode('work')">
+                    <i class="fas fa-briefcase"></i>
+                    <span>陪我工作</span>
+                </div>
+                <div class="settings-card" id="companion-exercise" onclick="selectCompanionMode('exercise')">
+                    <i class="fas fa-person-running"></i>
+                    <span>陪我运动</span>
+                </div>
+                <div class="settings-card" id="companion-sleep" onclick="selectCompanionMode('sleep')">
+                    <i class="fas fa-bed"></i>
+                    <span>陪我睡觉</span>
+                </div>
+            </div>
+
+
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" onclick="hideModal(document.getElementById('companion-modal'))">关闭</button>
             </div>
         </div>
     </div>
