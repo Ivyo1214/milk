@@ -706,10 +706,21 @@
     let dataLoaded = false;
 
     // 等待 SESSION_ID 就绪（最多等 10 秒）
+    function isSessionReady() {
+        try {
+            // 直接尝试访问全局 SESSION_ID（原项目用 const 声明，不在 window 上）
+            // 用 Function 构造器避免 strict mode 的影响
+            const sid = (new Function('try { return typeof SESSION_ID !== "undefined" ? SESSION_ID : null; } catch(e) { return null; }'))();
+            return !!sid;
+        } catch (e) {
+            return false;
+        }
+    }
+
     async function waitForSession(maxWait = 10000) {
         const start = Date.now();
         while (Date.now() - start < maxWait) {
-            if (typeof window.SESSION_ID !== 'undefined' && window.SESSION_ID) return true;
+            if (isSessionReady()) return true;
             await new Promise(r => setTimeout(r, 200));
         }
         return false;
