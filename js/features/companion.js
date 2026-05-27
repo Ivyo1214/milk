@@ -604,24 +604,34 @@
     // ─── 初始化：绑定所有事件 ────────────────────────────────────────────────
 
     function bindEvents() {
-        // 顶部按钮
-        const entryBtn = $('companion-btn');
-        if (entryBtn) entryBtn.addEventListener('click', handleEntryClick);
+        // 顶部按钮 —— 用事件委托，无论按钮何时出现都能响应
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest && e.target.closest('#companion-btn');
+            if (btn) {
+                e.stopPropagation();
+                e.preventDefault();
+                console.log('[companion] 陪伴按钮被点击');
+                handleEntryClick();
+            }
+        }, true); // 用捕获阶段，确保抢在其他监听器之前
 
-        // 陪伴选择弹窗
+        // 陪伴模式卡片 —— 也用事件委托
+        document.addEventListener('click', function (e) {
+            const card = e.target.closest && e.target.closest('.companion-mode-card');
+            if (card && card.dataset.mode) {
+                e.stopPropagation();
+                e.preventDefault();
+                selectMode(card.dataset.mode);
+            }
+        }, true);
+
+        // 陪伴选择弹窗（点击遮罩关闭）
         const modal = $('companion-modal');
         if (modal) {
             modal.addEventListener('click', e => {
                 if (e.target === modal) closeCompanionModal();
             });
         }
-        document.querySelectorAll('.companion-mode-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                selectMode(card.dataset.mode);
-            });
-        });
         const closeModalBtn = $('companion-modal-close');
         if (closeModalBtn) closeModalBtn.addEventListener('click', closeCompanionModal);
 
