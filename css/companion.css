@@ -1,0 +1,471 @@
+/* ================================================================
+   companion.css — 陪伴功能样式
+   ================================================================ */
+
+/* ── 弹窗基础（复用 .modal，额外处理激活状态）─────────────────── */
+.companion-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 3000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+.companion-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+.companion-modal-content,
+.companion-setup-content,
+.companion-time-content {
+    background: var(--primary-bg, #fff);
+    border-radius: 20px;
+    padding: 28px 24px 20px;
+    width: min(92vw, 420px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    transform: translateY(16px) scale(0.97);
+    transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+.companion-modal.active .companion-modal-content,
+.companion-modal.active .companion-setup-content,
+.companion-modal.active .companion-time-content {
+    transform: translateY(0) scale(1);
+}
+
+/* ── 初始化流程 ────────────────────────────────────────────────── */
+.companion-setup-desc {
+    font-size: 13px;
+    color: var(--text-secondary, #888);
+    text-align: center;
+    margin: 6px 0 16px;
+    line-height: 1.6;
+}
+
+.companion-upload-zone {
+    border: 2px dashed rgba(var(--accent-color-rgb, 197,164,126), 0.5);
+    border-radius: 14px;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.04);
+}
+.companion-upload-zone:hover {
+    border-color: var(--accent-color, #c5a47e);
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.09);
+}
+.companion-upload-zone i {
+    font-size: 28px;
+    color: var(--accent-color, #c5a47e);
+}
+.companion-upload-zone span {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a1a);
+}
+.companion-upload-zone small {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+}
+.companion-upload-zone--small {
+    padding: 14px 16px;
+}
+.companion-upload-zone--small i { font-size: 20px; }
+.companion-upload-zone--small span { font-size: 13px; }
+
+.companion-bg-preview {
+    width: 100%;
+    height: 160px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    background: #000;
+}
+.companion-bg-preview img,
+.companion-bg-preview video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.companion-setup-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+/* ── 语音列表 ──────────────────────────────────────────────────── */
+.companion-voice-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.companion-voice-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(var(--accent-color-rgb,197,164,126), 0.07);
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+.companion-voice-item i {
+    color: var(--accent-color, #c5a47e);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.companion-voice-name-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-primary, #1a1a1a);
+    outline: none;
+    min-width: 0;
+}
+.companion-voice-play,
+.companion-voice-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    color: var(--text-secondary, #888);
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+.companion-voice-play:hover { color: var(--accent-color, #c5a47e); background: rgba(var(--accent-color-rgb,197,164,126),0.1); }
+.companion-voice-delete:hover { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+
+.companion-empty-hint {
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+    text-align: center;
+    padding: 8px 0;
+}
+
+/* ── 时间选择弹窗 ──────────────────────────────────────────────── */
+.companion-time-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 10px 0 18px;
+}
+.companion-time-btn {
+    background: var(--primary-bg, #fff);
+    border: 1.5px solid var(--border-color, #eee);
+    border-radius: 14px;
+    padding: 16px 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+    color: var(--text-primary, #1a1a1a);
+}
+.companion-time-btn:hover {
+    border-color: var(--accent-color, #c5a47e);
+    background: rgba(var(--accent-color-rgb,197,164,126), 0.08);
+    transform: translateY(-2px);
+}
+.companion-time-btn .time-number {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent-color, #c5a47e);
+    line-height: 1;
+}
+.companion-time-btn .time-unit {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+}
+.companion-time-btn i {
+    font-size: 20px;
+    color: var(--accent-color, #c5a47e);
+}
+.companion-time-btn span:last-child:not(.time-number):not(.time-unit) {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ── 全屏陪伴页面 ──────────────────────────────────────────────── */
+.companion-page {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+.companion-page.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.companion-bg-container {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: #111;
+}
+.companion-bg-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.companion-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.38) 0%,
+        rgba(0,0,0,0.10) 40%,
+        rgba(0,0,0,0.10) 60%,
+        rgba(0,0,0,0.45) 100%
+    );
+}
+
+/* ── 顶部控制栏 ────────────────────────────────────────────────── */
+.companion-topbar {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    padding-top: max(16px, env(safe-area-inset-top));
+}
+
+.companion-ctrl-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.companion-ctrl-btn:hover {
+    background: rgba(255,255,255,0.28);
+    transform: scale(1.08);
+}
+
+.companion-hint-area {
+    flex: 1;
+    text-align: center;
+}
+.companion-hint-area span {
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.92);
+    letter-spacing: 1.5px;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+}
+
+/* ── 计时器 ────────────────────────────────────────────────────── */
+.companion-timer-area {
+    position: relative;
+    z-index: 2;
+    margin-bottom: max(40px, env(safe-area-inset-bottom, 40px));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.companion-timer-ring {
+    width: 100px;
+    height: 100px;
+    transform: rotate(-90deg);
+    position: absolute;
+}
+.timer-ring-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.15);
+    stroke-width: 4;
+}
+.timer-ring-progress {
+    fill: none;
+    stroke: rgba(255,255,255,0.7);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 226.19; /* 2π × 36 */
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.9s linear;
+}
+
+.companion-timer-display {
+    position: relative;
+    z-index: 1;
+    font-size: 22px;
+    font-weight: 300;
+    color: #fff;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    font-variant-numeric: tabular-nums;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* ── 右侧设置面板 ──────────────────────────────────────────────── */
+.companion-settings-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    width: min(88vw, 300px);
+    background: rgba(20,20,20,0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow-y: auto;
+}
+.companion-settings-panel.active {
+    transform: translateX(0);
+}
+
+.companion-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: max(0px, env(safe-area-inset-top));
+}
+.companion-panel-header span {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.companion-panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.companion-panel-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.companion-panel-label i { margin-right: 5px; }
+
+.companion-panel-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+.companion-panel-btn:hover {
+    background: rgba(255,255,255,0.17);
+}
+.companion-panel-btn i { font-size: 14px; color: rgba(255,255,255,0.6); }
+
+/* 面板内语音列表深色适配 */
+.companion-settings-panel .companion-voice-item {
+    background: rgba(255,255,255,0.08);
+}
+.companion-settings-panel .companion-voice-name-input {
+    color: rgba(255,255,255,0.85);
+}
+.companion-settings-panel .companion-voice-play,
+.companion-settings-panel .companion-voice-delete {
+    color: rgba(255,255,255,0.5);
+}
+.companion-settings-panel .companion-voice-play:hover { color: #fff; background: rgba(255,255,255,0.12); }
+.companion-settings-panel .companion-voice-delete:hover { color: #ff8080; background: rgba(255,80,80,0.12); }
+.companion-settings-panel .companion-empty-hint { color: rgba(255,255,255,0.4); }
+
+/* ── 退出确认 ──────────────────────────────────────────────────── */
+.companion-exit-confirm {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+.companion-exit-confirm.active {
+    opacity: 1;
+    pointer-events: all;
+}
+.companion-exit-box {
+    background: rgba(30,30,30,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    padding: 28px 28px 20px;
+    text-align: center;
+    width: min(85vw, 280px);
+    transform: scale(0.92);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.companion-exit-confirm.active .companion-exit-box {
+    transform: scale(1);
+}
+.companion-exit-box p {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    margin: 0 0 18px;
+    letter-spacing: 0.5px;
+}
+.companion-exit-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.companion-exit-btns .modal-btn {
+    width: 100%;
+    justify-content: center;
+}
+
+/* ── 响应式：窄屏调整 ──────────────────────────────────────────── */
+@media (max-width: 400px) {
+    .companion-time-grid { grid-template-columns: repeat(2, 1fr); }
+    .companion-timer-display { font-size: 19px; }
+}
