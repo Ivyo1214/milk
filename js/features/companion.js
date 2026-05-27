@@ -95,11 +95,58 @@
     // ─── 弹窗：陪伴选择（第一层：选场景）────────────────────────────────────
 
     function openCompanionModal() {
-        $('companion-modal').classList.add('active');
+        // 先移除可能残留的旧弹窗
+        const existing = document.getElementById('companion-modal-dynamic');
+        if (existing) existing.remove();
+
+        // 动态创建弹窗（直接 append 到 body 末尾，原项目接触不到）
+        const modal = document.createElement('div');
+        modal.id = 'companion-modal-dynamic';
+        modal.className = 'companion-modal active';
+        modal.innerHTML = `
+            <div class="modal-content companion-modal-content" onclick="event.stopPropagation()">
+                <div class="modal-title">
+                    <i class="fas fa-hand-holding-heart"></i><span>陪伴</span>
+                </div>
+                <div class="companion-grid">
+                    ${Object.entries(MODES).map(([key, cfg]) => `
+                        <div class="companion-mode-card" data-mode="${key}">
+                            <i class="fas ${cfg.icon}"></i>
+                            <span>${cfg.label}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn modal-btn-secondary" id="companion-dynamic-close">关闭</button>
+                </div>
+            </div>
+        `;
+
+        // 点遮罩关闭
+        modal.addEventListener('click', e => {
+            if (e.target === modal) closeCompanionModal();
+        });
+
+        // 点关闭按钮
+        modal.querySelector('#companion-dynamic-close').addEventListener('click', closeCompanionModal);
+
+        // 点卡片选择模式
+        modal.querySelectorAll('.companion-mode-card').forEach(card => {
+            card.addEventListener('click', e => {
+                e.stopPropagation();
+                selectMode(card.dataset.mode);
+            });
+        });
+
+        document.body.appendChild(modal);
     }
 
     function closeCompanionModal() {
-        $('companion-modal').classList.remove('active');
+        const dyn = document.getElementById('companion-modal-dynamic');
+        if (dyn) dyn.remove();
+        // 兼容旧的静态弹窗（如果还存在）
+        const oldModal = document.getElementById('companion-modal');
+        if (oldModal) oldModal.classList.remove('active');
     }
 
     // ─── 选择场景后：判断是否首次，决定走初始化还是直接进入 ──────────────────
