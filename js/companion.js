@@ -616,7 +616,11 @@
             });
         }
         document.querySelectorAll('.companion-mode-card').forEach(card => {
-            card.addEventListener('click', () => selectMode(card.dataset.mode));
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                selectMode(card.dataset.mode);
+            });
         });
         const closeModalBtn = $('companion-modal-close');
         if (closeModalBtn) closeModalBtn.addEventListener('click', closeCompanionModal);
@@ -700,16 +704,21 @@
     // ─── 入口 ────────────────────────────────────────────────────────────────
 
     async function init() {
-        await loadCompanionData();
-        bindEvents();
-        console.log('[companion] 模块加载完成');
+        try {
+            await loadCompanionData();
+            bindEvents();
+            console.log('[companion] 模块加载完成');
+        } catch (e) {
+            console.error('[companion] 初始化失败，已跳过陪伴模块以保护主功能', e);
+        }
     }
 
     // 等 DOM 就绪
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        init();
+        // 即使 DOM 已就绪，也延迟到下一个事件循环，确保主功能先初始化
+        setTimeout(init, 0);
     }
 
     // 暴露给外部（可选）
