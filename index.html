@@ -21,6 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/companion.css">
 
     <style id="css-live-preview-style"></style>
 </head>
@@ -198,7 +199,7 @@
                 <button id="session-manager-btn" class="action-btn" title="会话管理"><i class="fas fa-comments"></i></button>
                 <button id="group-chat-btn" class="action-btn" title="群聊设置"><i class="fas fa-users"></i></button>
                 <button id="daily-greeting-btn" class="action-btn" title="今日公告" onclick="reopenDailyGreeting()"><i class="fas fa-newspaper"></i></button>
-                <button id="companion-btn" class="action-btn" title="陪伴" onclick="showModal(document.getElementById('companion-modal'))"><i class="fas fa-hand-holding-heart"></i></button>
+                <button id="companion-btn" class="action-btn" title="陪伴"><i class="fas fa-hand-holding-heart"></i></button>
                 <button id="theme-toggle" class="action-btn" title="切换主题"><i class="fas fa-moon"></i></button>
                 <button id="settings-btn" class="action-btn" title="设置"><i class="fas fa-cog"></i></button>
             </div>
@@ -652,39 +653,137 @@
         </div>
     </div>
 
-    <!-- 陪伴模式选择弹窗 -->
-    <div class="modal" id="companion-modal">
-        <div class="modal-content">
+
+    <!-- ========== 陪伴功能弹窗 ========== -->
+
+    <!-- ① 陪伴模式选择 -->
+    <div class="companion-modal" id="companion-modal">
+        <div class="modal-content companion-modal-content">
             <div class="modal-title">
                 <i class="fas fa-hand-holding-heart"></i><span>陪伴</span>
             </div>
-
             <div class="settings-grid">
-                <div class="settings-card" id="companion-study" onclick="selectCompanionMode('study')">
-                    <i class="fas fa-book-open-reader"></i>
-                    <span>陪我学习</span>
+                <div class="settings-card companion-mode-card" data-mode="study">
+                    <i class="fas fa-book-open"></i><span>陪我学习</span>
                 </div>
-                <div class="settings-card" id="companion-work" onclick="selectCompanionMode('work')">
-                    <i class="fas fa-briefcase"></i>
-                    <span>陪我工作</span>
+                <div class="settings-card companion-mode-card" data-mode="work">
+                    <i class="fas fa-laptop-code"></i><span>陪我工作</span>
                 </div>
-                <div class="settings-card" id="companion-exercise" onclick="selectCompanionMode('exercise')">
-                    <i class="fas fa-person-running"></i>
-                    <span>陪我运动</span>
+                <div class="settings-card companion-mode-card" data-mode="exercise">
+                    <i class="fas fa-person-running"></i><span>陪我运动</span>
                 </div>
-                <div class="settings-card" id="companion-sleep" onclick="selectCompanionMode('sleep')">
-                    <i class="fas fa-bed"></i>
-                    <span>陪我睡觉</span>
+                <div class="settings-card companion-mode-card" data-mode="sleep">
+                    <i class="fas fa-moon"></i><span>陪我睡觉</span>
                 </div>
             </div>
-
-
             <div class="modal-buttons">
-                <button class="modal-btn modal-btn-secondary" onclick="hideModal(document.getElementById('companion-modal'))">关闭</button>
+                <button class="modal-btn modal-btn-secondary" id="companion-modal-close">关闭</button>
             </div>
         </div>
     </div>
 
+    <!-- ② 首次初始化弹窗 -->
+    <div class="companion-modal" id="setup-modal">
+        <div class="modal-content companion-setup-content">
+            <div class="modal-title">
+                <i id="setup-modal-icon" class="fas fa-book-open"></i>
+                <span id="setup-modal-title">陪我学习</span>
+            </div>
+            <div id="setup-step-bg">
+                <p class="companion-setup-desc">请上传一张梦角的图片或视频，作为陪伴背景 ✦</p>
+                <div id="setup-bg-preview" class="companion-bg-preview" style="display:none;"></div>
+                <div id="setup-bg-trigger" class="companion-upload-zone">
+                    <i class="fas fa-cloud-arrow-up"></i>
+                    <span>点击上传图片 / 视频</span>
+                    <small>支持 jpg · png · gif · mp4 · mov，建议 ≤ 100MB</small>
+                </div>
+                <input type="file" id="setup-bg-input" accept="image/*,video/*" style="display:none">
+                <div class="companion-setup-btns">
+                    <button class="modal-btn modal-btn-secondary" id="setup-btn-cancel">取消</button>
+                    <button class="modal-btn modal-btn-primary" id="setup-btn-next" style="display:none">
+                        下一步 <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="setup-step-voice" style="display:none;">
+                <p class="companion-setup-desc">上传梦角的语音，点击屏幕时会随机播放 ✦</p>
+                <div id="setup-voice-trigger" class="companion-upload-zone companion-upload-zone--small">
+                    <i class="fas fa-microphone"></i>
+                    <span>点击上传语音</span>
+                    <small>支持 mp3 · m4a · wav，可多选</small>
+                </div>
+                <input type="file" id="setup-voice-input" accept="audio/*" multiple style="display:none">
+                <div id="setup-voice-list" class="companion-voice-list"></div>
+                <div class="companion-setup-btns">
+                    <button class="modal-btn modal-btn-secondary" id="setup-btn-skip">跳过</button>
+                    <button class="modal-btn modal-btn-primary" id="setup-btn-finish">
+                        <i class="fas fa-check"></i> 完成
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ③ 时间选择弹窗 -->
+    <div class="companion-modal" id="time-modal">
+        <div class="modal-content companion-time-content">
+            <div class="modal-title">
+                <i id="time-modal-icon" class="fas fa-book-open"></i>
+                <span id="time-modal-title">陪我学习</span>
+            </div>
+            <p class="companion-setup-desc">选择本次陪伴时长</p>
+            <div id="time-options-grid" class="companion-time-grid"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" id="time-modal-close">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ④ 全屏陪伴页面 -->
+    <div id="companion-page" class="companion-page">
+        <div id="companion-bg-container" class="companion-bg-container"></div>
+        <div class="companion-overlay"></div>
+        <div class="companion-topbar">
+            <button id="companion-exit-btn" class="companion-ctrl-btn"><i class="fas fa-xmark"></i></button>
+            <div class="companion-hint-area"><span id="companion-hint-text">专注学习中...</span></div>
+            <button id="companion-settings-btn" class="companion-ctrl-btn"><i class="fas fa-gear"></i></button>
+        </div>
+        <div id="companion-timer-area" class="companion-timer-area">
+            <svg class="companion-timer-ring" id="companion-timer-ring" viewBox="0 0 80 80">
+                <circle class="timer-ring-bg" cx="40" cy="40" r="36"/>
+                <circle class="timer-ring-progress" cx="40" cy="40" r="36"/>
+            </svg>
+            <div id="companion-timer-display" class="companion-timer-display">00:00</div>
+        </div>
+        <div id="companion-settings-panel" class="companion-settings-panel">
+            <div class="companion-panel-header">
+                <span>陪伴设置</span>
+                <button id="panel-close-btn" class="companion-ctrl-btn"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="companion-panel-section">
+                <div class="companion-panel-label"><i class="fas fa-image"></i> 更换背景</div>
+                <div id="panel-bg-trigger" class="companion-panel-btn"><i class="fas fa-cloud-arrow-up"></i> 上传新背景</div>
+                <input type="file" id="panel-bg-input" accept="image/*,video/*" style="display:none">
+            </div>
+            <div class="companion-panel-section">
+                <div class="companion-panel-label"><i class="fas fa-music"></i> 语音管理</div>
+                <div id="panel-voice-trigger" class="companion-panel-btn"><i class="fas fa-plus"></i> 添加语音</div>
+                <input type="file" id="panel-voice-input" accept="audio/*" multiple style="display:none">
+                <div id="panel-voice-list" class="companion-voice-list"></div>
+            </div>
+        </div>
+        <div id="companion-exit-confirm" class="companion-exit-confirm">
+            <div class="companion-exit-box">
+                <p>确定要离开吗？</p>
+                <div class="companion-exit-btns">
+                    <button id="exit-confirm-no" class="modal-btn modal-btn-secondary">再陪我一会儿</button>
+                    <button id="exit-confirm-yes" class="modal-btn modal-btn-primary">离开</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== / 陪伴功能弹窗 ========== -->
 
     <div class="modal" id="appearance-modal">
         <div class="modal-content">
@@ -2268,6 +2367,7 @@
     <script src="js/data.js"></script>
     <script src="js/onboarding.js"></script> 
     <script src="js/listeners.js"></script>
+    <script src="js/features/companion.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
