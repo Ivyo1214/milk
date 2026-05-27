@@ -99,25 +99,54 @@
         const existing = document.getElementById('companion-modal-dynamic');
         if (existing) existing.remove();
 
-        // 动态创建弹窗（直接 append 到 body 末尾，原项目接触不到）
+        // 动态创建弹窗，用内联样式强制覆盖，避免被原项目的 hideModal 干扰
+        // 注意：内层不再用 .modal-content（避免被 hideModal querySelector 抓到）
         const modal = document.createElement('div');
         modal.id = 'companion-modal-dynamic';
-        modal.className = 'companion-modal active';
+        modal.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99998',
+            'background:rgba(0,0,0,0.5)',
+            'display:flex', 'align-items:center', 'justify-content:center',
+            'opacity:1', 'pointer-events:all',
+            'animation:companionFadeIn 0.25s ease'
+        ].join(';'));
+
         modal.innerHTML = `
-            <div class="modal-content companion-modal-content" onclick="event.stopPropagation()">
-                <div class="modal-title">
-                    <i class="fas fa-hand-holding-heart"></i><span>陪伴</span>
+            <div id="companion-modal-card" style="
+                background:#fff;border-radius:20px;padding:28px 24px 20px;
+                width:min(92vw, 420px);max-height:85vh;overflow-y:auto;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18);
+                opacity:1 !important;transform:none !important;
+                animation:companionPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            ">
+                <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:18px;justify-content:center;">
+                    <i class="fas fa-hand-holding-heart" style="color:#c5a47e;"></i>
+                    <span>陪伴</span>
                 </div>
-                <div class="companion-grid">
+                <div id="companion-cards-wrap" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:6px 4px;">
                     ${Object.entries(MODES).map(([key, cfg]) => `
-                        <div class="companion-mode-card" data-mode="${key}">
-                            <i class="fas ${cfg.icon}"></i>
-                            <span>${cfg.label}</span>
+                        <div class="companion-mode-card-dyn" data-mode="${key}" style="
+                            background:#fafafa;border-radius:14px;padding:22px 12px;cursor:pointer;
+                            border:1px solid rgba(0,0,0,0.06);
+                            display:flex;flex-direction:column;align-items:center;gap:10px;
+                            transition:all 0.25s ease;user-select:none;
+                        ">
+                            <div style="
+                                width:56px;height:56px;border-radius:50%;
+                                background:rgba(197,164,126,0.12);
+                                display:flex;align-items:center;justify-content:center;
+                            ">
+                                <i class="fas ${cfg.icon}" style="font-size:24px;color:#c5a47e;"></i>
+                            </div>
+                            <span style="font-size:14px;font-weight:600;color:#1a1a1a;">${cfg.label}</span>
                         </div>
                     `).join('')}
                 </div>
-                <div class="modal-buttons">
-                    <button class="modal-btn modal-btn-secondary" id="companion-dynamic-close">关闭</button>
+                <div style="margin-top:18px;text-align:right;">
+                    <button id="companion-dynamic-close" style="
+                        padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);
+                        background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;
+                    ">关闭</button>
                 </div>
             </div>
         `;
@@ -127,24 +156,47 @@
             if (e.target === modal) closeCompanionModal();
         });
 
-        // 点关闭按钮
+        // 关闭按钮
         modal.querySelector('#companion-dynamic-close').addEventListener('click', closeCompanionModal);
 
-        // 点卡片选择模式
-        modal.querySelectorAll('.companion-mode-card').forEach(card => {
+        // 点卡片
+        modal.querySelectorAll('.companion-mode-card-dyn').forEach(card => {
             card.addEventListener('click', e => {
                 e.stopPropagation();
                 selectMode(card.dataset.mode);
             });
+            // hover 效果（用 JS 因为内联样式没法用 :hover）
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-3px)';
+                card.style.borderColor = '#c5a47e';
+                card.style.boxShadow = '0 10px 24px rgba(0,0,0,0.08)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = '';
+                card.style.borderColor = 'rgba(0,0,0,0.06)';
+                card.style.boxShadow = '';
+            });
         });
 
+        // 注入动画 keyframes（一次性）
+        if (!document.getElementById('companion-keyframes')) {
+            const style = document.createElement('style');
+            style.id = 'companion-keyframes';
+            style.textContent = `
+                @keyframes companionFadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes companionPopIn { from { opacity: 0; transform: scale(0.94) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+            `;
+            document.head.appendChild(style);
+        }
+
         document.body.appendChild(modal);
+        console.log('[companion] 弹窗已创建并挂到 body');
     }
 
     function closeCompanionModal() {
         const dyn = document.getElementById('companion-modal-dynamic');
         if (dyn) dyn.remove();
-        // 兼容旧的静态弹窗（如果还存在）
+        // 兼容旧的静态弹窗
         const oldModal = document.getElementById('companion-modal');
         if (oldModal) oldModal.classList.remove('active');
     }
