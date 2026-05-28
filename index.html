@@ -743,35 +743,26 @@
     <div id="companion-page" class="companion-page">
         <div id="companion-bg-container" class="companion-bg-container"></div>
         <div class="companion-overlay"></div>
-        <div class="companion-topbar">
-            <button id="companion-exit-btn" class="companion-ctrl-btn"><i class="fas fa-xmark"></i></button>
-            <div class="companion-hint-area"><span id="companion-hint-text">专注学习中...</span></div>
-            <button id="companion-settings-btn" class="companion-ctrl-btn"><i class="fas fa-gear"></i></button>
-        </div>
-        <div id="companion-timer-area" class="companion-timer-area">
-            <svg class="companion-timer-ring" id="companion-timer-ring" viewBox="0 0 80 80">
-                <circle class="timer-ring-bg" cx="40" cy="40" r="36"/>
-                <circle class="timer-ring-progress" cx="40" cy="40" r="36"/>
-            </svg>
+
+        <!-- 左上角退出 -->
+        <button id="companion-exit-btn" class="companion-ctrl-btn companion-exit-corner">
+            <i class="fas fa-xmark"></i>
+        </button>
+
+        <!-- 右上角玻璃球计时器 -->
+        <div id="companion-timer-area" class="companion-timer-glass">
             <div id="companion-timer-display" class="companion-timer-display">00:00</div>
-        </div>
-        <div id="companion-settings-panel" class="companion-settings-panel">
-            <div class="companion-panel-header">
-                <span>陪伴设置</span>
-                <button id="panel-close-btn" class="companion-ctrl-btn"><i class="fas fa-xmark"></i></button>
-            </div>
-            <div class="companion-panel-section">
-                <div class="companion-panel-label"><i class="fas fa-image"></i> 更换背景</div>
-                <div id="panel-bg-trigger" class="companion-panel-btn"><i class="fas fa-cloud-arrow-up"></i> 上传新背景</div>
-                <input type="file" id="panel-bg-input" accept="image/*,video/*" style="display:none">
-            </div>
-            <div class="companion-panel-section">
-                <div class="companion-panel-label"><i class="fas fa-music"></i> 语音管理</div>
-                <div id="panel-voice-trigger" class="companion-panel-btn"><i class="fas fa-plus"></i> 添加语音</div>
-                <input type="file" id="panel-voice-input" accept="audio/*" multiple style="display:none">
-                <div id="panel-voice-list" class="companion-voice-list"></div>
+            <div id="companion-timer-label" class="companion-timer-label">STUDY</div>
+            <div class="companion-timer-dots">
+                <span></span><span></span><span></span>
             </div>
         </div>
+
+        <!-- 底部场景提示 -->
+        <div class="companion-hint-bottom">
+            <span id="companion-hint-text">正在一起学习 · 加油</span>
+        </div>
+
         <div id="companion-exit-confirm" class="companion-exit-confirm">
             <div class="companion-exit-box">
                 <p>现在就要走了吗？</p>
