@@ -481,7 +481,6 @@
 
         // 梦角自选时间（从 inviteTimes 池里随机选一个）
         const inviteTime = pickRandom(cfg.inviteTimes || [25]);
-        console.log(`[companion] 梦角邀请 mode=${mode}, inviteTimes=${JSON.stringify(cfg.inviteTimes)}, 抽到=${inviteTime}`);
 
         // 拼接邀请文案：智能处理"陪你"是否已经在台词里 + rest 特殊处理
         let line;
@@ -623,6 +622,100 @@
     function stopRandomInvite() {
         clearTimeout(_randomInviteTimer);
         _randomInviteTimer = null;
+    }
+
+    // ─── 梦角提前离开 ────────────────────────────────────────────────────
+    // 在陪伴中每 5 分钟检查一次，5% 概率梦角提前离开（睡觉场景排除）
+
+    const FAREWELL_LINES = [
+        '有事，先走了',
+        '我得忙一下，你自己加油',
+        '突然有点事，下次再陪你',
+        '先走一步，记得照顾自己',
+        '我先离开了，你继续',
+        '不好意思，得走了',
+    ];
+
+    let _earlyLeaveTimer = null;
+    // 强制结果（用于测试）：null=正常随机，true=强制下次检查时离开
+    let _forceEarlyLeave = false;
+
+    function scheduleEarlyLeaveCheck() {
+        clearTimeout(_earlyLeaveTimer);
+        _earlyLeaveTimer = setTimeout(() => {
+            // 必须仍然在陪伴中
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                return;
+            }
+            // 睡觉场景不会提前离开
+            if (currentMode === 'sleep') {
+                scheduleEarlyLeaveCheck();
+                return;
+            }
+            // 5% 概率（或者测试模式强制触发）
+            if (_forceEarlyLeave || Math.random() < 0.05) {
+                _forceEarlyLeave = false;
+                triggerEarlyLeave();
+            } else {
+                scheduleEarlyLeaveCheck();
+            }
+        }, 5 * 60 * 1000); // 5 分钟
+    }
+
+    function stopEarlyLeaveCheck() {
+        clearTimeout(_earlyLeaveTimer);
+        _earlyLeaveTimer = null;
+    }
+
+    function triggerEarlyLeave() {
+        const partnerName = getPartnerName();
+        const line = pickRandom(FAREWELL_LINES);
+        const avSrc = getPartnerAvatarSrc();
+
+        // 弹出告别提示（约 4 秒后自动消失并关闭陪伴页）
+        const overlay = document.createElement('div');
+        overlay.id = 'companion-farewell-overlay';
+        overlay.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99999',
+            'background:rgba(15,15,20,0.92)',
+            'display:flex', 'align-items:center', 'justify-content:center',
+            'animation:companionFadeIn 0.4s ease',
+        ].join(';'));
+
+        const avatarHtml = avSrc
+            ? `<img src="${avSrc}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<i class="fas fa-user" style="font-size:30px;color:rgba(255,255,255,.85);"></i>`;
+
+        overlay.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;max-width:300px;padding:0 20px;animation:companionPopIn 0.5s ease;">
+                <div style="
+                    width:80px;height:80px;border-radius:50%;overflow:hidden;
+                    background:rgba(255,255,255,0.1);
+                    display:flex;align-items:center;justify-content:center;
+                    border:2px solid rgba(255,255,255,0.15);
+                ">${avatarHtml}</div>
+                <div style="font-size:18px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
+                <div style="
+                    background:rgba(255,255,255,0.08);border-radius:14px;padding:14px 22px;
+                    display:flex;align-items:center;gap:10px;text-align:center;
+                ">
+                    <i class="fas fa-hand" style="color:#c5a47e;font-size:16px;"></i>
+                    <span style="font-size:14px;">${line}</span>
+                </div>
+            </div>
+        `;
+
+        injectKeyframes();
+        document.documentElement.appendChild(overlay);
+
+        // 写入聊天记录（用挥手图标 fa-hand-wave 的替代 fa-hand）
+        sendChatEvent('fa-hand', `${partnerName}提前离开了陪伴`, null);
+
+        // 3.5 秒后自动消失 + 关闭陪伴页（用 closeCompanionPage 统一处理清理）
+        setTimeout(() => {
+            if (overlay.isConnected) overlay.remove();
+            closeCompanionPage();
+        }, 3500);
     }
 
     // ─── 动画 keyframes 注入（一次性）────────────────────────────────────
@@ -1013,6 +1106,13 @@
         const hint = $('companion-hint-text');
         if (hint) hint.textContent = cfg.hint;
 
+        // 设置玻璃球计时器副标题（场景名英文缩写）
+        const timerLabel = $('companion-timer-label');
+        if (timerLabel) {
+            const labels = { study: 'STUDY', work: 'WORK', exercise: 'EXERCISE', sleep: 'SLEEP' };
+            timerLabel.textContent = labels[currentMode] || '';
+        }
+
         // 初始化计时器显示
         updateTimerDisplay();
 
@@ -1069,6 +1169,7 @@
 
     function closeCompanionPage() {
         stopTimer();
+        stopEarlyLeaveCheck();
         recordHistory();
 
         // 停止音频
@@ -1087,6 +1188,8 @@
 
     function startTimer() {
         clearInterval(timerInterval);
+        // 同时启动梦角提前离开的检查
+        scheduleEarlyLeaveCheck();
         timerInterval = setInterval(() => {
             if (isCountdown) {
                 timerSeconds--;
@@ -1121,19 +1224,12 @@
         } else {
             el.textContent = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
         }
-
-        // 倒计时时更新进度环
-        if (isCountdown && totalSeconds > 0) {
-            const pct = timerSeconds / totalSeconds;
-            const circle = document.querySelector('#companion-timer-ring .timer-ring-progress');
-            if (circle) {
-                const circumference = 2 * Math.PI * 36;
-                circle.style.strokeDashoffset = circumference * (1 - pct);
-            }
-        }
     }
 
     function onTimerEnd() {
+        // 时间已到，停止"梦角提前离开"检查（不然会在用户看结束页时还可能触发）
+        stopEarlyLeaveCheck();
+
         // 震动提示
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 
@@ -1173,8 +1269,8 @@
 
     // 点击空白区域播放
     function handlePageClick(e) {
-        // 排除按钮点击
-        if (e.target.closest('button, input, .companion-settings-panel, #companion-timer-area')) return;
+        // 排除按钮、计时器区域、退出确认弹窗的点击
+        if (e.target.closest('button, input, #companion-timer-area, #companion-exit-confirm')) return;
         const voices = (companionData.voices && companionData.voices[currentMode]) || [];
         if (!voices.length) {
             notify('没有什么想说的', 'info');
@@ -1185,19 +1281,12 @@
 
     // ─── 设置面板（右侧滑出）────────────────────────────────────────────────
 
+    // 旧"陪伴页右上角设置面板"已移除，这里保留空函数防御性兜底
     function openSettingsPanel() {
-        isVoicePanelOpen = false;
-        renderSettingsPanel();
-        $('companion-settings-panel').classList.add('active');
+        // 设置面板已迁移到外观设置 → 背景&字体
     }
-
-    function closeSettingsPanel() {
-        $('companion-settings-panel').classList.remove('active');
-    }
-
-    function renderSettingsPanel() {
-        renderVoiceManagerInPanel();
-    }
+    function closeSettingsPanel() { /* no-op */ }
+    function renderSettingsPanel() { /* no-op */ }
 
     function renderVoiceManagerInPanel() {
         // ⚠️ 此函数对应的"陪伴页内右上角设置面板"将在后续移除，
@@ -1631,34 +1720,13 @@
         const exitBtn = $('companion-exit-btn');
         if (exitBtn) exitBtn.addEventListener('click', showExitConfirm);
 
-        const settingsBtn = $('companion-settings-btn');
-        if (settingsBtn) settingsBtn.addEventListener('click', e => { e.stopPropagation(); openSettingsPanel(); });
-
         const exitConfirmYes = $('exit-confirm-yes');
         if (exitConfirmYes) exitConfirmYes.addEventListener('click', closeCompanionPage);
 
         const exitConfirmNo = $('exit-confirm-no');
         if (exitConfirmNo) exitConfirmNo.addEventListener('click', hideExitConfirm);
 
-        // 设置面板
-        const panelClose = $('panel-close-btn');
-        if (panelClose) panelClose.addEventListener('click', e => { e.stopPropagation(); closeSettingsPanel(); });
-
-        const panelBgInput = $('panel-bg-input');
-        if (panelBgInput) panelBgInput.addEventListener('change', handlePanelBgUpload);
-
-        const panelBgTrigger = $('panel-bg-trigger');
-        if (panelBgTrigger) panelBgTrigger.addEventListener('click', e => { e.stopPropagation(); $('panel-bg-input').click(); });
-
-        const panelVoiceInput = $('panel-voice-input');
-        if (panelVoiceInput) {
-            // iOS Safari 对 audio/* 识别有 bug，改成 */* 绕开
-            panelVoiceInput.setAttribute('accept', '*/*');
-            panelVoiceInput.addEventListener('change', handlePanelVoiceUpload);
-        }
-
-        const panelVoiceTrigger = $('panel-voice-trigger');
-        if (panelVoiceTrigger) panelVoiceTrigger.addEventListener('click', e => { e.stopPropagation(); $('panel-voice-input').click(); });
+        // 设置面板入口和相关元素已移除（统一去外观设置 → 背景&字体 管理）
     }
 
     // ─── 入口 ────────────────────────────────────────────────────────────────
@@ -1769,6 +1837,25 @@
             currentMode = mode;
             showCompanionInviting(mode);
             setTimeout(() => { _forceResult = null; }, 15000);
+        },
+
+        // 测试：梦角立即提前离开（必须在陪伴中调用）
+        testEarlyLeave: () => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 不在陪伴中，无法测试提前离开');
+                return;
+            }
+            if (currentMode === 'sleep') {
+                console.warn('[companion] 睡觉场景不会触发提前离开（按设计）');
+                return;
+            }
+            triggerEarlyLeave();
+        },
+
+        // 测试：让下一次 5 分钟检查时强制离开（不用等概率）
+        forceNextEarlyLeave: () => {
+            _forceEarlyLeave = true;
+            console.log('[companion] 下次 5 分钟检查时将强制离开');
         },
 
         // 控制随机邀请定时器
