@@ -220,190 +220,313 @@
 
     // ─── 初始化流程（首次）──────────────────────────────────────────────────
 
+    // 动态创建设置弹窗的通用容器
+    function _createDynamicModal(id, contentHtml) {
+        // 移除残留
+        const existing = document.getElementById(id);
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = id;
+        modal.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99998',
+            'background:rgba(0,0,0,0.5)',
+            'display:flex', 'align-items:center', 'justify-content:center',
+            'opacity:1', 'pointer-events:all',
+            'animation:companionFadeIn 0.25s ease'
+        ].join(';'));
+
+        modal.innerHTML = `
+            <div style="
+                background:#fff;border-radius:20px;padding:28px 24px 20px;
+                width:min(92vw, 460px);max-height:85vh;overflow-y:auto;
+                box-shadow:0 20px 60px rgba(0,0,0,0.18);
+                animation:companionPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            ">${contentHtml}</div>
+        `;
+        document.documentElement.appendChild(modal);
+        return modal;
+    }
+
     function openSetupModal(mode) {
         const cfg = MODES[mode];
-        $('setup-modal-title').textContent = cfg.label;
-        $('setup-modal-icon').className = `fas ${cfg.icon}`;
-        $('setup-step-bg').style.display = 'block';
-        $('setup-step-voice').style.display = 'none';
-        $('setup-bg-preview').innerHTML = '';
-        $('setup-bg-preview').style.display = 'none';
-        $('setup-btn-next').style.display = 'none';
-        $('setup-modal').classList.add('active');
-        window._setupPendingBg = null;
-    }
-
-    function closeSetupModal() {
-        $('setup-modal').classList.remove('active');
         window._setupPendingBg = null;
         window._setupPendingVoices = [];
-    }
 
-    // 步骤1：背景上传
-    async function handleSetupBgUpload(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+        const html = `
+            <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:14px;justify-content:center;">
+                <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
+                <span>${cfg.label}</span>
+            </div>
+            <div id="setup-dyn-step-bg">
+                <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;line-height:1.6;">请上传一张梦角的图片或视频，作为陪伴背景 ✦</p>
+                <div id="setup-dyn-bg-preview" style="display:none;width:100%;height:160px;border-radius:12px;overflow:hidden;margin-bottom:12px;background:#000;"></div>
+                <div id="setup-dyn-bg-trigger" style="
+                    border:2px dashed rgba(197,164,126,0.5);border-radius:14px;padding:24px 16px;
+                    display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;
+                    background:rgba(197,164,126,0.04);transition:all 0.2s ease;
+                ">
+                    <i class="fas fa-cloud-arrow-up" style="font-size:28px;color:#c5a47e;"></i>
+                    <span style="font-size:14px;font-weight:600;color:#1a1a1a;">点击上传图片 / 视频</span>
+                    <small style="font-size:11px;color:#888;">支持 jpg · png · gif · mp4 · mov，建议 ≤ 100MB</small>
+                </div>
+                <input type="file" id="setup-dyn-bg-input" accept="image/*,video/*" style="display:none">
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+                    <button id="setup-dyn-btn-cancel" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">取消</button>
+                    <button id="setup-dyn-btn-next" style="display:none;padding:8px 20px;border-radius:10px;border:none;background:#c5a47e;color:#fff;font-size:13px;cursor:pointer;">下一步 →</button>
+                </div>
+            </div>
+            <div id="setup-dyn-step-voice" style="display:none;">
+                <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;line-height:1.6;">上传梦角的语音，点击屏幕时会随机播放 ✦</p>
+                <div id="setup-dyn-voice-trigger" style="
+                    border:2px dashed rgba(197,164,126,0.5);border-radius:14px;padding:14px 16px;
+                    display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;
+                    background:rgba(197,164,126,0.04);transition:all 0.2s ease;
+                ">
+                    <i class="fas fa-microphone" style="font-size:20px;color:#c5a47e;"></i>
+                    <span style="font-size:13px;font-weight:600;color:#1a1a1a;">点击上传语音</span>
+                    <small style="font-size:11px;color:#888;">支持 mp3 · m4a · wav，可多选</small>
+                </div>
+                <input type="file" id="setup-dyn-voice-input" accept="audio/*" multiple style="display:none">
+                <div id="setup-dyn-voice-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;"></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+                    <button id="setup-dyn-btn-skip" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">跳过</button>
+                    <button id="setup-dyn-btn-finish" style="padding:8px 20px;border-radius:10px;border:none;background:#c5a47e;color:#fff;font-size:13px;cursor:pointer;">✓ 完成</button>
+                </div>
+            </div>
+        `;
 
-        const maxBytes = 100 * 1024 * 1024; // 100MB
-        if (file.size > maxBytes) {
-            notify('文件超过 100MB，建议使用更小的文件以避免加载缓慢', 'warning');
-        }
+        const modal = _createDynamicModal('setup-modal-dynamic', html);
 
-        const isVideo = file.type.startsWith('video/');
-        const isImage = file.type.startsWith('image/');
-        if (!isVideo && !isImage) {
-            notify('请上传图片（jpg/png/gif/webp）或视频（mp4/mov）文件', 'error');
-            return;
-        }
+        // 点遮罩关闭
+        modal.addEventListener('click', e => {
+            if (e.target === modal) closeSetupModalDyn();
+        });
 
-        try {
+        // 背景上传触发
+        modal.querySelector('#setup-dyn-bg-trigger').addEventListener('click', () => {
+            modal.querySelector('#setup-dyn-bg-input').click();
+        });
+
+        // 背景文件选择
+        modal.querySelector('#setup-dyn-bg-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const isVideo = file.type.startsWith('video/');
+            const isImage = file.type.startsWith('image/');
+            if (!isVideo && !isImage) { notify('请上传图片或视频文件', 'error'); return; }
+            if (file.size > 100 * 1024 * 1024) notify('文件超过 100MB，加载可能较慢', 'warning');
+
             notify('正在处理文件...', 'info');
             const base64 = await readFileAsBase64(file);
             window._setupPendingBg = { type: isVideo ? 'video' : 'image', data: base64, name: file.name };
 
-            // 显示预览
-            const preview = $('setup-bg-preview');
+            const preview = modal.querySelector('#setup-dyn-bg-preview');
             preview.innerHTML = '';
             if (isVideo) {
                 const v = document.createElement('video');
                 v.src = base64; v.muted = true; v.autoplay = true; v.loop = true; v.playsInline = true;
+                v.style.cssText = 'width:100%;height:100%;object-fit:cover;';
                 preview.appendChild(v);
             } else {
                 const img = document.createElement('img');
                 img.src = base64;
+                img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
                 preview.appendChild(img);
             }
             preview.style.display = 'block';
-            $('setup-btn-next').style.display = 'inline-flex';
-        } catch (err) {
-            notify('文件读取失败，请重试', 'error');
-            console.error(err);
-        }
-        e.target.value = '';
-    }
+            modal.querySelector('#setup-dyn-btn-next').style.display = 'inline-flex';
+            e.target.value = '';
+        });
 
-    // 步骤1完成 → 进入步骤2（语音）
-    function setupGoToVoice() {
-        if (!window._setupPendingBg) {
-            notify('请先上传背景', 'warning');
-            return;
-        }
-        $('setup-step-bg').style.display = 'none';
-        $('setup-step-voice').style.display = 'block';
-        window._setupPendingVoices = [];
-        renderSetupVoiceList();
-    }
+        // 取消按钮
+        modal.querySelector('#setup-dyn-btn-cancel').addEventListener('click', closeSetupModalDyn);
 
-    // 步骤2：语音上传
-    async function handleSetupVoiceUpload(e) {
-        const files = Array.from(e.target.files);
-        if (!files.length) return;
+        // 下一步：跳到语音步骤
+        modal.querySelector('#setup-dyn-btn-next').addEventListener('click', () => {
+            if (!window._setupPendingBg) { notify('请先上传背景', 'warning'); return; }
+            modal.querySelector('#setup-dyn-step-bg').style.display = 'none';
+            modal.querySelector('#setup-dyn-step-voice').style.display = 'block';
+        });
 
-        for (const file of files) {
-            if (!file.type.startsWith('audio/')) {
-                notify(`${file.name} 不是音频文件，已跳过`, 'warning');
-                continue;
-            }
-            try {
+        // 语音上传触发
+        modal.querySelector('#setup-dyn-voice-trigger').addEventListener('click', () => {
+            modal.querySelector('#setup-dyn-voice-input').click();
+        });
+
+        // 语音文件选择
+        modal.querySelector('#setup-dyn-voice-input').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                if (!file.type.startsWith('audio/')) { notify(`${file.name} 不是音频文件，已跳过`, 'warning'); continue; }
                 const base64 = await readFileAsBase64(file);
-                window._setupPendingVoices = window._setupPendingVoices || [];
                 window._setupPendingVoices.push({
-                    id: generateId(),
-                    data: base64,
-                    name: file.name.replace(/\.[^/.]+$/, ''), // 去掉扩展名作为默认名
+                    id: generateId(), data: base64,
+                    name: file.name.replace(/\.[^/.]+$/, ''),
                     addedAt: Date.now()
                 });
-            } catch (err) {
-                notify(`${file.name} 读取失败`, 'error');
             }
-        }
-        renderSetupVoiceList();
-        e.target.value = '';
+            renderSetupVoiceListDyn(modal);
+            e.target.value = '';
+        });
+
+        // 跳过：保存背景直接进入时间选择
+        modal.querySelector('#setup-dyn-btn-skip').addEventListener('click', async () => {
+            if (!window._setupPendingBg) { notify('请先上传背景', 'warning'); return; }
+            const bg = { id: generateId(), ...window._setupPendingBg, addedAt: Date.now() };
+            companionData.backgrounds[currentMode].push(bg);
+            await saveCompanionData();
+            closeSetupModalDyn();
+            openTimeModal(currentMode);
+        });
+
+        // 完成：保存全部
+        modal.querySelector('#setup-dyn-btn-finish').addEventListener('click', async () => {
+            if (!window._setupPendingBg) { notify('请先上传背景图片或视频', 'warning'); return; }
+            const bg = { id: generateId(), ...window._setupPendingBg, addedAt: Date.now() };
+            companionData.backgrounds[currentMode].push(bg);
+            if (window._setupPendingVoices && window._setupPendingVoices.length) {
+                companionData.voices.push(...window._setupPendingVoices);
+            }
+            await saveCompanionData();
+            closeSetupModalDyn();
+            notify('设置完成！', 'success');
+            openTimeModal(currentMode);
+        });
+
+        console.log('[companion] 设置弹窗已打开');
     }
 
-    function renderSetupVoiceList() {
-        const list = $('setup-voice-list');
+    function closeSetupModalDyn() {
+        document.querySelectorAll('#setup-modal-dynamic').forEach(el => el.remove());
+        window._setupPendingBg = null;
+        window._setupPendingVoices = [];
+    }
+
+    function renderSetupVoiceListDyn(modal) {
+        const list = modal.querySelector('#setup-dyn-voice-list');
         const voices = window._setupPendingVoices || [];
         if (!voices.length) {
-            list.innerHTML = '<p class="companion-empty-hint">暂无语音，可跳过</p>';
+            list.innerHTML = '<p style="font-size:12px;color:#888;text-align:center;padding:8px 0;">暂无语音，可跳过</p>';
             return;
         }
         list.innerHTML = voices.map((v, i) => `
-            <div class="companion-voice-item" data-id="${v.id}">
-                <i class="fas fa-music"></i>
-                <input class="companion-voice-name-input" type="text" value="${v.name}"
-                    onchange="window._updateSetupVoiceName(${i}, this.value)" placeholder="语音备注名">
-                <button class="companion-voice-delete" onclick="window._removeSetupVoice('${v.id}')">
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(197,164,126,0.07);border-radius:10px;padding:8px 10px;">
+                <i class="fas fa-music" style="color:#c5a47e;font-size:14px;"></i>
+                <input type="text" value="${v.name}" data-idx="${i}" class="setup-dyn-voice-name"
+                    style="flex:1;border:none;background:transparent;font-size:13px;outline:none;min-width:0;">
+                <button data-id="${v.id}" class="setup-dyn-voice-del"
+                    style="background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:6px;color:#888;">
                     <i class="fas fa-trash-can"></i>
                 </button>
             </div>
         `).join('');
+
+        list.querySelectorAll('.setup-dyn-voice-name').forEach(inp => {
+            inp.addEventListener('change', e => {
+                const idx = parseInt(e.target.dataset.idx);
+                if (window._setupPendingVoices[idx]) window._setupPendingVoices[idx].name = e.target.value;
+            });
+        });
+        list.querySelectorAll('.setup-dyn-voice-del').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const id = e.currentTarget.dataset.id;
+                window._setupPendingVoices = window._setupPendingVoices.filter(v => v.id !== id);
+                renderSetupVoiceListDyn(modal);
+            });
+        });
     }
 
-    window._updateSetupVoiceName = (idx, val) => {
-        if (window._setupPendingVoices && window._setupPendingVoices[idx]) {
-            window._setupPendingVoices[idx].name = val;
-        }
-    };
-    window._removeSetupVoice = (id) => {
-        window._setupPendingVoices = (window._setupPendingVoices || []).filter(v => v.id !== id);
-        renderSetupVoiceList();
-    };
-
-    // 完成初始化 → 保存并进入陪伴页
-    async function finishSetup() {
-        if (!window._setupPendingBg) {
-            notify('请先上传背景图片或视频', 'warning');
-            return;
-        }
-
-        // 保存背景
-        const bg = {
-            id: generateId(),
-            type: window._setupPendingBg.type,
-            data: window._setupPendingBg.data,
-            name: window._setupPendingBg.name,
-            addedAt: Date.now()
-        };
-        companionData.backgrounds[currentMode].push(bg);
-
-        // 保存语音（追加到全局语音库）
-        if (window._setupPendingVoices && window._setupPendingVoices.length) {
-            companionData.voices.push(...window._setupPendingVoices);
-        }
-
-        await saveCompanionData();
-        closeSetupModal();
-        notify('设置完成！', 'success');
-
-        // 进入时间选择
-        openTimeModal(currentMode);
+    function closeSetupModal() {
+        closeSetupModalDyn();
+        const oldSetup = document.getElementById('setup-modal');
+        if (oldSetup) oldSetup.classList.remove('active');
     }
+
 
     // ─── 时间选择弹窗 ────────────────────────────────────────────────────────
 
     function openTimeModal(mode) {
         const cfg = MODES[mode];
-        $('time-modal-title').textContent = cfg.label;
-        $('time-modal-icon').className = `fas ${cfg.icon}`;
 
-        const grid = $('time-options-grid');
-        grid.innerHTML = cfg.times.map(t => {
+        const timesHtml = cfg.times.map(t => {
             if (t === 'rest') {
-                return `<button class="companion-time-btn" data-time="rest" onclick="window._selectTime('rest')">
-                    <i class="fas fa-cloud-moon"></i><span>好好休息</span>
+                return `<button class="time-btn-dyn" data-time="rest" style="
+                    background:#fff;border:1.5px solid #eee;border-radius:14px;padding:16px 8px;cursor:pointer;
+                    display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s ease;
+                ">
+                    <i class="fas fa-cloud-moon" style="font-size:20px;color:#c5a47e;"></i>
+                    <span style="font-size:13px;font-weight:600;color:#1a1a1a;">好好休息</span>
                 </button>`;
             }
-            return `<button class="companion-time-btn" data-time="${t}" onclick="window._selectTime(${t})">
-                <span class="time-number">${t}</span><span class="time-unit">分钟</span>
+            return `<button class="time-btn-dyn" data-time="${t}" style="
+                background:#fff;border:1.5px solid #eee;border-radius:14px;padding:16px 8px;cursor:pointer;
+                display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s ease;
+            ">
+                <span style="font-size:22px;font-weight:700;color:#c5a47e;line-height:1;">${t}</span>
+                <span style="font-size:11px;color:#888;">分钟</span>
             </button>`;
         }).join('');
 
-        $('time-modal').classList.add('active');
+        const html = `
+            <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:10px;justify-content:center;">
+                <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
+                <span>${cfg.label}</span>
+            </div>
+            <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;">选择本次陪伴时长</p>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 18px;">${timesHtml}</div>
+            <div style="margin-top:18px;text-align:right;">
+                <button id="time-dyn-close" style="
+                    padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);
+                    background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;
+                ">取消</button>
+            </div>
+        `;
+
+        const modal = _createDynamicModal('time-modal-dynamic', html);
+
+        modal.addEventListener('click', e => {
+            if (e.target === modal) closeTimeModalDyn();
+        });
+
+        modal.querySelector('#time-dyn-close').addEventListener('click', closeTimeModalDyn);
+
+        modal.querySelectorAll('.time-btn-dyn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const t = btn.dataset.time;
+                closeTimeModalDyn();
+                if (t === 'rest') {
+                    isCountdown = false;
+                    timerSeconds = 0;
+                    totalSeconds = 0;
+                } else {
+                    isCountdown = true;
+                    timerSeconds = parseInt(t) * 60;
+                    totalSeconds = parseInt(t) * 60;
+                }
+                openCompanionPage();
+            });
+            btn.addEventListener('mouseenter', () => {
+                btn.style.borderColor = '#c5a47e';
+                btn.style.background = 'rgba(197,164,126,0.08)';
+                btn.style.transform = 'translateY(-2px)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.borderColor = '#eee';
+                btn.style.background = '#fff';
+                btn.style.transform = '';
+            });
+        });
+
+        console.log('[companion] 时间选择弹窗已打开');
+    }
+
+    function closeTimeModalDyn() {
+        document.querySelectorAll('#time-modal-dynamic').forEach(el => el.remove());
     }
 
     function closeTimeModal() {
-        $('time-modal').classList.remove('active');
+        closeTimeModalDyn();
     }
 
     window._selectTime = function (t) {
@@ -426,13 +549,20 @@
         const cfg = MODES[currentMode];
         const page = $('companion-page');
 
+        if (!page) {
+            notify('陪伴页面加载失败，请刷新页面重试', 'error');
+            console.error('[companion] companion-page 元素不存在！');
+            return;
+        }
+
         // 设置背景
         const bgs = companionData.backgrounds[currentMode];
         const bg = bgs[Math.floor(Math.random() * bgs.length)];
         renderCompanionBackground(bg);
 
         // 设置提示文字
-        $('companion-hint-text').textContent = cfg.hint;
+        const hint = $('companion-hint-text');
+        if (hint) hint.textContent = cfg.hint;
 
         // 初始化计时器显示
         updateTimerDisplay();
@@ -443,10 +573,12 @@
 
         // 启动计时器
         startTimer();
+        console.log('[companion] 陪伴页面已打开');
     }
 
     function renderCompanionBackground(bg) {
         const container = $('companion-bg-container');
+        if (!container) return;
         container.innerHTML = '';
         if (!bg) return;
 
@@ -733,49 +865,6 @@
         }
         const closeModalBtn = $('companion-modal-close');
         if (closeModalBtn) closeModalBtn.addEventListener('click', closeCompanionModal);
-
-        // 初始化弹窗
-        const setupBgInput = $('setup-bg-input');
-        if (setupBgInput) setupBgInput.addEventListener('change', handleSetupBgUpload);
-
-        const setupBgTrigger = $('setup-bg-trigger');
-        if (setupBgTrigger) setupBgTrigger.addEventListener('click', () => $('setup-bg-input').click());
-
-        const setupVoiceInput = $('setup-voice-input');
-        if (setupVoiceInput) setupVoiceInput.addEventListener('change', handleSetupVoiceUpload);
-
-        const setupVoiceTrigger = $('setup-voice-trigger');
-        if (setupVoiceTrigger) setupVoiceTrigger.addEventListener('click', () => $('setup-voice-input').click());
-
-        const setupBtnNext = $('setup-btn-next');
-        if (setupBtnNext) setupBtnNext.addEventListener('click', setupGoToVoice);
-
-        const setupBtnFinish = $('setup-btn-finish');
-        if (setupBtnFinish) setupBtnFinish.addEventListener('click', finishSetup);
-
-        const setupBtnSkip = $('setup-btn-skip');
-        if (setupBtnSkip) setupBtnSkip.addEventListener('click', async () => {
-            // 跳过语音，直接保存背景并进入
-            if (!window._setupPendingBg) { notify('请先上传背景', 'warning'); return; }
-            const bg = { id: generateId(), ...window._setupPendingBg, addedAt: Date.now() };
-            companionData.backgrounds[currentMode].push(bg);
-            await saveCompanionData();
-            closeSetupModal();
-            openTimeModal(currentMode);
-        });
-
-        const setupBtnCancel = $('setup-btn-cancel');
-        if (setupBtnCancel) setupBtnCancel.addEventListener('click', closeSetupModal);
-
-        // 时间选择弹窗
-        const timeModal = $('time-modal');
-        if (timeModal) {
-            timeModal.addEventListener('click', e => {
-                if (e.target === timeModal) closeTimeModal();
-            });
-        }
-        const timeModalClose = $('time-modal-close');
-        if (timeModalClose) timeModalClose.addEventListener('click', closeTimeModal);
 
         // 陪伴页
         const page = $('companion-page');
