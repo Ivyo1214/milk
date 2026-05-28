@@ -287,7 +287,7 @@
                     <span style="font-size:13px;font-weight:600;color:#1a1a1a;">点击上传语音</span>
                     <small style="font-size:11px;color:#888;">支持 mp3 · m4a · wav，可多选</small>
                 </div>
-                <input type="file" id="setup-dyn-voice-input" accept="audio/*,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/aac,audio/wav,audio/ogg,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple style="display:none">
+                <input type="file" id="setup-dyn-voice-input" accept="*/*" multiple style="display:none">
                 <div id="setup-dyn-voice-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;"></div>
                 <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
                     <button id="setup-dyn-btn-skip" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">跳过</button>
@@ -357,16 +357,35 @@
         // 语音文件选择
         modal.querySelector('#setup-dyn-voice-input').addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
+            let addedCount = 0;
+            let skippedCount = 0;
             for (const file of files) {
-                if (!file.type.startsWith('audio/')) { notify(`${file.name} 不是音频文件，已跳过`, 'warning'); continue; }
-                const base64 = await readFileAsBase64(file);
-                window._setupPendingVoices.push({
-                    id: generateId(), data: base64,
-                    name: file.name.replace(/\.[^/.]+$/, ''),
-                    addedAt: Date.now()
-                });
+                // 兼容 iOS：用 type 或文件后缀判断
+                const isAudio = file.type.startsWith('audio/') ||
+                    /\.(mp3|m4a|aac|wav|ogg|flac|amr|opus)$/i.test(file.name);
+                if (!isAudio) {
+                    skippedCount++;
+                    continue;
+                }
+                try {
+                    const base64 = await readFileAsBase64(file);
+                    window._setupPendingVoices.push({
+                        id: generateId(), data: base64,
+                        name: file.name.replace(/\.[^/.]+$/, ''),
+                        addedAt: Date.now()
+                    });
+                    addedCount++;
+                } catch (err) {
+                    console.error('[companion] 语音读取失败', err);
+                    skippedCount++;
+                }
             }
             renderSetupVoiceListDyn(modal);
+            if (skippedCount > 0 && addedCount === 0) {
+                notify('请选择音频文件（mp3/m4a/wav 等），不能上传图片或视频', 'warning');
+            } else if (skippedCount > 0) {
+                notify(`已添加 ${addedCount} 段，${skippedCount} 个非音频文件已跳过`, 'info');
+            }
             e.target.value = '';
         });
 
@@ -769,19 +788,37 @@
     // 面板内上传新语音
     async function handlePanelVoiceUpload(e) {
         const files = Array.from(e.target.files);
+        let addedCount = 0;
+        let skippedCount = 0;
         for (const file of files) {
-            if (!file.type.startsWith('audio/')) { notify(`${file.name} 不是音频文件`, 'warning'); continue; }
-            const base64 = await readFileAsBase64(file);
-            companionData.voices.push({
-                id: generateId(),
-                data: base64,
-                name: file.name.replace(/\.[^/.]+$/, ''),
-                addedAt: Date.now()
-            });
+            // 兼容 iOS：用 type 或文件后缀判断
+            const isAudio = file.type.startsWith('audio/') ||
+                /\.(mp3|m4a|aac|wav|ogg|flac|amr|opus)$/i.test(file.name);
+            if (!isAudio) {
+                skippedCount++;
+                continue;
+            }
+            try {
+                const base64 = await readFileAsBase64(file);
+                companionData.voices.push({
+                    id: generateId(),
+                    data: base64,
+                    name: file.name.replace(/\.[^/.]+$/, ''),
+                    addedAt: Date.now()
+                });
+                addedCount++;
+            } catch (err) {
+                console.error('[companion] 语音读取失败', err);
+                skippedCount++;
+            }
         }
-        await saveCompanionData();
-        renderVoiceManagerInPanel();
-        notify('语音已添加', 'success');
+        if (addedCount > 0) {
+            await saveCompanionData();
+            renderVoiceManagerInPanel();
+            notify(`已添加 ${addedCount} 段语音${skippedCount > 0 ? `（${skippedCount} 个非音频文件已跳过）` : ''}`, 'success');
+        } else if (skippedCount > 0) {
+            notify('请选择音频文件（mp3/m4a/wav 等），不能上传图片或视频', 'warning');
+        }
         e.target.value = '';
     }
 
@@ -893,7 +930,11 @@
         if (panelBgTrigger) panelBgTrigger.addEventListener('click', e => { e.stopPropagation(); $('panel-bg-input').click(); });
 
         const panelVoiceInput = $('panel-voice-input');
-        if (panelVoiceInput) panelVoiceInput.addEventListener('change', handlePanelVoiceUpload);
+        if (panelVoiceInput) {
+            // iOS Safari 对 audio/* 识别有 bug，改成 */* 绕开
+            panelVoiceInput.setAttribute('accept', '*/*');
+            panelVoiceInput.addEventListener('change', handlePanelVoiceUpload);
+        }
 
         const panelVoiceTrigger = $('panel-voice-trigger');
         if (panelVoiceTrigger) panelVoiceTrigger.addEventListener('click', e => { e.stopPropagation(); $('panel-voice-input').click(); });
