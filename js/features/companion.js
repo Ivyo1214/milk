@@ -21,7 +21,7 @@
 
     let companionData = {
         backgrounds: { study: [], work: [], exercise: [], sleep: [] },
-        voices: [],
+        voices:      { study: [], work: [], exercise: [], sleep: [] },
         history: []
     };
 
@@ -35,6 +35,14 @@
 
     // ─── 存储 ────────────────────────────────────────────────────────────────
 
+    function _emptyData() {
+        return {
+            backgrounds: { study: [], work: [], exercise: [], sleep: [] },
+            voices:      { study: [], work: [], exercise: [], sleep: [] },
+            history: []
+        };
+    }
+
     async function loadCompanionData() {
         try {
             const key = typeof getStorageKey === 'function'
@@ -42,15 +50,29 @@
                 : (window.APP_PREFIX || 'CHAT_APP_V3_') + STORAGE_KEY;
             const saved = await localforage.getItem(key);
             if (saved) {
-                // 深度合并，确保旧数据结构兼容
-                companionData = Object.assign({
-                    backgrounds: { study: [], work: [], exercise: [], sleep: [] },
-                    voices: [],
-                    history: []
-                }, saved);
+                companionData = Object.assign(_emptyData(), saved);
                 // 确保每个场景的 backgrounds 数组存在
                 for (const m of Object.keys(MODES)) {
                     if (!companionData.backgrounds[m]) companionData.backgrounds[m] = [];
+                }
+                // ── 数据迁移：voices 之前是数组（全局共享），现在改成按场景分的对象 ──
+                if (Array.isArray(companionData.voices)) {
+                    const oldVoices = companionData.voices;
+                    companionData.voices = { study: [], work: [], exercise: [], sleep: [] };
+                    if (oldVoices.length > 0) {
+                        // 旧数据复制到所有场景（不丢失，但用户可以后续去删除）
+                        for (const m of Object.keys(MODES)) {
+                            companionData.voices[m] = oldVoices.map(v => ({ ...v }));
+                        }
+                        console.log('[companion] 检测到旧的全局语音库，已迁移到 4 个场景');
+                    }
+                }
+                // 确保每个场景的 voices 数组存在
+                if (typeof companionData.voices !== 'object' || Array.isArray(companionData.voices)) {
+                    companionData.voices = { study: [], work: [], exercise: [], sleep: [] };
+                }
+                for (const m of Object.keys(MODES)) {
+                    if (!companionData.voices[m]) companionData.voices[m] = [];
                 }
             }
         } catch (e) {
@@ -753,7 +775,8 @@
             const bg = { id: generateId(), ...window._setupPendingBg, addedAt: Date.now() };
             companionData.backgrounds[currentMode].push(bg);
             if (window._setupPendingVoices && window._setupPendingVoices.length) {
-                companionData.voices.push(...window._setupPendingVoices);
+                if (!companionData.voices[currentMode]) companionData.voices[currentMode] = [];
+                companionData.voices[currentMode].push(...window._setupPendingVoices);
             }
             await saveCompanionData();
             closeSetupModalDyn();
@@ -1052,8 +1075,9 @@
     // ─── 语音播放 ────────────────────────────────────────────────────────────
 
     function playRandomVoice() {
-        if (!companionData.voices || !companionData.voices.length) return;
-        const voices = companionData.voices;
+        // 按当前场景取语音
+        const voices = (companionData.voices && companionData.voices[currentMode]) || [];
+        if (!voices.length) return;
         const v = voices[Math.floor(Math.random() * voices.length)];
         playVoice(v);
     }
@@ -1073,8 +1097,9 @@
     function handlePageClick(e) {
         // 排除按钮点击
         if (e.target.closest('button, input, .companion-settings-panel, #companion-timer-area')) return;
-        if (!companionData.voices || !companionData.voices.length) {
-            notify('还没有上传语音哦，可在设置中添加', 'info');
+        const voices = (companionData.voices && companionData.voices[currentMode]) || [];
+        if (!voices.length) {
+            notify('没有什么想说的', 'info');
             return;
         }
         playRandomVoice();
@@ -1097,41 +1122,17 @@
     }
 
     function renderVoiceManagerInPanel() {
+        // ⚠️ 此函数对应的"陪伴页内右上角设置面板"将在后续移除，
+        // 这里只做最低限度的兼容，避免数据结构变化引起报错
         const list = $('panel-voice-list');
-        const voices = companionData.voices;
-        if (!voices.length) {
-            list.innerHTML = '<p class="companion-empty-hint">还没有上传语音</p>';
-            return;
-        }
-        list.innerHTML = voices.map(v => `
-            <div class="companion-voice-item" data-id="${v.id}">
-                <i class="fas fa-music"></i>
-                <input class="companion-voice-name-input" type="text" value="${v.name}"
-                    onchange="window._updateVoiceName('${v.id}', this.value)" placeholder="语音名称">
-                <button class="companion-voice-play" onclick="window._playVoiceById('${v.id}')" title="试听">
-                    <i class="fas fa-play"></i>
-                </button>
-                <button class="companion-voice-delete" onclick="window._deleteVoice('${v.id}')" title="删除">
-                    <i class="fas fa-trash-can"></i>
-                </button>
-            </div>
-        `).join('');
+        if (!list) return;
+        list.innerHTML = '<p class="companion-empty-hint">请到外观设置 → 背景&字体 里管理语音</p>';
     }
 
-    window._updateVoiceName = async (id, val) => {
-        const v = companionData.voices.find(x => x.id === id);
-        if (v) { v.name = val; await saveCompanionData(); }
-    };
-    window._playVoiceById = (id) => {
-        const v = companionData.voices.find(x => x.id === id);
-        playVoice(v);
-    };
-    window._deleteVoice = async (id) => {
-        companionData.voices = companionData.voices.filter(x => x.id !== id);
-        await saveCompanionData();
-        renderVoiceManagerInPanel();
-        notify('语音已删除', 'success');
-    };
+    // 兼容旧调用（不再使用，仅防报错）
+    window._updateVoiceName = async () => {};
+    window._playVoiceById   = () => {};
+    window._deleteVoice     = async () => {};
 
     // 面板内上传新语音
     async function handlePanelVoiceUpload(e) {
@@ -1148,7 +1149,10 @@
             }
             try {
                 const base64 = await readFileAsBase64(file);
-                companionData.voices.push({
+                // 改用当前场景的语音列表
+                const targetMode = currentMode || 'study';
+                if (!companionData.voices[targetMode]) companionData.voices[targetMode] = [];
+                companionData.voices[targetMode].push({
                     id: generateId(),
                     data: base64,
                     name: file.name.replace(/\.[^/.]+$/, ''),
@@ -1215,6 +1219,277 @@
         // 只保留最近 100 条
         if (companionData.history.length > 100) companionData.history = companionData.history.slice(0, 100);
         await saveCompanionData();
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    //  外观设置里的"陪伴背景/语音"管理 UI
+    // ────────────────────────────────────────────────────────────────────
+
+    // 当前选中的 tab（背景管理 + 语音管理 各自记录）
+    const _mgrState = { bg: 'study', voice: 'study' };
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    // ── 渲染：陪伴背景列表 ──
+    function renderCompanionBgManager() {
+        const list = document.getElementById('companion-bg-list');
+        if (!list) return;
+        const mode = _mgrState.bg;
+        const items = (companionData.backgrounds[mode] || []);
+
+        let html = '';
+        if (items.length === 0) {
+            html += `<div class="companion-mgr-empty">
+                还没有添加${escapeHtml(MODES[mode].label.slice(2))}场景的背景<br>
+                点击下方按钮上传图片或视频
+            </div>`;
+        } else {
+            html += items.map(bg => `
+                <div class="companion-bg-card" data-id="${bg.id}">
+                    <div class="companion-bg-card-thumb">
+                        ${bg.type === 'video'
+                            ? `<video src="${bg.data}" muted></video><span class="type-badge">视频</span>`
+                            : `<img src="${bg.data}" alt="">`
+                        }
+                    </div>
+                    <div class="companion-bg-card-info">
+                        <div class="companion-bg-card-name">${escapeHtml(bg.name || '未命名')}</div>
+                        <div class="companion-bg-card-meta">${bg.type === 'video' ? '视频' : '图片'}</div>
+                    </div>
+                    <div class="companion-bg-card-actions">
+                        <button class="companion-mgr-iconbtn danger" data-action="delete-bg" data-id="${bg.id}" title="删除">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        html += `<button class="companion-mgr-add" id="companion-bg-add-btn">
+            <i class="fas fa-plus"></i> 添加${escapeHtml(MODES[mode].label.slice(2))}背景
+        </button>`;
+        list.innerHTML = html;
+    }
+
+    // ── 渲染：陪伴语音列表 ──
+    function renderCompanionVoiceManager() {
+        const list = document.getElementById('companion-voice-list');
+        if (!list) return;
+        const mode = _mgrState.voice;
+        const items = (companionData.voices[mode] || []);
+
+        let html = '';
+        if (items.length === 0) {
+            html += `<div class="companion-mgr-empty">
+                还没有添加${escapeHtml(MODES[mode].label.slice(2))}场景的语音<br>
+                点击下方按钮上传音频文件
+            </div>`;
+        } else {
+            html += items.map(v => `
+                <div class="companion-voice-card" data-id="${v.id}">
+                    <i class="fas fa-music"></i>
+                    <input type="text" class="companion-voice-card-name"
+                        value="${escapeHtml(v.name || '')}"
+                        data-action="rename-voice" data-id="${v.id}"
+                        placeholder="语音名称">
+                    <div class="companion-voice-card-actions">
+                        <button class="companion-mgr-iconbtn" data-action="play-voice" data-id="${v.id}" title="试听">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="companion-mgr-iconbtn danger" data-action="delete-voice" data-id="${v.id}" title="删除">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        html += `<button class="companion-mgr-add" id="companion-voice-add-btn">
+            <i class="fas fa-plus"></i> 添加${escapeHtml(MODES[mode].label.slice(2))}语音
+        </button>`;
+        list.innerHTML = html;
+    }
+
+    // ── 切换 tab ──
+    function switchMgrTab(type, mode) {
+        _mgrState[type] = mode;
+        const tabsId = type === 'bg' ? 'companion-bg-tabs' : 'companion-voice-tabs';
+        const tabs = document.getElementById(tabsId);
+        if (tabs) {
+            tabs.querySelectorAll('.companion-mgr-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.mode === mode);
+            });
+        }
+        if (type === 'bg') renderCompanionBgManager();
+        else renderCompanionVoiceManager();
+    }
+
+    // ── 上传：背景 ──
+    async function handleMgrBgUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+        if (!isVideo && !isImage) {
+            notify('请选择图片或视频文件', 'error');
+            return;
+        }
+        if (file.size > 100 * 1024 * 1024) notify('文件超过 100MB，加载可能较慢', 'warning');
+
+        await ensureDataLoaded();
+        try {
+            notify('正在处理文件...', 'info');
+            const base64 = await readFileAsBase64(file);
+            const bg = {
+                id: generateId(),
+                type: isVideo ? 'video' : 'image',
+                data: base64,
+                name: file.name,
+                addedAt: Date.now()
+            };
+            companionData.backgrounds[_mgrState.bg].push(bg);
+            await saveCompanionData();
+            renderCompanionBgManager();
+            notify('背景已添加', 'success');
+        } catch (err) {
+            console.error('[companion] 背景上传失败', err);
+            notify('文件读取失败', 'error');
+        }
+        e.target.value = '';
+    }
+
+    // ── 上传：语音 ──
+    async function handleMgrVoiceUpload(e) {
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
+        await ensureDataLoaded();
+
+        let addedCount = 0;
+        let skippedCount = 0;
+        for (const file of files) {
+            const isAudio = file.type.startsWith('audio/') ||
+                /\.(mp3|m4a|aac|wav|ogg|flac|amr|opus)$/i.test(file.name);
+            if (!isAudio) { skippedCount++; continue; }
+            try {
+                const base64 = await readFileAsBase64(file);
+                companionData.voices[_mgrState.voice].push({
+                    id: generateId(),
+                    data: base64,
+                    name: file.name.replace(/\.[^/.]+$/, ''),
+                    addedAt: Date.now()
+                });
+                addedCount++;
+            } catch (err) {
+                console.error('[companion] 语音读取失败', err);
+                skippedCount++;
+            }
+        }
+        if (addedCount > 0) {
+            await saveCompanionData();
+            renderCompanionVoiceManager();
+            notify(`已添加 ${addedCount} 段语音${skippedCount ? `（${skippedCount} 个跳过）` : ''}`, 'success');
+        } else if (skippedCount > 0) {
+            notify('请选择音频文件（mp3/m4a/wav 等）', 'warning');
+        }
+        e.target.value = '';
+    }
+
+    // ── 删除/重命名/试听 ──
+    function handleMgrAction(action, id) {
+        const mode = action.includes('voice') ? _mgrState.voice : _mgrState.bg;
+
+        if (action === 'delete-bg') {
+            if (!confirm('确定删除这个背景吗？')) return;
+            companionData.backgrounds[mode] = companionData.backgrounds[mode].filter(x => x.id !== id);
+            saveCompanionData();
+            renderCompanionBgManager();
+            notify('已删除', 'success');
+        } else if (action === 'delete-voice') {
+            if (!confirm('确定删除这段语音吗？')) return;
+            companionData.voices[mode] = companionData.voices[mode].filter(x => x.id !== id);
+            saveCompanionData();
+            renderCompanionVoiceManager();
+            notify('已删除', 'success');
+        } else if (action === 'play-voice') {
+            const v = companionData.voices[mode].find(x => x.id === id);
+            if (v) playVoice(v);
+        }
+    }
+
+    function handleMgrVoiceRename(id, newName) {
+        const mode = _mgrState.voice;
+        const v = companionData.voices[mode].find(x => x.id === id);
+        if (v) {
+            v.name = newName;
+            saveCompanionData();
+        }
+    }
+
+    // ── 绑定外观设置面板的事件（用事件委托，因为 DOM 可能在打开外观设置时才显示）──
+    function bindMgrEvents() {
+        // tab 切换 + 操作按钮 + 加号按钮 —— 全用事件委托
+        document.addEventListener('click', function (e) {
+            // tab 切换
+            const tab = e.target.closest('.companion-mgr-tab');
+            if (tab) {
+                const tabsEl = tab.closest('.companion-mgr-tabs');
+                const type = tabsEl?.dataset.mgr;
+                if (type && tab.dataset.mode) {
+                    switchMgrTab(type, tab.dataset.mode);
+                    return;
+                }
+            }
+
+            // 删除/试听
+            const actionBtn = e.target.closest('[data-action]');
+            if (actionBtn) {
+                const action = actionBtn.dataset.action;
+                const id = actionBtn.dataset.id;
+                if (action && id && action !== 'rename-voice') {
+                    handleMgrAction(action, id);
+                    return;
+                }
+            }
+
+            // 加号按钮
+            if (e.target.closest('#companion-bg-add-btn')) {
+                document.getElementById('companion-bg-upload-input')?.click();
+                return;
+            }
+            if (e.target.closest('#companion-voice-add-btn')) {
+                document.getElementById('companion-voice-upload-input')?.click();
+                return;
+            }
+        });
+
+        // 语音重命名
+        document.addEventListener('change', function (e) {
+            if (e.target.matches('[data-action="rename-voice"]')) {
+                handleMgrVoiceRename(e.target.dataset.id, e.target.value);
+            }
+        });
+
+        // 文件 input 的 change 事件
+        const bgInput = document.getElementById('companion-bg-upload-input');
+        if (bgInput) bgInput.addEventListener('change', handleMgrBgUpload);
+        const voiceInput = document.getElementById('companion-voice-upload-input');
+        if (voiceInput) voiceInput.addEventListener('change', handleMgrVoiceUpload);
+
+        // 当用户切到"背景&字体"面板时，刷新一下列表
+        // 用 MutationObserver 监听 display 变化
+        const bgPanel = document.getElementById('appearance-panel-background');
+        if (bgPanel) {
+            const observer = new MutationObserver(async () => {
+                if (bgPanel.style.display !== 'none') {
+                    await ensureDataLoaded();
+                    renderCompanionBgManager();
+                    renderCompanionVoiceManager();
+                }
+            });
+            observer.observe(bgPanel, { attributes: true, attributeFilter: ['style'] });
+        }
     }
 
     // ─── 初始化：绑定所有事件 ────────────────────────────────────────────────
@@ -1346,6 +1621,8 @@
         try {
             // 先绑定事件，这样按钮立刻可用
             bindEvents();
+            // 绑定外观设置面板里的"陪伴背景/语音"管理 UI 的事件
+            bindMgrEvents();
             console.log('[companion] 模块加载完成（数据将在首次使用时加载）');
 
             // 启动梦角主动邀请的随机定时器（15~60 分钟随机检查，25% 概率触发）
