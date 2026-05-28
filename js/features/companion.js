@@ -287,7 +287,7 @@
                     <span style="font-size:13px;font-weight:600;color:#1a1a1a;">点击上传语音</span>
                     <small style="font-size:11px;color:#888;">支持 mp3 · m4a · wav，可多选</small>
                 </div>
-                <input type="file" id="setup-dyn-voice-input" accept="audio/*" multiple style="display:none">
+                <input type="file" id="setup-dyn-voice-input" accept="audio/*,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/aac,audio/wav,audio/ogg,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple style="display:none">
                 <div id="setup-dyn-voice-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;"></div>
                 <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
                     <button id="setup-dyn-btn-skip" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">跳过</button>
