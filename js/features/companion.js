@@ -11,10 +11,34 @@
     const STORAGE_KEY = 'companionData';
 
     const MODES = {
-        study:    { label: '陪我学习', icon: 'fa-book-open',    hint: '专注学习中...',  times: [5,10,15,20,25,30] },
-        work:     { label: '陪我工作', icon: 'fa-laptop-code',  hint: '认真工作中...',  times: [5,10,15,20,25,30] },
-        exercise: { label: '陪我运动', icon: 'fa-person-running',hint: '运动加油中...',  times: [5,10,15,20,25,30] },
-        sleep:    { label: '陪我睡觉', icon: 'fa-moon',         hint: '陪你入睡...',    times: [10,20,30,60,'rest'] },
+        study:    {
+            label: '一起学习',
+            icon:  'fa-book-open',
+            hint:  '正在一起学习 · 加油',
+            times: [5,10,15,20,25,30],          // 用户可选
+            inviteTimes: [15, 20, 25],          // 梦角主动邀请时随机选
+        },
+        work:     {
+            label: '一起工作',
+            icon:  'fa-laptop-code',
+            hint:  '正在一起工作 · 专注中',
+            times: [5,10,15,20,25,30],
+            inviteTimes: [15, 20, 25, 30],
+        },
+        exercise: {
+            label: '一起运动',
+            icon:  'fa-person-running',
+            hint:  '正在一起运动 · 不要偷懒哦',
+            times: [5,10,15,20,25,30],
+            inviteTimes: [10, 15, 20],
+        },
+        sleep:    {
+            label: '一起睡觉',
+            icon:  'fa-moon',
+            hint:  '闭上眼睛 · 我就在旁边',
+            times: [10,20,30,60,'rest'],
+            inviteTimes: [30, 60, 'rest'],
+        },
     };
 
     // ─── 运行时状态 ──────────────────────────────────────────────────────────
@@ -252,10 +276,9 @@
 
     const REJECT_LINES = [
         '现在有点事，下次吧',
-        '今天不太想动，自己加油哦',
         '等我一会儿，现在不行',
         '抱歉，现在没空',
-        '正忙着呢，晚点再说',
+        '还在忙，晚点再说',
         '现在不方便',
     ];
 
@@ -283,15 +306,26 @@
         showCompanionInviting(mode);
     }
 
-    // 直接进入（跳过邀请流程，给"梦角主动邀请被接受"后用）
-    async function enterModeDirectly(mode) {
+    // 用户发起接受 → 进入时间选择（用户自选时间）
+    function enterTimeSelection(mode) {
         currentMode = mode;
-        const hasBg = companionData.backgrounds[mode] && companionData.backgrounds[mode].length > 0;
-        if (!hasBg) {
-            openSetupModal(mode);
+        openTimeModal(mode);
+    }
+
+    // 梦角发起接受 → 直接进入陪伴页（用梦角说的那个时间）
+    function enterWithInviteTime(mode, time) {
+        currentMode = mode;
+        // 设置时间状态（和 openTimeModal 里点按钮后的逻辑一致）
+        if (time === 'rest') {
+            isCountdown = false;
+            timerSeconds = 0;
+            totalSeconds = 0;
         } else {
-            openTimeModal(mode);
+            isCountdown = true;
+            timerSeconds = parseInt(time) * 60;
+            totalSeconds = parseInt(time) * 60;
         }
+        openCompanionPage();
     }
 
     // ─── 邀请等待 UI（用户发起后显示）─────────────────────────────────────
@@ -344,7 +378,7 @@
                 <div style="font-size:20px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
                 <div style="font-size:13px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:8px;">
                     <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
-                    <span>正在邀请 ${partnerName} ${cfg.label.slice(2)}</span>
+                    <span>正在邀请${partnerName}${cfg.label}</span>
                     <span class="inviting-dots" style="display:inline-flex;gap:3px;">
                         <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite;"></span>
                         <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite 0.2s;"></span>
@@ -360,7 +394,7 @@
                 ">
                     <i class="fas fa-xmark"></i>
                 </button>
-                <div style="font-size:11px;color:rgba(255,255,255,0.35);">取消邀请</div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.35);">取消</div>
             </div>
         `;
 
@@ -377,7 +411,7 @@
         overlay.querySelector('#companion-inviting-cancel').addEventListener('click', () => {
             clearTimeout(window._invitingTimer);
             closeInviting();
-            sendChatEvent('fa-circle-xmark', `${getMyName()} 取消了陪伴邀请`, null);
+            sendChatEvent('fa-circle-xmark', `取消了对${partnerName}的陪伴邀请`, null);
         });
 
         // 决定结果
@@ -412,8 +446,8 @@
             window._invitingTimer = setTimeout(() => {
                 if (!isStillThisSession()) return;
                 closeInviting();
-                sendChatEvent('fa-heart', `${partnerName} 同意了陪伴邀请`, null);
-                enterModeDirectly(currentMode);
+                sendChatEvent('fa-heart', `${partnerName}同意了一起陪伴`, null);
+                enterTimeSelection(currentMode);
             }, delay);
         }
     }
@@ -443,13 +477,37 @@
         const cfg = MODES[mode];
         const partnerName = getPartnerName();
         const avSrc = getPartnerAvatarSrc();
-        const line = pickRandom(INVITE_LINES[mode] || INVITE_LINES.study);
+        const baseLine = pickRandom(INVITE_LINES[mode] || INVITE_LINES.study);
+
+        // 梦角自选时间（从 inviteTimes 池里随机选一个）
+        const inviteTime = pickRandom(cfg.inviteTimes || [25]);
+
+        // 拼接邀请文案：智能处理"陪你"是否已经在台词里 + rest 特殊处理
+        let line;
+        if (inviteTime === 'rest') {
+            // 睡觉的"好好休息"模式：单独一句更自然
+            line = '陪你一起睡到自然醒吧';
+        } else {
+            const timeText = `${inviteTime} 分钟`;
+            // 台词里已经有"陪你"/"陪着你" → 直接加时间
+            // 没有 → 末尾是问号/感叹号则直接加" 陪你 XX"，否则加"，陪你 XX"
+            if (/陪你|陪着你/.test(baseLine)) {
+                line = `${baseLine} ${timeText}`;
+            } else if (/[？！?!]$/.test(baseLine)) {
+                line = `${baseLine} 陪你 ${timeText}`;
+            } else {
+                line = `${baseLine}，陪你 ${timeText}`;
+            }
+        }
 
         // 移除残留
         document.querySelectorAll('#companion-incoming-overlay').forEach(el => el.remove());
 
         const overlay = document.createElement('div');
         overlay.id = 'companion-incoming-overlay';
+        // 把时间存到 dataset 上，接受按钮可以拿到
+        overlay.dataset.inviteTime = inviteTime;
+        overlay.dataset.inviteMode = mode;
         overlay.setAttribute('style', [
             'position:fixed', 'inset:0', 'z-index:99998',
             'background:rgba(15,15,20,0.95)',
@@ -477,7 +535,7 @@
                 <div style="font-size:20px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
                 <div style="font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:6px;">
                     <span style="width:6px;height:6px;border-radius:50%;background:#c5a47e;animation:companionDot 1.1s step-end infinite;"></span>
-                    <span>陪伴邀请</span>
+                    <span>想和你一起...</span>
                 </div>
                 <div style="
                     background:rgba(255,255,255,0.08);border-radius:14px;padding:12px 20px;
@@ -524,22 +582,22 @@
         const autoTimer = setTimeout(() => {
             if (!overlay.isConnected) return; // 已被其他操作移除了
             overlay.remove();
-            sendChatEvent('fa-heart-crack', `${getMyName()} 未接受 ${partnerName} 的陪伴邀请`, null);
+            sendChatEvent('fa-heart-crack', `错过了${partnerName}的陪伴邀请`, null);
         }, 22000);
 
         // 拒绝
         overlay.querySelector('#companion-incoming-reject').addEventListener('click', () => {
             clearTimeout(autoTimer);
             if (overlay.isConnected) overlay.remove();
-            sendChatEvent('fa-heart-crack', `${getMyName()} 拒绝了 ${partnerName} 的陪伴邀请`, null);
+            sendChatEvent('fa-heart-crack', `拒绝了${partnerName}的陪伴邀请`, null);
         });
 
-        // 接受 → 进入对应模式
+        // 接受 → 直接进入陪伴页（用梦角说的那个时间）
         overlay.querySelector('#companion-incoming-accept').addEventListener('click', () => {
             clearTimeout(autoTimer);
             if (overlay.isConnected) overlay.remove();
-            sendChatEvent('fa-heart', `接受了 ${partnerName} 的陪伴邀请`, null);
-            enterModeDirectly(mode);
+            sendChatEvent('fa-heart', `接受了${partnerName}的陪伴邀请`, null);
+            enterWithInviteTime(mode, inviteTime);
         });
     }
 
@@ -970,7 +1028,20 @@
         const container = $('companion-bg-container');
         if (!container) return;
         container.innerHTML = '';
-        if (!bg) return;
+
+        if (!bg) {
+            // 默认背景：米金色渐变（用主题色 + 深浅过渡）
+            const fallback = document.createElement('div');
+            fallback.style.cssText = `
+                position:absolute;inset:0;
+                background:
+                    radial-gradient(ellipse at 30% 20%, rgba(197,164,126,0.32) 0%, transparent 55%),
+                    radial-gradient(ellipse at 70% 80%, rgba(197,164,126,0.22) 0%, transparent 55%),
+                    linear-gradient(135deg, #2a241d 0%, #3b3128 45%, #2a241d 100%);
+            `;
+            container.appendChild(fallback);
+            return;
+        }
 
         if (bg.type === 'video') {
             const v = document.createElement('video');
