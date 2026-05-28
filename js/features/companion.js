@@ -191,29 +191,11 @@
 
         document.documentElement.appendChild(modal);
         console.log('[companion] 弹窗已创建并挂到 documentElement');
-
-        // 防御：如果被某个 observer 移除，1秒内重新插入
-        let restoreTries = 0;
-        const restoreTimer = setInterval(() => {
-            if (!document.getElementById('companion-modal-dynamic')) {
-                if (restoreTries++ < 3) {
-                    console.warn('[companion] 弹窗被移除了，重新插入');
-                    document.documentElement.appendChild(modal);
-                } else {
-                    clearInterval(restoreTimer);
-                }
-            } else if (restoreTries > 5) {
-                clearInterval(restoreTimer);
-            }
-        }, 100);
-
-        // 5 秒后停止守护
-        setTimeout(() => clearInterval(restoreTimer), 5000);
     }
 
     function closeCompanionModal() {
-        const dyn = document.getElementById('companion-modal-dynamic');
-        if (dyn) dyn.remove();
+        // 清理所有可能的弹窗实例（防止守护残留）
+        document.querySelectorAll('#companion-modal-dynamic').forEach(el => el.remove());
         // 兼容旧的静态弹窗
         const oldModal = document.getElementById('companion-modal');
         if (oldModal) oldModal.classList.remove('active');
