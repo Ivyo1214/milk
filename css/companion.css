@@ -739,3 +739,20 @@ html[data-theme="dark"] .companion-mode-card i {
 .companion-mgr-add:hover {
     background: rgba(var(--accent-color-rgb, 197,164,126), 0.14);
 }
+
+/* ── 当陪伴页使用默认浅色背景时，把白色文字切换为深色 ───────────── */
+#companion-page.companion-light-bg .companion-hint-text {
+    color: #5a4a3a !important;
+    text-shadow: 0 1px 4px rgba(255,255,255,0.4) !important;
+}
+#companion-page.companion-light-bg .companion-timer-display {
+    color: #6a5340 !important;
+    text-shadow: 0 1px 4px rgba(255,255,255,0.5) !important;
+}
+#companion-page.companion-light-bg .companion-timer-ring {
+    background: rgba(255,255,255,0.4) !important;
+}
+#companion-page.companion-light-bg #companion-exit-btn {
+    color: #6a5340 !important;
+    background: rgba(255,255,255,0.55) !important;
+}
