@@ -481,6 +481,7 @@
 
         // 梦角自选时间（从 inviteTimes 池里随机选一个）
         const inviteTime = pickRandom(cfg.inviteTimes || [25]);
+        console.log(`[companion] 梦角邀请 mode=${mode}, inviteTimes=${JSON.stringify(cfg.inviteTimes)}, 抽到=${inviteTime}`);
 
         // 拼接邀请文案：智能处理"陪你"是否已经在台词里 + rest 特殊处理
         let line;
@@ -1026,22 +1027,28 @@
 
     function renderCompanionBackground(bg) {
         const container = $('companion-bg-container');
+        const page = $('companion-page');
         if (!container) return;
         container.innerHTML = '';
 
         if (!bg) {
-            // 默认背景：米金色渐变（用主题色 + 深浅过渡）
+            // 默认背景：米黄色系柔和渐变
             const fallback = document.createElement('div');
             fallback.style.cssText = `
                 position:absolute;inset:0;
                 background:
-                    radial-gradient(ellipse at 30% 20%, rgba(197,164,126,0.32) 0%, transparent 55%),
-                    radial-gradient(ellipse at 70% 80%, rgba(197,164,126,0.22) 0%, transparent 55%),
-                    linear-gradient(135deg, #2a241d 0%, #3b3128 45%, #2a241d 100%);
+                    radial-gradient(ellipse at 30% 20%, rgba(255,228,180,0.55) 0%, transparent 60%),
+                    radial-gradient(ellipse at 75% 75%, rgba(255,220,200,0.45) 0%, transparent 60%),
+                    linear-gradient(135deg, #FFF2E2 0%, #FCE8D0 50%, #FFF2E2 100%);
             `;
             container.appendChild(fallback);
+            // 标记当前是浅色背景，让文字切换为深色
+            if (page) page.classList.add('companion-light-bg');
             return;
         }
+
+        // 有用户背景，移除浅色标记
+        if (page) page.classList.remove('companion-light-bg');
 
         if (bg.type === 'video') {
             const v = document.createElement('video');
