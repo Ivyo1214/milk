@@ -1477,8 +1477,28 @@
         const voiceInput = document.getElementById('companion-voice-upload-input');
         if (voiceInput) voiceInput.addEventListener('change', handleMgrVoiceUpload);
 
-        // 当用户切到"背景&字体"面板时，刷新一下列表
-        // 用 MutationObserver 监听 display 变化
+        // 触发渲染：用户切到"背景&字体"面板时
+        // 策略 1：监听父弹窗的所有点击，凡是带 showAppearancePanel('font-bg') 的元素都刷一下
+        document.addEventListener('click', async (e) => {
+            // 点击进入"背景&字体"子面板的入口
+            const card = e.target.closest('[onclick*="font-bg"], [onclick*="background"]');
+            if (card) {
+                setTimeout(async () => {
+                    await ensureDataLoaded();
+                    renderCompanionBgManager();
+                    renderCompanionVoiceManager();
+                }, 100);
+            }
+        });
+
+        // 策略 2：直接立即渲染一次（即使容器还隐藏，innerHTML 也能设上，等显示时就有内容了）
+        setTimeout(async () => {
+            await ensureDataLoaded();
+            renderCompanionBgManager();
+            renderCompanionVoiceManager();
+        }, 500);
+
+        // 策略 3：原 MutationObserver 也保留作为兜底
         const bgPanel = document.getElementById('appearance-panel-background');
         if (bgPanel) {
             const observer = new MutationObserver(async () => {
