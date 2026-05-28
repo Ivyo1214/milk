@@ -302,18 +302,7 @@ html[data-theme="dark"] .companion-mode-card i {
     );
 }
 
-/* ── 顶部控制栏 ────────────────────────────────────────────────── */
-.companion-topbar {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    padding-top: max(16px, env(safe-area-inset-top));
-}
-
+/* ── 控制按钮通用（左上角退出按钮等） ─────────────────────────── */
 .companion-ctrl-btn {
     width: 40px;
     height: 40px;
@@ -336,144 +325,137 @@ html[data-theme="dark"] .companion-mode-card i {
     transform: scale(1.08);
 }
 
-.companion-hint-area {
-    flex: 1;
-    text-align: center;
-}
-.companion-hint-area span {
-    font-size: 15px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.92);
-    letter-spacing: 1.5px;
-    text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+/* ── 左上角退出按钮（绝对定位） ──────────────────────────────── */
+.companion-exit-corner {
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top, 20px));
+    left: 20px;
+    z-index: 5;
 }
 
-/* ── 计时器 ────────────────────────────────────────────────────── */
-.companion-timer-area {
-    position: relative;
+/* ── 底部场景提示文字 ─────────────────────────────────────────── */
+.companion-hint-bottom {
+    position: absolute;
+    bottom: 60px;
+    left: 0;
+    right: 0;
     z-index: 2;
-    margin-bottom: max(40px, env(safe-area-inset-bottom, 40px));
+    text-align: center;
+    padding: 0 20px;
+    pointer-events: none;
+}
+.companion-hint-bottom span {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.88);
+    letter-spacing: 2px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* ── 玻璃球计时器（右上角）────────────────────────────────────── */
+.companion-timer-glass {
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top, 20px));
+    right: 20px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    z-index: 5;
+    isolation: isolate; /* 创建 stacking context，让子伪元素的层级独立 */
+    /* 玻璃球主体：深色暖调 + 多层渐变 */
+    background:
+        radial-gradient(ellipse at 30% 25%, rgba(255,200,140,0.18) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 75%, rgba(0,0,0,0.4) 0%, transparent 60%),
+        radial-gradient(circle at center, #3a2a1f 0%, #1a120c 100%);
+    /* 边缘反光 + 内阴影做立体感 */
+    box-shadow:
+        inset 0 1px 2px rgba(255,220,180,0.25),
+        inset 0 -1px 3px rgba(0,0,0,0.5),
+        0 4px 16px rgba(0,0,0,0.35),
+        0 0 0 0.5px rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-.companion-timer-ring {
-    width: 100px;
-    height: 100px;
-    transform: rotate(-90deg);
+/* 外圈金色弧线（顶部+底部有缺口）*/
+.companion-timer-glass::before {
+    content: '';
     position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        transparent 20deg,
+        #d4a574 35deg,
+        #e8c08a 90deg,
+        #d4a574 145deg,
+        transparent 160deg,
+        transparent 200deg,
+        #d4a574 215deg,
+        #e8c08a 270deg,
+        #d4a574 325deg,
+        transparent 340deg
+    );
+    -webkit-mask: radial-gradient(circle, transparent 47px, black 48px, black 49.5px, transparent 50px);
+    mask: radial-gradient(circle, transparent 47px, black 48px, black 49.5px, transparent 50px);
+    opacity: 0.85;
+    pointer-events: none;
 }
-.timer-ring-bg {
-    fill: none;
-    stroke: rgba(255,255,255,0.15);
-    stroke-width: 4;
-}
-.timer-ring-progress {
-    fill: none;
-    stroke: rgba(255,255,255,0.7);
-    stroke-width: 4;
-    stroke-linecap: round;
-    stroke-dasharray: 226.19; /* 2π × 36 */
-    stroke-dashoffset: 0;
-    transition: stroke-dashoffset 0.9s linear;
+
+/* 玻璃高光（左上角亮斑）*/
+.companion-timer-glass::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 16px;
+    width: 30px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.22) 0%, transparent 70%);
+    pointer-events: none;
 }
 
 .companion-timer-display {
-    position: relative;
-    z-index: 1;
-    font-size: 22px;
+    font-size: 17px;
     font-weight: 300;
-    color: #fff;
-    letter-spacing: 2px;
-    text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    color: rgba(255, 240, 220, 0.95);
+    letter-spacing: 1.5px;
     font-variant-numeric: tabular-nums;
-    min-width: 80px;
-    text-align: center;
+    text-shadow:
+        0 0 8px rgba(255, 180, 100, 0.3),
+        0 1px 2px rgba(0,0,0,0.6);
+    font-family: 'SF Mono', 'Menlo', monospace;
+    line-height: 1;
 }
 
-/* ── 右侧设置面板 ──────────────────────────────────────────────── */
-.companion-settings-panel {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 3;
-    width: min(88vw, 300px);
-    background: rgba(20,20,20,0.82);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    padding: 20px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    overflow-y: auto;
-}
-.companion-settings-panel.active {
-    transform: translateX(0);
-}
-
-.companion-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: max(0px, env(safe-area-inset-top));
-}
-.companion-panel-header span {
-    font-size: 16px;
-    font-weight: 600;
-    color: #fff;
-}
-
-.companion-panel-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.companion-panel-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255,255,255,0.5);
-    letter-spacing: 1px;
+.companion-timer-label {
+    font-size: 8.5px;
+    color: rgba(255, 220, 180, 0.55);
+    letter-spacing: 2.5px;
     text-transform: uppercase;
+    margin-top: 4px;
+    font-weight: 400;
 }
-.companion-panel-label i { margin-right: 5px; }
 
-.companion-panel-btn {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.85);
-    cursor: pointer;
+.companion-timer-dots {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s ease;
+    gap: 3px;
+    margin-top: 5px;
 }
-.companion-panel-btn:hover {
-    background: rgba(255,255,255,0.17);
+.companion-timer-dots span {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(212, 165, 116, 0.6);
 }
-.companion-panel-btn i { font-size: 14px; color: rgba(255,255,255,0.6); }
+.companion-timer-dots span:nth-child(2) { opacity: 0.4; }
+.companion-timer-dots span:nth-child(3) { opacity: 0.25; }
 
-/* 面板内语音列表深色适配 */
-.companion-settings-panel .companion-voice-item {
-    background: rgba(255,255,255,0.08);
-}
-.companion-settings-panel .companion-voice-name-input {
-    color: rgba(255,255,255,0.85);
-}
-.companion-settings-panel .companion-voice-play,
-.companion-settings-panel .companion-voice-delete {
-    color: rgba(255,255,255,0.5);
-}
-.companion-settings-panel .companion-voice-play:hover { color: #fff; background: rgba(255,255,255,0.12); }
-.companion-settings-panel .companion-voice-delete:hover { color: #ff8080; background: rgba(255,80,80,0.12); }
-.companion-settings-panel .companion-empty-hint { color: rgba(255,255,255,0.4); }
 
 /* ── 退出确认 ──────────────────────────────────────────────────── */
 .companion-exit-confirm {
@@ -527,7 +509,6 @@ html[data-theme="dark"] .companion-mode-card i {
 /* ── 响应式：窄屏调整 ──────────────────────────────────────────── */
 @media (max-width: 400px) {
     .companion-time-grid { grid-template-columns: repeat(2, 1fr); }
-    .companion-timer-display { font-size: 19px; }
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -741,18 +722,13 @@ html[data-theme="dark"] .companion-mode-card i {
 }
 
 /* ── 当陪伴页使用默认浅色背景时，把白色文字切换为深色 ───────────── */
-#companion-page.companion-light-bg .companion-hint-text {
+/* 注意：玻璃球计时器本身是深色的，浅色背景下反而很显眼，所以不调整它 */
+#companion-page.companion-light-bg .companion-hint-bottom span {
     color: #5a4a3a !important;
     text-shadow: 0 1px 4px rgba(255,255,255,0.4) !important;
 }
-#companion-page.companion-light-bg .companion-timer-display {
-    color: #6a5340 !important;
-    text-shadow: 0 1px 4px rgba(255,255,255,0.5) !important;
-}
-#companion-page.companion-light-bg .companion-timer-ring {
-    background: rgba(255,255,255,0.4) !important;
-}
-#companion-page.companion-light-bg #companion-exit-btn {
+#companion-page.companion-light-bg .companion-exit-corner {
     color: #6a5340 !important;
     background: rgba(255,255,255,0.55) !important;
+    border-color: rgba(106,83,64,0.18) !important;
 }
