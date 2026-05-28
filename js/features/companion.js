@@ -179,15 +179,7 @@
         });
 
         // 注入动画 keyframes（一次性）
-        if (!document.getElementById('companion-keyframes')) {
-            const style = document.createElement('style');
-            style.id = 'companion-keyframes';
-            style.textContent = `
-                @keyframes companionFadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes companionPopIn { from { opacity: 0; transform: scale(0.94) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-            `;
-            document.head.appendChild(style);
-        }
+        injectKeyframes();
 
         document.documentElement.appendChild(modal);
         console.log('[companion] 弹窗已创建并挂到 documentElement');
@@ -201,21 +193,377 @@
         if (oldModal) oldModal.classList.remove('active');
     }
 
-    // ─── 选择场景后：判断是否首次，决定走初始化还是直接进入 ──────────────────
+    // ─── 工具：获取梦角信息 + 发送聊天事件（复用通话的接口） ─────────────────
+
+    function getPartnerName() {
+        return window.settings?.partnerName ||
+            document.getElementById('partner-name')?.textContent.trim() ||
+            '梦角';
+    }
+
+    function getMyName() {
+        return window.settings?.myName || '我';
+    }
+
+    function getPartnerAvatarSrc() {
+        const img = document.querySelector('#partner-avatar img,[id*="partner-avatar"] img,.partner-avatar img');
+        return img ? img.src : null;
+    }
+
+    function sendChatEvent(icon, label, detail) {
+        // 复用原项目通话事件的接口，往聊天里加一条记录
+        if (typeof window._addCallEvent === 'function') {
+            window._addCallEvent(icon, label, detail);
+        } else {
+            let tries = 0;
+            const t = setInterval(() => {
+                if (typeof window._addCallEvent === 'function') {
+                    clearInterval(t);
+                    window._addCallEvent(icon, label, detail);
+                }
+                if (++tries > 25) clearInterval(t);
+            }, 200);
+        }
+    }
+
+    // ─── 内置台词库 ────────────────────────────────────────────────────────
+
+    const REJECT_LINES = [
+        '现在有点事，下次吧',
+        '今天不太想动，自己加油哦',
+        '等我一会儿，现在不行',
+        '抱歉，现在没空',
+        '正忙着呢，晚点再说',
+        '现在不方便',
+    ];
+
+    // 梦角主动邀请的台词（按场景区分）
+    const INVITE_LINES = {
+        study: ['要一起学习吗？', '陪你看会儿书？', '一起努力吧，我陪你'],
+        work:  ['在忙吗？我陪你工作', '一起加油干活吧', '陪你度过这段时间'],
+        exercise: ['动一动吧，我陪你', '一起活动一下？', '该锻炼了，我陪着你'],
+        sleep: ['该休息了，陪你睡', '困了吗？我陪你', '一起入睡吧'],
+    };
+
+    function pickRandom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // ─── 选择场景后：加入"邀请中"等待 + 概率拒绝 ──────────────────────────────
+
+    // 强制结果（用于测试）：null=正常随机，'accept'=强制同意，'reject'=强制拒绝
+    let _forceResult = null;
 
     async function selectMode(mode) {
         currentMode = mode;
         closeCompanionModal();
+        // 走"邀请等待"流程
+        showCompanionInviting(mode);
+    }
 
+    // 直接进入（跳过邀请流程，给"梦角主动邀请被接受"后用）
+    async function enterModeDirectly(mode) {
+        currentMode = mode;
         const hasBg = companionData.backgrounds[mode] && companionData.backgrounds[mode].length > 0;
-
         if (!hasBg) {
-            // 首次进入该场景 → 初始化流程
             openSetupModal(mode);
         } else {
-            // 已有背景 → 直接进入陪伴页
             openTimeModal(mode);
         }
+    }
+
+    // ─── 邀请等待 UI（用户发起后显示）─────────────────────────────────────
+
+    function showCompanionInviting(mode) {
+        const cfg = MODES[mode];
+        const partnerName = getPartnerName();
+        const avSrc = getPartnerAvatarSrc();
+
+        // 移除残留
+        document.querySelectorAll('#companion-inviting-overlay').forEach(el => el.remove());
+
+        const overlay = document.createElement('div');
+        overlay.id = 'companion-inviting-overlay';
+        overlay.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99998',
+            'background:rgba(15,15,20,0.92)',
+            'display:flex', 'align-items:center', 'justify-content:center',
+            'animation:companionFadeIn 0.3s ease',
+        ].join(';'));
+
+        const avatarHtml = avSrc
+            ? `<img src="${avSrc}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<i class="fas fa-user" style="font-size:34px;color:rgba(255,255,255,.85);"></i>`;
+
+        overlay.innerHTML = `
+            <div style="
+                display:flex;flex-direction:column;align-items:center;gap:18px;
+                color:#fff;animation:companionPopIn 0.4s ease;
+            ">
+                <div style="position:relative;width:96px;height:96px;">
+                    <div style="
+                        position:absolute;inset:-6px;border-radius:50%;
+                        border:2px solid rgba(197,164,126,0.5);
+                        animation:companionPulseRing 1.6s ease-out infinite;
+                    "></div>
+                    <div style="
+                        position:absolute;inset:-14px;border-radius:50%;
+                        border:2px solid rgba(197,164,126,0.3);
+                        animation:companionPulseRing 1.6s ease-out infinite 0.5s;
+                    "></div>
+                    <div style="
+                        width:96px;height:96px;border-radius:50%;overflow:hidden;
+                        background:rgba(255,255,255,0.1);
+                        display:flex;align-items:center;justify-content:center;
+                        border:2px solid rgba(255,255,255,0.15);
+                        position:relative;z-index:1;
+                    ">${avatarHtml}</div>
+                </div>
+                <div style="font-size:20px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:8px;">
+                    <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
+                    <span>正在邀请 ${partnerName} ${cfg.label.slice(2)}</span>
+                    <span class="inviting-dots" style="display:inline-flex;gap:3px;">
+                        <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite;"></span>
+                        <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite 0.2s;"></span>
+                        <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite 0.4s;"></span>
+                    </span>
+                </div>
+                <button id="companion-inviting-cancel" style="
+                    margin-top:30px;width:64px;height:64px;border-radius:50%;border:none;
+                    background:linear-gradient(135deg,#ff5252,#c62828);
+                    color:#fff;font-size:22px;cursor:pointer;
+                    box-shadow:0 6px 20px rgba(255,82,82,.45);
+                    display:flex;align-items:center;justify-content:center;
+                ">
+                    <i class="fas fa-xmark"></i>
+                </button>
+                <div style="font-size:11px;color:rgba(255,255,255,0.35);">取消邀请</div>
+            </div>
+        `;
+
+        // 注入动画 keyframes
+        injectKeyframes();
+
+        // 给这次 invite 一个唯一 id，防止旧 timer 误操作新 overlay
+        const sessionId = Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+        overlay.dataset.sessionId = sessionId;
+
+        document.documentElement.appendChild(overlay);
+
+        // 取消按钮
+        overlay.querySelector('#companion-inviting-cancel').addEventListener('click', () => {
+            clearTimeout(window._invitingTimer);
+            closeInviting();
+            sendChatEvent('fa-circle-xmark', `${getMyName()} 取消了陪伴邀请`, null);
+        });
+
+        // 决定结果
+        const rejectChance = 0.35;
+        const willReject = _forceResult === 'reject'
+            ? true
+            : _forceResult === 'accept'
+                ? false
+                : Math.random() < rejectChance;
+
+        // 检查 overlay 还是不是本次 session 的（防止用户取消又立刻再发起，旧 timer 误触新 overlay）
+        const isStillThisSession = () => {
+            const el = document.getElementById('companion-inviting-overlay');
+            return el && el.dataset.sessionId === sessionId;
+        };
+
+        if (willReject) {
+            // 4~12 秒后拒绝
+            const delay = 4000 + Math.random() * 8000;
+            window._invitingTimer = setTimeout(() => {
+                if (!isStillThisSession()) return;
+                closeInviting();
+                const line = pickRandom(REJECT_LINES);
+                sendChatEvent('fa-heart-crack', `${partnerName}：${line}`, null);
+                if (typeof showNotification === 'function') {
+                    showNotification(`${partnerName} 拒绝了陪伴邀请`, 'info');
+                }
+            }, delay);
+        } else {
+            // 1~3 秒后接受
+            const delay = 1000 + Math.random() * 2000;
+            window._invitingTimer = setTimeout(() => {
+                if (!isStillThisSession()) return;
+                closeInviting();
+                sendChatEvent('fa-heart', `${partnerName} 同意了陪伴邀请`, null);
+                enterModeDirectly(currentMode);
+            }, delay);
+        }
+    }
+
+    function closeInviting() {
+        document.querySelectorAll('#companion-inviting-overlay').forEach(el => el.remove());
+        clearTimeout(window._invitingTimer);
+    }
+
+    // ─── 梦角主动邀请 UI ────────────────────────────────────────────────────
+
+    async function showIncomingCompanion(mode) {
+        // 确保数据已加载（梦角主动邀请触发时数据可能还没加载）
+        const ok = await ensureDataLoaded();
+        if (!ok) return;
+
+        // 如果当前已经在陪伴中或有其他陪伴弹窗在，跳过
+        if (document.getElementById('companion-page')?.classList.contains('active')) return;
+        if (document.querySelector('#companion-inviting-overlay, #companion-incoming-overlay, #companion-modal-dynamic, #setup-modal-dynamic, #time-modal-dynamic')) return;
+
+        // 如果没指定 mode，随机选一个
+        if (!mode) {
+            const modes = Object.keys(MODES);
+            mode = modes[Math.floor(Math.random() * modes.length)];
+        }
+        currentMode = mode;
+        const cfg = MODES[mode];
+        const partnerName = getPartnerName();
+        const avSrc = getPartnerAvatarSrc();
+        const line = pickRandom(INVITE_LINES[mode] || INVITE_LINES.study);
+
+        // 移除残留
+        document.querySelectorAll('#companion-incoming-overlay').forEach(el => el.remove());
+
+        const overlay = document.createElement('div');
+        overlay.id = 'companion-incoming-overlay';
+        overlay.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99998',
+            'background:rgba(15,15,20,0.95)',
+            'display:flex', 'align-items:center', 'justify-content:center',
+            'animation:companionFadeIn 0.35s ease',
+        ].join(';'));
+
+        const avatarHtml = avSrc
+            ? `<img src="${avSrc}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<i class="fas fa-user" style="font-size:34px;color:rgba(255,255,255,.85);"></i>`;
+
+        overlay.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;">
+                <div style="position:relative;width:96px;height:96px;">
+                    <div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(197,164,126,0.5);animation:companionPulseRing 1.6s ease-out infinite;"></div>
+                    <div style="position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(197,164,126,0.3);animation:companionPulseRing 1.6s ease-out infinite 0.5s;"></div>
+                    <div style="
+                        width:96px;height:96px;border-radius:50%;overflow:hidden;
+                        background:rgba(255,255,255,0.1);
+                        display:flex;align-items:center;justify-content:center;
+                        border:2px solid rgba(255,255,255,0.15);
+                        position:relative;z-index:1;
+                    ">${avatarHtml}</div>
+                </div>
+                <div style="font-size:20px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:6px;">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#c5a47e;animation:companionDot 1.1s step-end infinite;"></span>
+                    <span>陪伴邀请</span>
+                </div>
+                <div style="
+                    background:rgba(255,255,255,0.08);border-radius:14px;padding:12px 20px;
+                    display:flex;align-items:center;gap:10px;max-width:280px;margin-top:4px;
+                ">
+                    <i class="fas ${cfg.icon}" style="color:#c5a47e;font-size:18px;"></i>
+                    <span style="font-size:14px;">"${line}"</span>
+                </div>
+                <div style="display:flex;gap:44px;margin-top:26px;">
+                    <button id="companion-incoming-reject" style="
+                        display:flex;flex-direction:column;align-items:center;gap:7px;
+                        background:none;border:none;cursor:pointer;color:#fff;
+                    ">
+                        <div style="
+                            width:60px;height:60px;border-radius:50%;
+                            background:linear-gradient(135deg,#ff5252,#c62828);
+                            box-shadow:0 6px 20px rgba(255,82,82,.45);
+                            display:flex;align-items:center;justify-content:center;
+                            transition:transform 0.15s ease;font-size:22px;
+                        "><i class="fas fa-xmark"></i></div>
+                        <span style="font-size:12px;color:rgba(255,255,255,.48);font-weight:500;">拒绝</span>
+                    </button>
+                    <button id="companion-incoming-accept" style="
+                        display:flex;flex-direction:column;align-items:center;gap:7px;
+                        background:none;border:none;cursor:pointer;color:#fff;
+                    ">
+                        <div style="
+                            width:60px;height:60px;border-radius:50%;
+                            background:linear-gradient(135deg,#4caf50,#2e7d32);
+                            box-shadow:0 6px 20px rgba(76,175,80,.45);
+                            display:flex;align-items:center;justify-content:center;
+                            transition:transform 0.15s ease;font-size:22px;padding:0;
+                        "><i class="fas fa-heart"></i></div>
+                        <span style="font-size:12px;color:rgba(255,255,255,.48);font-weight:500;">接受</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        injectKeyframes();
+        document.documentElement.appendChild(overlay);
+
+        // 22 秒未接听自动消失（用 isConnected 检查 overlay 是否还在 DOM）
+        const autoTimer = setTimeout(() => {
+            if (!overlay.isConnected) return; // 已被其他操作移除了
+            overlay.remove();
+            sendChatEvent('fa-heart-crack', `${getMyName()} 未接受 ${partnerName} 的陪伴邀请`, null);
+        }, 22000);
+
+        // 拒绝
+        overlay.querySelector('#companion-incoming-reject').addEventListener('click', () => {
+            clearTimeout(autoTimer);
+            if (overlay.isConnected) overlay.remove();
+            sendChatEvent('fa-heart-crack', `${getMyName()} 拒绝了 ${partnerName} 的陪伴邀请`, null);
+        });
+
+        // 接受 → 进入对应模式
+        overlay.querySelector('#companion-incoming-accept').addEventListener('click', () => {
+            clearTimeout(autoTimer);
+            if (overlay.isConnected) overlay.remove();
+            sendChatEvent('fa-heart', `接受了 ${partnerName} 的陪伴邀请`, null);
+            enterModeDirectly(mode);
+        });
+    }
+
+    // ─── 随机定时邀请（梦角主动） ────────────────────────────────────────
+
+    let _randomInviteTimer = null;
+
+    function scheduleRandomInvite() {
+        clearTimeout(_randomInviteTimer);
+        // 15~60 分钟随机
+        const ms = (15 + Math.random() * 45) * 60 * 1000;
+        _randomInviteTimer = setTimeout(() => {
+            // 25% 概率真正发起
+            if (Math.random() < 0.25) {
+                showIncomingCompanion();
+            }
+            scheduleRandomInvite(); // 递归继续下一轮
+        }, ms);
+        console.log(`[companion] 下次邀请检查在 ${Math.round(ms/60000)} 分钟后`);
+    }
+
+    function stopRandomInvite() {
+        clearTimeout(_randomInviteTimer);
+        _randomInviteTimer = null;
+    }
+
+    // ─── 动画 keyframes 注入（一次性）────────────────────────────────────
+
+    function injectKeyframes() {
+        if (document.getElementById('companion-keyframes')) return;
+        const style = document.createElement('style');
+        style.id = 'companion-keyframes';
+        style.textContent = `
+            @keyframes companionFadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes companionPopIn { from { opacity: 0; transform: scale(0.94) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+            @keyframes companionPulseRing {
+                0% { transform: scale(0.95); opacity: 0.6; }
+                70% { transform: scale(1.15); opacity: 0; }
+                100% { transform: scale(1.15); opacity: 0; }
+            }
+            @keyframes companionDot {
+                0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
+                30% { opacity: 1; transform: scale(1.4); }
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     // ─── 初始化流程（首次）──────────────────────────────────────────────────
@@ -980,6 +1328,15 @@
 
     // 用户点击顶部"陪伴"按钮的真正入口
     async function handleEntryClick() {
+        // 检查是否已经在某个陪伴流程中
+        if (document.querySelector('#companion-inviting-overlay, #companion-incoming-overlay, #companion-modal-dynamic, #setup-modal-dynamic, #time-modal-dynamic')) {
+            console.log('[companion] 已经在陪伴流程中，跳过');
+            return;
+        }
+        if (document.getElementById('companion-page')?.classList.contains('active')) {
+            console.log('[companion] 已经在陪伴页面，跳过');
+            return;
+        }
         const ok = await ensureDataLoaded();
         if (!ok) return;
         openCompanionModal();
@@ -990,6 +1347,9 @@
             // 先绑定事件，这样按钮立刻可用
             bindEvents();
             console.log('[companion] 模块加载完成（数据将在首次使用时加载）');
+
+            // 启动梦角主动邀请的随机定时器（15~60 分钟随机检查，25% 概率触发）
+            scheduleRandomInvite();
         } catch (e) {
             console.error('[companion] 初始化失败，已跳过陪伴模块以保护主功能', e);
         }
@@ -1002,7 +1362,43 @@
         setTimeout(init, 0);
     }
 
-    // 暴露给外部（可选）
-    window.companionModule = { openCompanionModal, closeCompanionPage };
+    // ─── 测试接口（控制台用） ────────────────────────────────────────────
+    // 用法：
+    //   companionModule.testIncoming()           — 立即触发"梦角邀请你"
+    //   companionModule.testIncoming('sleep')    — 指定场景的邀请
+    //   companionModule.testReject('study')      — 强制拒绝（用户发起后梦角拒绝）
+    //   companionModule.testAccept('work')       — 强制同意
+    //   companionModule.stopRandomInvite()       — 停止随机邀请
+    //   companionModule.scheduleRandomInvite()   — 重启随机邀请
+    window.companionModule = {
+        openCompanionModal,
+        closeCompanionPage,
+
+        // 测试：梦角主动邀请
+        testIncoming: (mode) => showIncomingCompanion(mode),
+
+        // 测试：强制拒绝（点陪伴 → 选场景 → 100% 被拒绝）
+        testReject: async (mode = 'study') => {
+            await ensureDataLoaded();
+            _forceResult = 'reject';
+            currentMode = mode;
+            showCompanionInviting(mode);
+            // 测试完后恢复随机
+            setTimeout(() => { _forceResult = null; }, 15000);
+        },
+
+        // 测试：强制同意（点陪伴 → 选场景 → 100% 被同意）
+        testAccept: async (mode = 'study') => {
+            await ensureDataLoaded();
+            _forceResult = 'accept';
+            currentMode = mode;
+            showCompanionInviting(mode);
+            setTimeout(() => { _forceResult = null; }, 15000);
+        },
+
+        // 控制随机邀请定时器
+        stopRandomInvite,
+        scheduleRandomInvite,
+    };
 
 })();
