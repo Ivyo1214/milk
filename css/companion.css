@@ -362,14 +362,15 @@ html[data-theme="dark"] .companion-mode-card i {
     border-radius: 50%;
     z-index: 5;
     isolation: isolate; /* 创建 stacking context，让子伪元素的层级独立 */
-    /* 玻璃球主体：深色暖调 + 多层渐变 */
+    /* 玻璃球主体：主题色调性的深色 + 多层渐变 */
     background:
-        radial-gradient(ellipse at 30% 25%, rgba(255,200,140,0.18) 0%, transparent 50%),
-        radial-gradient(ellipse at 70% 75%, rgba(0,0,0,0.4) 0%, transparent 60%),
-        radial-gradient(circle at center, #3a2a1f 0%, #1a120c 100%);
-    /* 边缘反光 + 内阴影做立体感 */
+        radial-gradient(ellipse at 30% 25%, rgba(var(--accent-color-rgb, 197,164,126), 0.35) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 75%, rgba(0,0,0,0.45) 0%, transparent 60%),
+        radial-gradient(circle at center, rgba(var(--accent-color-rgb, 197,164,126), 0.22) 0%, rgba(0,0,0,0.85) 100%),
+        #1a120c;
+    /* 边缘反光 + 内阴影做立体感（反光也用主题色，让玻璃边缘有色调） */
     box-shadow:
-        inset 0 1px 2px rgba(255,220,180,0.25),
+        inset 0 1px 2px rgba(var(--accent-color-rgb, 197,164,126), 0.4),
         inset 0 -1px 3px rgba(0,0,0,0.5),
         0 4px 16px rgba(0,0,0,0.35),
         0 0 0 0.5px rgba(255,255,255,0.05);
@@ -391,14 +392,14 @@ html[data-theme="dark"] .companion-mode-card i {
         from 0deg,
         transparent 0deg,
         transparent 20deg,
-        #d4a574 35deg,
-        #e8c08a 90deg,
-        #d4a574 145deg,
+        var(--accent-color, #d4a574) 35deg,
+        var(--accent-color-dark, #e8c08a) 90deg,
+        var(--accent-color, #d4a574) 145deg,
         transparent 160deg,
         transparent 200deg,
-        #d4a574 215deg,
-        #e8c08a 270deg,
-        #d4a574 325deg,
+        var(--accent-color, #d4a574) 215deg,
+        var(--accent-color-dark, #e8c08a) 270deg,
+        var(--accent-color, #d4a574) 325deg,
         transparent 340deg
     );
     -webkit-mask: radial-gradient(circle, transparent 47px, black 48px, black 49.5px, transparent 50px);
@@ -407,7 +408,7 @@ html[data-theme="dark"] .companion-mode-card i {
     pointer-events: none;
 }
 
-/* 玻璃高光（左上角亮斑）*/
+/* 玻璃高光（左上角亮斑） — 用主题色微调，使整体有色调统一感 */
 .companion-timer-glass::after {
     content: '';
     position: absolute;
@@ -423,11 +424,12 @@ html[data-theme="dark"] .companion-mode-card i {
 .companion-timer-display {
     font-size: 17px;
     font-weight: 300;
-    color: rgba(255, 240, 220, 0.95);
+    /* 数字本体保持微暖白，但 text-shadow 用主题色让发光跟随 */
+    color: rgba(255, 250, 240, 0.95);
     letter-spacing: 1.5px;
     font-variant-numeric: tabular-nums;
     text-shadow:
-        0 0 8px rgba(255, 180, 100, 0.3),
+        0 0 8px rgba(var(--accent-color-rgb, 197,164,126), 0.55),
         0 1px 2px rgba(0,0,0,0.6);
     font-family: 'SF Mono', 'Menlo', monospace;
     line-height: 1;
@@ -435,7 +437,7 @@ html[data-theme="dark"] .companion-mode-card i {
 
 .companion-timer-label {
     font-size: 8.5px;
-    color: rgba(255, 220, 180, 0.55);
+    color: rgba(var(--accent-color-rgb, 197,164,126), 0.7);
     letter-spacing: 2.5px;
     text-transform: uppercase;
     margin-top: 4px;
@@ -451,10 +453,10 @@ html[data-theme="dark"] .companion-mode-card i {
     width: 3px;
     height: 3px;
     border-radius: 50%;
-    background: rgba(212, 165, 116, 0.6);
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.7);
 }
-.companion-timer-dots span:nth-child(2) { opacity: 0.4; }
-.companion-timer-dots span:nth-child(3) { opacity: 0.25; }
+.companion-timer-dots span:nth-child(2) { opacity: 0.45; }
+.companion-timer-dots span:nth-child(3) { opacity: 0.28; }
 
 
 /* ── 退出确认 ──────────────────────────────────────────────────── */
