@@ -159,21 +159,21 @@
 
         modal.innerHTML = `
             <div id="companion-modal-card" style="
-                background:#fff;border-radius:20px;padding:28px 24px 20px;
+                background:var(--secondary-bg, #fff);border-radius:20px;padding:28px 24px 20px;
                 width:min(92vw, 420px);max-height:85vh;overflow-y:auto;
                 box-shadow:0 20px 60px rgba(0,0,0,0.18);
                 opacity:1 !important;transform:none !important;
                 animation:companionPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
             ">
-                <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:18px;justify-content:center;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:var(--text-primary, #1a1a1a);margin-bottom:18px;justify-content:center;">
                     <i class="fas fa-hand-holding-heart" style="color:var(--accent-color, #c5a47e);"></i>
                     <span>陪伴</span>
                 </div>
                 <div id="companion-cards-wrap" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:6px 4px;">
                     ${Object.entries(MODES).map(([key, cfg]) => `
                         <div class="companion-mode-card-dyn" data-mode="${key}" style="
-                            background:#fafafa;border-radius:14px;padding:22px 12px;cursor:pointer;
-                            border:1px solid rgba(0,0,0,0.06);
+                            background:var(--primary-bg, #fafafa);border-radius:14px;padding:22px 12px;cursor:pointer;
+                            border:1px solid var(--border-color, rgba(0,0,0,0.06));
                             display:flex;flex-direction:column;align-items:center;gap:10px;
                             transition:all 0.25s ease;user-select:none;
                         ">
@@ -184,14 +184,14 @@
                             ">
                                 <i class="fas ${cfg.icon}" style="font-size:24px;color:var(--accent-color, #c5a47e);"></i>
                             </div>
-                            <span style="font-size:14px;font-weight:600;color:#1a1a1a;">${cfg.label}</span>
+                            <span style="font-size:14px;font-weight:600;color:var(--text-primary, #1a1a1a);">${cfg.label}</span>
                         </div>
                     `).join('')}
                 </div>
                 <div style="margin-top:18px;text-align:right;">
                     <button id="companion-dynamic-close" style="
-                        padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);
-                        background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;
+                        padding:8px 20px;border-radius:10px;border:1px solid var(--border-color, rgba(0,0,0,0.1));
+                        background:var(--primary-bg, #f5f5f5);color:var(--text-secondary, #666);font-size:13px;cursor:pointer;
                     ">关闭</button>
                 </div>
             </div>
@@ -219,7 +219,7 @@
             });
             card.addEventListener('mouseleave', () => {
                 card.style.transform = '';
-                card.style.borderColor = 'rgba(0,0,0,0.06)';
+                card.style.borderColor = 'var(--border-color, rgba(0,0,0,0.06))';
                 card.style.boxShadow = '';
             });
         });
@@ -1027,33 +1027,33 @@
         const timesHtml = cfg.times.map(t => {
             if (t === 'rest') {
                 return `<button class="time-btn-dyn" data-time="rest" style="
-                    background:#fff;border:1.5px solid #eee;border-radius:14px;padding:16px 8px;cursor:pointer;
+                    background:var(--secondary-bg, #fff);border:1.5px solid var(--border-color, #eee);border-radius:14px;padding:16px 8px;cursor:pointer;
                     display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s ease;
                 ">
                     <i class="fas fa-cloud-moon" style="font-size:20px;color:var(--accent-color, #c5a47e);"></i>
-                    <span style="font-size:13px;font-weight:600;color:#1a1a1a;">好好休息</span>
+                    <span style="font-size:13px;font-weight:600;color:var(--text-primary, #1a1a1a);">好好休息</span>
                 </button>`;
             }
             return `<button class="time-btn-dyn" data-time="${t}" style="
-                background:#fff;border:1.5px solid #eee;border-radius:14px;padding:16px 8px;cursor:pointer;
+                background:var(--secondary-bg, #fff);border:1.5px solid var(--border-color, #eee);border-radius:14px;padding:16px 8px;cursor:pointer;
                 display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s ease;
             ">
                 <span style="font-size:22px;font-weight:700;color:var(--accent-color, #c5a47e);line-height:1;">${t}</span>
-                <span style="font-size:11px;color:#888;">分钟</span>
+                <span style="font-size:11px;color:var(--text-secondary, #888);">分钟</span>
             </button>`;
         }).join('');
 
         const html = `
-            <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:10px;justify-content:center;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:var(--text-primary, #1a1a1a);margin-bottom:10px;justify-content:center;">
                 <i class="fas ${cfg.icon}" style="color:var(--accent-color, #c5a47e);"></i>
                 <span>${cfg.label}</span>
             </div>
-            <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;">这次陪你多久？</p>
+            <p style="font-size:13px;color:var(--text-secondary, #888);text-align:center;margin:6px 0 16px;">这次陪你多久？</p>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 18px;">${timesHtml}</div>
             <div style="margin-top:18px;text-align:right;">
                 <button id="time-dyn-close" style="
-                    padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);
-                    background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;
+                    padding:8px 20px;border-radius:10px;border:1px solid var(--border-color, rgba(0,0,0,0.1));
+                    background:var(--primary-bg, #f5f5f5);color:var(--text-secondary, #666);font-size:13px;cursor:pointer;
                 ">取消</button>
             </div>
         `;
@@ -1092,8 +1092,8 @@
                 btn.style.transform = 'translateY(-2px)';
             });
             btn.addEventListener('mouseleave', () => {
-                btn.style.borderColor = '#eee';
-                btn.style.background = '#fff';
+                btn.style.borderColor = 'var(--border-color, #eee)';
+                btn.style.background = 'var(--secondary-bg, #fff)';
                 btn.style.transform = '';
             });
         });
