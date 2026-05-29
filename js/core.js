@@ -2222,7 +2222,7 @@ function showModal(modalElement, focusElement = null) {
                 newStatus = getRandomItem(CONSTANTS.PARTNER_STATUSES);
             }
             if (!newStatus) {
-                if (typeof showNotification === 'function') showNotification('状态库为空，请先添加内容', 'warning', 2500);
+                // 静默跳过（不再 toast 提示用户）
                 return;
             }
 
@@ -2319,6 +2319,3 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(historyLoader);
     }
 });
-
-
-
