@@ -166,7 +166,7 @@
                 animation:companionPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
             ">
                 <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:18px;justify-content:center;">
-                    <i class="fas fa-hand-holding-heart" style="color:#c5a47e;"></i>
+                    <i class="fas fa-hand-holding-heart" style="color:var(--accent-color, #c5a47e);"></i>
                     <span>陪伴</span>
                 </div>
                 <div id="companion-cards-wrap" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:6px 4px;">
@@ -179,10 +179,10 @@
                         ">
                             <div style="
                                 width:56px;height:56px;border-radius:50%;
-                                background:rgba(197,164,126,0.12);
+                                background:rgba(var(--accent-color-rgb,197,164,126),0.12);
                                 display:flex;align-items:center;justify-content:center;
                             ">
-                                <i class="fas ${cfg.icon}" style="font-size:24px;color:#c5a47e;"></i>
+                                <i class="fas ${cfg.icon}" style="font-size:24px;color:var(--accent-color, #c5a47e);"></i>
                             </div>
                             <span style="font-size:14px;font-weight:600;color:#1a1a1a;">${cfg.label}</span>
                         </div>
@@ -214,7 +214,7 @@
             // hover 效果（用 JS 因为内联样式没法用 :hover）
             card.addEventListener('mouseenter', () => {
                 card.style.transform = 'translateY(-3px)';
-                card.style.borderColor = '#c5a47e';
+                card.style.borderColor = 'var(--accent-color, #c5a47e)';
                 card.style.boxShadow = '0 10px 24px rgba(0,0,0,0.08)';
             });
             card.addEventListener('mouseleave', () => {
@@ -373,12 +373,12 @@
                 <div style="position:relative;width:96px;height:96px;">
                     <div style="
                         position:absolute;inset:-6px;border-radius:50%;
-                        border:2px solid rgba(197,164,126,0.5);
+                        border:2px solid rgba(var(--accent-color-rgb,197,164,126),0.5);
                         animation:companionPulseRing 1.6s ease-out infinite;
                     "></div>
                     <div style="
                         position:absolute;inset:-14px;border-radius:50%;
-                        border:2px solid rgba(197,164,126,0.3);
+                        border:2px solid rgba(var(--accent-color-rgb,197,164,126),0.3);
                         animation:companionPulseRing 1.6s ease-out infinite 0.5s;
                     "></div>
                     <div style="
@@ -391,7 +391,7 @@
                 </div>
                 <div style="font-size:20px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
                 <div style="font-size:13px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:8px;">
-                    <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
+                    <i class="fas ${cfg.icon}" style="color:var(--accent-color, #c5a47e);"></i>
                     <span>邀请${cfg.label} · ${userTimeText}</span>
                     <span class="inviting-dots" style="display:inline-flex;gap:3px;">
                         <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite;"></span>
@@ -536,8 +536,8 @@
         overlay.innerHTML = `
             <div style="display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;">
                 <div style="position:relative;width:96px;height:96px;">
-                    <div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(197,164,126,0.5);animation:companionPulseRing 1.6s ease-out infinite;"></div>
-                    <div style="position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(197,164,126,0.3);animation:companionPulseRing 1.6s ease-out infinite 0.5s;"></div>
+                    <div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(var(--accent-color-rgb,197,164,126),0.5);animation:companionPulseRing 1.6s ease-out infinite;"></div>
+                    <div style="position:absolute;inset:-14px;border-radius:50%;border:2px solid rgba(var(--accent-color-rgb,197,164,126),0.3);animation:companionPulseRing 1.6s ease-out infinite 0.5s;"></div>
                     <div style="
                         width:96px;height:96px;border-radius:50%;overflow:hidden;
                         background:rgba(255,255,255,0.1);
@@ -548,14 +548,14 @@
                 </div>
                 <div style="font-size:20px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
                 <div style="font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:6px;">
-                    <span style="width:6px;height:6px;border-radius:50%;background:#c5a47e;animation:companionDot 1.1s step-end infinite;"></span>
+                    <span style="width:6px;height:6px;border-radius:50%;background:var(--accent-color, #c5a47e);animation:companionDot 1.1s step-end infinite;"></span>
                     <span>想和你一起...</span>
                 </div>
                 <div style="
                     background:rgba(255,255,255,0.08);border-radius:14px;padding:12px 20px;
                     display:flex;align-items:center;gap:10px;max-width:280px;margin-top:4px;
                 ">
-                    <i class="fas ${cfg.icon}" style="color:#c5a47e;font-size:18px;"></i>
+                    <i class="fas ${cfg.icon}" style="color:var(--accent-color, #c5a47e);font-size:18px;"></i>
                     <span style="font-size:14px;">"${line}"</span>
                 </div>
                 <div style="display:flex;gap:44px;margin-top:26px;">
@@ -693,7 +693,7 @@
             'position:fixed', 'inset:0', 'z-index:99999',
             'background:rgba(15,15,20,0.92)',
             'display:flex', 'align-items:center', 'justify-content:center',
-            'animation:companionFadeIn 0.9s ease',
+            'animation:companionFadeIn 1.8s ease',
         ].join(';'));
 
         const avatarHtml = avSrc
@@ -701,7 +701,7 @@
             : `<i class="fas fa-user" style="font-size:30px;color:rgba(255,255,255,.85);"></i>`;
 
         overlay.innerHTML = `
-            <div style="display:flex;flex-direction:column;align-items:center;gap:20px;color:#fff;max-width:300px;padding:0 20px;animation:companionPopIn 1s ease;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:20px;color:#fff;max-width:300px;padding:0 20px;animation:companionPopIn 2s ease;">
                 <div style="
                     width:80px;height:80px;border-radius:50%;overflow:hidden;
                     background:rgba(255,255,255,0.1);
@@ -713,7 +713,7 @@
                     background:rgba(255,255,255,0.08);border-radius:14px;padding:14px 22px;
                     display:flex;align-items:center;gap:10px;text-align:center;
                 ">
-                    <i class="fas fa-hand" style="color:#c5a47e;font-size:16px;"></i>
+                    <i class="fas fa-hand" style="color:var(--accent-color, #c5a47e);font-size:16px;"></i>
                     <span style="font-size:14px;">${line}</span>
                 </div>
                 <button id="companion-farewell-ack" style="
@@ -810,35 +810,35 @@
 
         const html = `
             <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:14px;justify-content:center;">
-                <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
+                <i class="fas ${cfg.icon}" style="color:var(--accent-color, #c5a47e);"></i>
                 <span>${cfg.label}</span>
             </div>
             <div id="setup-dyn-step-bg">
                 <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;line-height:1.6;">请上传一张梦角的图片或视频，作为陪伴背景 ✦</p>
                 <div id="setup-dyn-bg-preview" style="display:none;width:100%;height:160px;border-radius:12px;overflow:hidden;margin-bottom:12px;background:#000;"></div>
                 <div id="setup-dyn-bg-trigger" style="
-                    border:2px dashed rgba(197,164,126,0.5);border-radius:14px;padding:24px 16px;
+                    border:2px dashed rgba(var(--accent-color-rgb,197,164,126),0.5);border-radius:14px;padding:24px 16px;
                     display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;
-                    background:rgba(197,164,126,0.04);transition:all 0.2s ease;
+                    background:rgba(var(--accent-color-rgb,197,164,126),0.04);transition:all 0.2s ease;
                 ">
-                    <i class="fas fa-cloud-arrow-up" style="font-size:28px;color:#c5a47e;"></i>
+                    <i class="fas fa-cloud-arrow-up" style="font-size:28px;color:var(--accent-color, #c5a47e);"></i>
                     <span style="font-size:14px;font-weight:600;color:#1a1a1a;">点击上传图片 / 视频</span>
                     <small style="font-size:11px;color:#888;">支持 jpg · png · gif · mp4 · mov，建议 ≤ 100MB</small>
                 </div>
                 <input type="file" id="setup-dyn-bg-input" accept="image/*,video/*" style="display:none">
                 <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
                     <button id="setup-dyn-btn-cancel" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">取消</button>
-                    <button id="setup-dyn-btn-next" style="display:none;padding:8px 20px;border-radius:10px;border:none;background:#c5a47e;color:#fff;font-size:13px;cursor:pointer;">下一步 →</button>
+                    <button id="setup-dyn-btn-next" style="display:none;padding:8px 20px;border-radius:10px;border:none;background:var(--accent-color, #c5a47e);color:#fff;font-size:13px;cursor:pointer;">下一步 →</button>
                 </div>
             </div>
             <div id="setup-dyn-step-voice" style="display:none;">
                 <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;line-height:1.6;">上传梦角的语音，点击屏幕时会随机播放 ✦</p>
                 <div id="setup-dyn-voice-trigger" style="
-                    border:2px dashed rgba(197,164,126,0.5);border-radius:14px;padding:14px 16px;
+                    border:2px dashed rgba(var(--accent-color-rgb,197,164,126),0.5);border-radius:14px;padding:14px 16px;
                     display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;
-                    background:rgba(197,164,126,0.04);transition:all 0.2s ease;
+                    background:rgba(var(--accent-color-rgb,197,164,126),0.04);transition:all 0.2s ease;
                 ">
-                    <i class="fas fa-microphone" style="font-size:20px;color:#c5a47e;"></i>
+                    <i class="fas fa-microphone" style="font-size:20px;color:var(--accent-color, #c5a47e);"></i>
                     <span style="font-size:13px;font-weight:600;color:#1a1a1a;">点击上传语音</span>
                     <small style="font-size:11px;color:#888;">支持 mp3 · m4a · wav，可多选</small>
                 </div>
@@ -846,7 +846,7 @@
                 <div id="setup-dyn-voice-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;"></div>
                 <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
                     <button id="setup-dyn-btn-skip" style="padding:8px 20px;border-radius:10px;border:1px solid rgba(0,0,0,0.1);background:#f5f5f5;color:#666;font-size:13px;cursor:pointer;">跳过</button>
-                    <button id="setup-dyn-btn-finish" style="padding:8px 20px;border-radius:10px;border:none;background:#c5a47e;color:#fff;font-size:13px;cursor:pointer;">✓ 完成</button>
+                    <button id="setup-dyn-btn-finish" style="padding:8px 20px;border-radius:10px;border:none;background:var(--accent-color, #c5a47e);color:#fff;font-size:13px;cursor:pointer;">✓ 完成</button>
                 </div>
             </div>
         `;
@@ -986,8 +986,8 @@
             return;
         }
         list.innerHTML = voices.map((v, i) => `
-            <div style="display:flex;align-items:center;gap:8px;background:rgba(197,164,126,0.07);border-radius:10px;padding:8px 10px;">
-                <i class="fas fa-music" style="color:#c5a47e;font-size:14px;"></i>
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(var(--accent-color-rgb,197,164,126),0.07);border-radius:10px;padding:8px 10px;">
+                <i class="fas fa-music" style="color:var(--accent-color, #c5a47e);font-size:14px;"></i>
                 <input type="text" value="${v.name}" data-idx="${i}" class="setup-dyn-voice-name"
                     style="flex:1;border:none;background:transparent;font-size:13px;outline:none;min-width:0;">
                 <button data-id="${v.id}" class="setup-dyn-voice-del"
@@ -1030,7 +1030,7 @@
                     background:#fff;border:1.5px solid #eee;border-radius:14px;padding:16px 8px;cursor:pointer;
                     display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s ease;
                 ">
-                    <i class="fas fa-cloud-moon" style="font-size:20px;color:#c5a47e;"></i>
+                    <i class="fas fa-cloud-moon" style="font-size:20px;color:var(--accent-color, #c5a47e);"></i>
                     <span style="font-size:13px;font-weight:600;color:#1a1a1a;">好好休息</span>
                 </button>`;
             }
@@ -1038,14 +1038,14 @@
                 background:#fff;border:1.5px solid #eee;border-radius:14px;padding:16px 8px;cursor:pointer;
                 display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s ease;
             ">
-                <span style="font-size:22px;font-weight:700;color:#c5a47e;line-height:1;">${t}</span>
+                <span style="font-size:22px;font-weight:700;color:var(--accent-color, #c5a47e);line-height:1;">${t}</span>
                 <span style="font-size:11px;color:#888;">分钟</span>
             </button>`;
         }).join('');
 
         const html = `
             <div style="display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:10px;justify-content:center;">
-                <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
+                <i class="fas ${cfg.icon}" style="color:var(--accent-color, #c5a47e);"></i>
                 <span>${cfg.label}</span>
             </div>
             <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;">这次陪你多久？</p>
@@ -1087,8 +1087,8 @@
                 }
             });
             btn.addEventListener('mouseenter', () => {
-                btn.style.borderColor = '#c5a47e';
-                btn.style.background = 'rgba(197,164,126,0.08)';
+                btn.style.borderColor = 'var(--accent-color, #c5a47e)';
+                btn.style.background = 'rgba(var(--accent-color-rgb,197,164,126),0.08)';
                 btn.style.transform = 'translateY(-2px)';
             });
             btn.addEventListener('mouseleave', () => {
@@ -1170,13 +1170,14 @@
         container.innerHTML = '';
 
         if (!bg) {
-            // 默认背景：米黄色系柔和渐变
+            // 默认背景：跟随主题色的柔和浅色渐变
+            // 用主题色的低透明度叠加，叠在你设置的米黄基底（#FFF2E2）上
             const fallback = document.createElement('div');
             fallback.style.cssText = `
                 position:absolute;inset:0;
                 background:
-                    radial-gradient(ellipse at 30% 20%, rgba(255,228,180,0.55) 0%, transparent 60%),
-                    radial-gradient(ellipse at 75% 75%, rgba(255,220,200,0.45) 0%, transparent 60%),
+                    radial-gradient(ellipse at 30% 20%, rgba(var(--accent-color-rgb, 197,164,126), 0.32) 0%, transparent 60%),
+                    radial-gradient(ellipse at 75% 75%, rgba(var(--accent-color-rgb, 197,164,126), 0.22) 0%, transparent 60%),
                     linear-gradient(135deg, #FFF2E2 0%, #FCE8D0 50%, #FFF2E2 100%);
             `;
             container.appendChild(fallback);
@@ -1902,6 +1903,19 @@
         forceNextEarlyLeave: () => {
             _forceEarlyLeave = true;
             console.log('[companion] 下次 5 分钟检查时将强制离开');
+        },
+
+        // 测试：快速切换主题色（验证陪伴 UI 跟随主题色）
+        // 用法：companionModule.testTheme('blue')
+        // 可选：gold/blue/purple/green/pink/black-white/pastel/sunset/forest/ocean
+        testTheme: (theme) => {
+            const valid = ['gold','blue','purple','green','pink','black-white','pastel','sunset','forest','ocean'];
+            if (!valid.includes(theme)) {
+                console.log('可用主题:', valid.join(', '));
+                return;
+            }
+            document.documentElement.setAttribute('data-color-theme', theme);
+            console.log(`[companion] 已切换到 ${theme} 主题`);
         },
 
         // 控制随机邀请定时器
