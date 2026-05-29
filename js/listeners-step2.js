@@ -20,6 +20,7 @@
         const plusBtn       = document.getElementById('plus-btn');
         const plusMenu      = document.getElementById('plus-menu-popover');
         const albumInput    = document.getElementById('album-input');
+        const cameraInput   = document.getElementById('camera-input');
         const voiceBtn      = document.getElementById('voice-btn');
 
         if (!plusBtn || !plusMenu) {
@@ -54,7 +55,7 @@
             plusBtn.classList.remove('active');
 
             if (action === 'camera') {
-                openCameraModal();
+                cameraInput.click();
             } else if (action === 'album') {
                 albumInput.click();
             } else if (action === 'videocall') {
@@ -90,117 +91,16 @@
             }
         });
 
-        // ─────────── 5. 拍照弹窗逻辑 ───────────
-        const cameraModal    = document.getElementById('camera-modal');
-        const cameraVideo    = document.getElementById('camera-video');
-        const cameraCanvas   = document.getElementById('camera-canvas');
-        const cameraPreview  = document.getElementById('camera-preview-img');
-        const closeBtn       = document.getElementById('camera-close-btn');
-        const switchBtn      = document.getElementById('camera-switch-btn');
-        const shutterBtn     = document.getElementById('camera-shutter-btn');
-        const retakeBtn      = document.getElementById('camera-retake-btn');
-        const useBtn         = document.getElementById('camera-use-btn');
-        const barShoot       = document.getElementById('camera-bottombar-shoot');
-        const barAfter       = document.getElementById('camera-bottombar-after');
-
-        let currentStream = null;
-        let facingMode    = 'user';   // 'user' 前置 / 'environment' 后置
-        let capturedData  = null;     // 拍摄后的 base64
-
-        async function openCameraModal() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                notify('当前浏览器不支持摄像头', 'error');
-                return;
+        // ─────────── 5. 拍照（原生 input capture，由浏览器调起系统相机）───────────
+        cameraInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            cameraInput.value = '';
+            if (!file) return;
+            if (file.type.startsWith('image/')) {
+                handleImageFile(file);
+            } else {
+                notify('请选择图片文件', 'error');
             }
-            cameraModal.style.display = 'flex';
-            await startCamera();
-        }
-
-        async function startCamera() {
-            stopCamera();
-            try {
-                currentStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: facingMode },
-                    audio: false
-                });
-                cameraVideo.srcObject = currentStream;
-                cameraVideo.style.display = 'block';
-                cameraPreview.style.display = 'none';
-                barShoot.style.display = 'flex';
-                barAfter.style.display = 'none';
-                capturedData = null;
-            } catch (err) {
-                console.error('[camera] getUserMedia failed:', err);
-                let msg = '无法访问摄像头';
-                if (err && err.name === 'NotAllowedError') msg = '请允许摄像头权限';
-                if (err && err.name === 'NotFoundError')   msg = '没有找到摄像头';
-                notify(msg, 'error');
-                closeCameraModal();
-            }
-        }
-
-        function stopCamera() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(t => t.stop());
-                currentStream = null;
-            }
-            cameraVideo.srcObject = null;
-        }
-
-        function closeCameraModal() {
-            stopCamera();
-            cameraModal.style.display = 'none';
-            capturedData = null;
-        }
-
-        // 关闭
-        closeBtn.addEventListener('click', closeCameraModal);
-
-        // 切换摄像头
-        switchBtn.addEventListener('click', async () => {
-            facingMode = (facingMode === 'user') ? 'environment' : 'user';
-            await startCamera();
-        });
-
-        // 快门：拍一张
-        shutterBtn.addEventListener('click', () => {
-            const w = cameraVideo.videoWidth;
-            const h = cameraVideo.videoHeight;
-            if (!w || !h) {
-                notify('画面尚未就绪', 'warning');
-                return;
-            }
-            cameraCanvas.width  = w;
-            cameraCanvas.height = h;
-            const ctx = cameraCanvas.getContext('2d');
-            // 前置摄像头镜像翻转，让拍出来的和预览一致
-            if (facingMode === 'user') {
-                ctx.translate(w, 0);
-                ctx.scale(-1, 1);
-            }
-            ctx.drawImage(cameraVideo, 0, 0, w, h);
-            capturedData = cameraCanvas.toDataURL('image/jpeg', 0.88);
-
-            // 切到"预览 + 重拍/使用"状态
-            cameraPreview.src = capturedData;
-            cameraPreview.style.display = 'block';
-            cameraVideo.style.display = 'none';
-            barShoot.style.display = 'none';
-            barAfter.style.display = 'flex';
-
-            // 停掉摄像头，省电
-            stopCamera();
-        });
-
-        // 重拍
-        retakeBtn.addEventListener('click', startCamera);
-
-        // 使用：把拍到的图片发送出去
-        useBtn.addEventListener('click', () => {
-            if (!capturedData) return;
-            const data = capturedData;
-            closeCameraModal();
-            sendImageData(data);
         });
 
         // ─────────── 6. 辅助：把图片数据发送出去（复用项目内置流程）───────────
