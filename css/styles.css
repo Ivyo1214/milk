@@ -544,7 +544,6 @@
             color: var(--text-primary);
             transition: background-color 0.5s ease, color 0.5s ease;
             height: 100vh;
-            height: 100svh;
             display: flex;
             flex-direction: column;
             overflow: hidden; 
@@ -10878,13 +10877,21 @@
 
 /* 语音按钮样式（继承 .input-btn，单独点缀一下让它跟其他按钮一致）*/
 #voice-btn {
-    color: var(--accent-color);
+    background-color: var(--toolbar-btn-bg, var(--message-received-bg));
+    color: var(--toolbar-btn-color, var(--text-secondary));
+}
+#voice-btn:hover {
+    color: var(--text-primary);
 }
 
-/* 加号按钮 —— 突出强调，作为常用入口 */
+/* 加号按钮 —— 跟表情按钮完全一致的灰底灰 icon */
 #plus-btn {
-    color: var(--accent-color);
+    background-color: var(--toolbar-btn-bg, var(--message-received-bg));
+    color: var(--toolbar-btn-color, var(--text-secondary));
     transition: transform 0.2s ease;
+}
+#plus-btn:hover {
+    color: var(--text-primary);
 }
 #plus-btn.active {
     transform: rotate(45deg);   /* 打开菜单时变 ×  */
@@ -10969,11 +10976,6 @@
 /* 同时压制收纳模式下的强制显示规则 */
 body.bottom-collapse-mode #collapse-expand-btn {
     display: none !important;
-}
-
-/* 底部距离 14px（已含 home 条避让）*/
-.input-area {
-    padding-bottom: 14px !important;
 }
 
 /* 输入框允许多行显示（最多 3 行，超出滚动）
