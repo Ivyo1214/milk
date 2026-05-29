@@ -198,8 +198,8 @@
             <div class="header-actions">
                 <button id="session-manager-btn" class="action-btn" title="会话管理"><i class="fas fa-comments"></i></button>
                 <button id="group-chat-btn" class="action-btn" title="群聊设置"><i class="fas fa-users"></i></button>
-                <button id="daily-greeting-btn" class="action-btn" title="今日公告" onclick="reopenDailyGreeting()"><i class="fas fa-newspaper"></i></button>
                 <button id="companion-btn" class="action-btn" title="陪伴"><i class="fas fa-hand-holding-heart"></i></button>
+                <button id="daily-greeting-btn" class="action-btn" title="今日公告" onclick="reopenDailyGreeting()"><i class="fas fa-newspaper"></i></button>
                 <button id="theme-toggle" class="action-btn" title="切换主题"><i class="fas fa-moon"></i></button>
                 <button id="settings-btn" class="action-btn" title="设置"><i class="fas fa-cog"></i></button>
             </div>
@@ -388,29 +388,9 @@
     <input type="file" id="my-sticker-quick-upload" class="file-input" accept="image/*" multiple>
     <!-- 新增：相册选择（图片+视频）-->
     <input type="file" id="album-input" class="file-input" accept="image/*,video/*" style="display:none;">
+    <!-- 新增：拍照（直接调起系统相机，照片图库/拍照/文件 由浏览器原生处理）-->
+    <input type="file" id="camera-input" class="file-input" accept="image/*" capture="environment" style="display:none;">
 </div>
-    </div>
-
-    <!-- 新增：仿微信拍照弹窗（全屏黑底）-->
-    <div id="camera-modal" class="camera-modal" style="display:none;">
-        <video id="camera-video" autoplay playsinline muted></video>
-        <canvas id="camera-canvas" style="display:none;"></canvas>
-        <img id="camera-preview-img" style="display:none;" alt="预览">
-        
-        <!-- 顶部：关闭 + 切换摄像头 -->
-        <div class="camera-topbar">
-            <button class="camera-icon-btn" id="camera-close-btn" title="关闭"><i class="fas fa-times"></i></button>
-            <button class="camera-icon-btn" id="camera-switch-btn" title="切换摄像头"><i class="fas fa-sync-alt"></i></button>
-        </div>
-        
-        <!-- 底部：未拍 = 快门；已拍 = 重拍 + 使用 -->
-        <div class="camera-bottombar" id="camera-bottombar-shoot">
-            <button class="camera-shutter" id="camera-shutter-btn"></button>
-        </div>
-        <div class="camera-bottombar camera-bottombar-after" id="camera-bottombar-after" style="display:none;">
-            <button class="camera-action-btn camera-action-retake" id="camera-retake-btn"><i class="fas fa-redo"></i> 重拍</button>
-            <button class="camera-action-btn camera-action-use" id="camera-use-btn"><i class="fas fa-check"></i> 使用</button>
-        </div>
     </div>
 
 
