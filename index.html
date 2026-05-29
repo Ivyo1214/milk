@@ -338,6 +338,8 @@
         </div>
         <div class="input-area">
     <button id="collapse-expand-btn" title="展开更多" style="display:none;width:36px;height:36px;border:none;border-radius:50%;cursor:pointer;background:rgba(var(--accent-color-rgb),0.12);color:var(--accent-color);font-size:14px;transition:all 0.25s;flex-shrink:0;align-items:center;justify-content:center;" onclick="window.toggleCollapsedExtras && window.toggleCollapsedExtras()"><i class="fas fa-chevron-up"></i></button>
+    <!-- 新增：语音按钮（仅 UI，无功能） -->
+    <button class="voice-btn input-btn" id="voice-btn" title="语音（开发中）"><i class="fas fa-microphone"></i></button>
     <button class="attachment-btn input-btn collapse-hideable" id="attachment-btn" title="发送图片"><i class="fas fa-image"></i></button>
     
     <button class="combo-btn input-btn collapse-hideable" id="combo-btn" title="表情 & 拍一拍">
@@ -350,6 +352,23 @@
     <button class="continue-btn input-btn" id="continue-btn" title="让对方继续说"><i class="fas fa-ellipsis-h"></i></button>
         <button class="batch-btn input-btn collapse-hideable" id="batch-btn" title="批量发送模式"><i class="fas fa-layer-group"></i></button>
         <button class="send-btn input-btn" id="send-btn" title="发送消息"><i class="fas fa-paper-plane"></i></button>
+        
+        <!-- 新增：加号按钮 + 菜单 -->
+        <button class="plus-btn input-btn" id="plus-btn" title="更多"><i class="fas fa-plus"></i></button>
+        <div class="plus-menu-popover" id="plus-menu-popover">
+            <button class="plus-menu-item" data-action="camera">
+                <div class="plus-menu-icon"><i class="fas fa-camera"></i></div>
+                <span>拍照</span>
+            </button>
+            <button class="plus-menu-item" data-action="album">
+                <div class="plus-menu-icon"><i class="fas fa-images"></i></div>
+                <span>相册</span>
+            </button>
+            <button class="plus-menu-item" data-action="videocall">
+                <div class="plus-menu-icon"><i class="fas fa-video"></i></div>
+                <span>视频通话</span>
+            </button>
+        </div>
         
         <div class="sticker-picker-popover" id="user-sticker-picker">
             <div class="combo-tabs-header">
@@ -367,7 +386,31 @@
     </div>
     <input type="file" id="image-input" class="file-input" accept="image/*">
     <input type="file" id="my-sticker-quick-upload" class="file-input" accept="image/*" multiple>
+    <!-- 新增：相册选择（图片+视频）-->
+    <input type="file" id="album-input" class="file-input" accept="image/*,video/*" style="display:none;">
 </div>
+    </div>
+
+    <!-- 新增：仿微信拍照弹窗（全屏黑底）-->
+    <div id="camera-modal" class="camera-modal" style="display:none;">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <canvas id="camera-canvas" style="display:none;"></canvas>
+        <img id="camera-preview-img" style="display:none;" alt="预览">
+        
+        <!-- 顶部：关闭 + 切换摄像头 -->
+        <div class="camera-topbar">
+            <button class="camera-icon-btn" id="camera-close-btn" title="关闭"><i class="fas fa-times"></i></button>
+            <button class="camera-icon-btn" id="camera-switch-btn" title="切换摄像头"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        
+        <!-- 底部：未拍 = 快门；已拍 = 重拍 + 使用 -->
+        <div class="camera-bottombar" id="camera-bottombar-shoot">
+            <button class="camera-shutter" id="camera-shutter-btn"></button>
+        </div>
+        <div class="camera-bottombar camera-bottombar-after" id="camera-bottombar-after" style="display:none;">
+            <button class="camera-action-btn camera-action-retake" id="camera-retake-btn"><i class="fas fa-redo"></i> 重拍</button>
+            <button class="camera-action-btn camera-action-use" id="camera-use-btn"><i class="fas fa-check"></i> 使用</button>
+        </div>
     </div>
 
 
@@ -2394,6 +2437,7 @@
     <script src="js/data.js"></script>
     <script src="js/onboarding.js"></script> 
     <script src="js/listeners.js"></script>
+    <script src="js/listeners-step2.js"></script>
     <script src="js/features/companion.js"></script>
     <script src="js/app.js"></script>
 </body>
