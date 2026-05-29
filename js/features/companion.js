@@ -299,17 +299,22 @@
     // 强制结果（用于测试）：null=正常随机，'accept'=强制同意，'reject'=强制拒绝
     let _forceResult = null;
 
+    // 用户点场景卡 → 先让用户选时间 → 选完后再发起邀请
     async function selectMode(mode) {
         currentMode = mode;
         closeCompanionModal();
-        // 走"邀请等待"流程
-        showCompanionInviting(mode);
+        // 打开时间选择，用户选完后再走邀请等待流程
+        openTimeModal(mode, (selectedTime) => {
+            // 时间已经在 openTimeModal 内部设置好（isCountdown/timerSeconds/totalSeconds）
+            // 这里只需要发起邀请
+            showCompanionInviting(mode);
+        });
     }
 
-    // 用户发起接受 → 进入时间选择（用户自选时间）
-    function enterTimeSelection(mode) {
-        currentMode = mode;
-        openTimeModal(mode);
+    // 用户发起接受 → 直接进陪伴页（时间已经在选场景前就选好了）
+    function enterAfterUserAccepted() {
+        // 时间状态已经在 selectMode → openTimeModal 阶段就 ready 了
+        openCompanionPage();
     }
 
     // 梦角发起接受 → 直接进入陪伴页（用梦角说的那个时间）
@@ -334,6 +339,15 @@
         const cfg = MODES[mode];
         const partnerName = getPartnerName();
         const avSrc = getPartnerAvatarSrc();
+
+        // 计算用户已选的时间文本（用于显示在副标题里，让用户知道梦角看到的邀请内容）
+        let userTimeText;
+        if (!isCountdown) {
+            userTimeText = '好好休息';
+        } else {
+            const minutes = Math.round(totalSeconds / 60);
+            userTimeText = `${minutes} 分钟`;
+        }
 
         // 移除残留
         document.querySelectorAll('#companion-inviting-overlay').forEach(el => el.remove());
@@ -378,7 +392,7 @@
                 <div style="font-size:20px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
                 <div style="font-size:13px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:8px;">
                     <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
-                    <span>正在邀请${partnerName}${cfg.label}</span>
+                    <span>邀请${cfg.label} · ${userTimeText}</span>
                     <span class="inviting-dots" style="display:inline-flex;gap:3px;">
                         <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite;"></span>
                         <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite 0.2s;"></span>
@@ -447,7 +461,7 @@
                 if (!isStillThisSession()) return;
                 closeInviting();
                 sendChatEvent('fa-heart', `${partnerName}同意了一起陪伴`, null);
-                enterTimeSelection(currentMode);
+                enterAfterUserAccepted();
             }, delay);
         }
     }
@@ -672,14 +686,14 @@
         const line = pickRandom(FAREWELL_LINES);
         const avSrc = getPartnerAvatarSrc();
 
-        // 弹出告别提示（约 4 秒后自动消失并关闭陪伴页）
+        // 弹出告别提示（等待用户点"知道了"按钮才关闭）
         const overlay = document.createElement('div');
         overlay.id = 'companion-farewell-overlay';
         overlay.setAttribute('style', [
             'position:fixed', 'inset:0', 'z-index:99999',
             'background:rgba(15,15,20,0.92)',
             'display:flex', 'align-items:center', 'justify-content:center',
-            'animation:companionFadeIn 0.4s ease',
+            'animation:companionFadeIn 0.9s ease',
         ].join(';'));
 
         const avatarHtml = avSrc
@@ -687,7 +701,7 @@
             : `<i class="fas fa-user" style="font-size:30px;color:rgba(255,255,255,.85);"></i>`;
 
         overlay.innerHTML = `
-            <div style="display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;max-width:300px;padding:0 20px;animation:companionPopIn 0.5s ease;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:20px;color:#fff;max-width:300px;padding:0 20px;animation:companionPopIn 1s ease;">
                 <div style="
                     width:80px;height:80px;border-radius:50%;overflow:hidden;
                     background:rgba(255,255,255,0.1);
@@ -702,20 +716,39 @@
                     <i class="fas fa-hand" style="color:#c5a47e;font-size:16px;"></i>
                     <span style="font-size:14px;">${line}</span>
                 </div>
+                <button id="companion-farewell-ack" style="
+                    margin-top:14px;
+                    padding:10px 32px;
+                    border-radius:22px;
+                    border:1px solid rgba(255,255,255,0.25);
+                    background:rgba(255,255,255,0.1);
+                    color:#fff;font-size:14px;letter-spacing:1.5px;
+                    cursor:pointer;
+                    transition:all 0.2s ease;
+                ">知道了</button>
             </div>
         `;
 
         injectKeyframes();
         document.documentElement.appendChild(overlay);
 
-        // 写入聊天记录（用挥手图标 fa-hand-wave 的替代 fa-hand）
+        // 写入聊天记录
         sendChatEvent('fa-hand', `${partnerName}提前离开了陪伴`, null);
 
-        // 3.5 秒后自动消失 + 关闭陪伴页（用 closeCompanionPage 统一处理清理）
-        setTimeout(() => {
-            if (overlay.isConnected) overlay.remove();
-            closeCompanionPage();
-        }, 3500);
+        // "知道了" 按钮点击 → 关闭告别画面 + 关闭陪伴页
+        const ackBtn = overlay.querySelector('#companion-farewell-ack');
+        if (ackBtn) {
+            ackBtn.addEventListener('click', () => {
+                if (overlay.isConnected) overlay.remove();
+                closeCompanionPage();
+            });
+            ackBtn.addEventListener('mouseenter', () => {
+                ackBtn.style.background = 'rgba(255,255,255,0.18)';
+            });
+            ackBtn.addEventListener('mouseleave', () => {
+                ackBtn.style.background = 'rgba(255,255,255,0.1)';
+            });
+        }
     }
 
     // ─── 动画 keyframes 注入（一次性）────────────────────────────────────
@@ -988,7 +1021,7 @@
 
     // ─── 时间选择弹窗 ────────────────────────────────────────────────────────
 
-    function openTimeModal(mode) {
+    function openTimeModal(mode, onSelected) {
         const cfg = MODES[mode];
 
         const timesHtml = cfg.times.map(t => {
@@ -1015,7 +1048,7 @@
                 <i class="fas ${cfg.icon}" style="color:#c5a47e;"></i>
                 <span>${cfg.label}</span>
             </div>
-            <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;">选择本次陪伴时长</p>
+            <p style="font-size:13px;color:#888;text-align:center;margin:6px 0 16px;">这次陪你多久？</p>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 18px;">${timesHtml}</div>
             <div style="margin-top:18px;text-align:right;">
                 <button id="time-dyn-close" style="
@@ -1046,7 +1079,12 @@
                     timerSeconds = parseInt(t) * 60;
                     totalSeconds = parseInt(t) * 60;
                 }
-                openCompanionPage();
+                // 如果调用方提供了回调，走回调；否则按老逻辑直接进陪伴页
+                if (typeof onSelected === 'function') {
+                    onSelected(t);
+                } else {
+                    openCompanionPage();
+                }
             });
             btn.addEventListener('mouseenter', () => {
                 btn.style.borderColor = '#c5a47e';
@@ -1820,21 +1858,29 @@
         // 测试：梦角主动邀请
         testIncoming: (mode) => showIncomingCompanion(mode),
 
-        // 测试：强制拒绝（点陪伴 → 选场景 → 100% 被拒绝）
+        // 测试：强制拒绝（模拟用户走完"选场景 → 选时间 → 发起邀请"流程，梦角 100% 拒绝）
         testReject: async (mode = 'study') => {
             await ensureDataLoaded();
             _forceResult = 'reject';
             currentMode = mode;
+            // 给一个默认 10 分钟，避免邀请等待画面里时间显示异常
+            isCountdown = true;
+            timerSeconds = 10 * 60;
+            totalSeconds = 10 * 60;
             showCompanionInviting(mode);
             // 测试完后恢复随机
             setTimeout(() => { _forceResult = null; }, 15000);
         },
 
-        // 测试：强制同意（点陪伴 → 选场景 → 100% 被同意）
+        // 测试：强制同意（模拟用户走完"选场景 → 选时间 → 发起邀请"流程，梦角 100% 同意）
         testAccept: async (mode = 'study') => {
             await ensureDataLoaded();
             _forceResult = 'accept';
             currentMode = mode;
+            // 给一个默认 10 分钟，模拟用户选了时间
+            isCountdown = true;
+            timerSeconds = 10 * 60;
+            totalSeconds = 10 * 60;
             showCompanionInviting(mode);
             setTimeout(() => { _forceResult = null; }, 15000);
         },
