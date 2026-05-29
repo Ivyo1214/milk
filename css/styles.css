@@ -10971,7 +10971,7 @@ body.bottom-collapse-mode #collapse-expand-btn {
 
 /* iOS 底部安全区避让，避免 home 条挡住加号/麦克风按钮 */
 .input-area {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* 输入框允许多行显示（最多 3 行，超出滚动）
