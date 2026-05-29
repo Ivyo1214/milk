@@ -20,7 +20,6 @@
         const plusBtn       = document.getElementById('plus-btn');
         const plusMenu      = document.getElementById('plus-menu-popover');
         const albumInput    = document.getElementById('album-input');
-        const cameraInput   = document.getElementById('camera-input');
         const voiceBtn      = document.getElementById('voice-btn');
 
         if (!plusBtn || !plusMenu) {
@@ -54,9 +53,7 @@
             plusMenu.classList.remove('open');
             plusBtn.classList.remove('active');
 
-            if (action === 'camera') {
-                cameraInput.click();
-            } else if (action === 'album') {
+            if (action === 'album') {
                 albumInput.click();
             } else if (action === 'videocall') {
                 if (window.callFeature && typeof window.callFeature.startCall === 'function') {
@@ -91,19 +88,7 @@
             }
         });
 
-        // ─────────── 5. 拍照（原生 input capture，由浏览器调起系统相机）───────────
-        cameraInput.addEventListener('change', (e) => {
-            const file = e.target.files && e.target.files[0];
-            cameraInput.value = '';
-            if (!file) return;
-            if (file.type.startsWith('image/')) {
-                handleImageFile(file);
-            } else {
-                notify('请选择图片文件', 'error');
-            }
-        });
-
-        // ─────────── 6. 辅助：把图片数据发送出去（复用项目内置流程）───────────
+        // ─────────── 5. 辅助：把图片数据发送出去（复用项目内置流程）───────────
 
         /** 处理 File 对象（从相册选的）→ 优化 → 发送 */
         function handleImageFile(file) {
