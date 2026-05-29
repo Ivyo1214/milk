@@ -64,6 +64,19 @@
                 } else {
                     notify('视频通话功能未就绪', 'error');
                 }
+            } else if (action === 'cards') {
+                const modal = document.getElementById('custom-replies-modal');
+                if (modal && typeof showModal === 'function') {
+                    showModal(modal);
+                } else {
+                    notify('字卡功能未就绪', 'error');
+                }
+            } else if (action === 'tarot') {
+                if (typeof generateFortune === 'function') {
+                    generateFortune();
+                } else {
+                    notify('塔罗功能未就绪', 'error');
+                }
             }
         });
 
