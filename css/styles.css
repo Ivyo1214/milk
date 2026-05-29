@@ -10968,3 +10968,18 @@
 body.bottom-collapse-mode #collapse-expand-btn {
     display: none !important;
 }
+
+/* iOS 底部安全区避让，避免 home 条挡住加号/麦克风按钮 */
+.input-area {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* 输入框允许多行显示（最多 3 行，超出滚动）
+   原 CSS 强制 nowrap + hidden + ellipsis 锁成单行，这里覆盖回 textarea 默认行为 */
+.message-input {
+    white-space: pre-wrap !important;
+    overflow-y: auto !important;
+    text-overflow: clip !important;
+    max-height: 96px !important;   /* 约 3 行 */
+    line-height: 1.4 !important;
+}
