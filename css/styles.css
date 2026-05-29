@@ -1,4 +1,4 @@
-        * {
+* {
             scrollbar-width: none;
             -ms-overflow-style: none;
             margin: 0;
@@ -10835,3 +10835,29 @@
             border-color: var(--accent-color) !important;
             outline: none;
         }
+
+/* ────────────────────────────────────────────────────────────────
+   首页改造 · 第一步：隐藏不需要的功能入口（代码保留）
+   ──────────────────────────────────────────────────────────────── */
+
+/* 顶部栏：隐藏会话管理 + 群聊设置（单梦角场景不需要）*/
+#session-manager-btn,
+#group-chat-btn {
+    display: none !important;
+}
+
+/* 底部输入区：隐藏让对方继续说、批量发送、发送按钮、独立的发图片按钮 */
+#continue-btn,
+#batch-btn,
+#send-btn,
+#attachment-btn,
+/* 也隐藏"展开"模式里的批量按钮 */
+#batch-btn-extra {
+    display: none !important;
+}
+
+/* 表情按钮里：隐藏"对方"tab 和"拍一拍"tab（对方表情不在用户控制范围，拍一拍改用点头像触发）*/
+.combo-tab-btn[data-tab="partner-sticker"],
+.combo-tab-btn[data-tab="poke"] {
+    display: none !important;
+}
