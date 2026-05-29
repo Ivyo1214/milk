@@ -10954,7 +10954,17 @@
 }
 
 
-/* 隐藏加号外的视频通话按钮（展开面板里的那个，避免重复入口） */
-#collapsed-call-btn {
+/* 隐藏加号外的视频通话按钮（避免和加号菜单里的视频通话重复入口） */
+#collapsed-call-btn,
+#call-toolbar-btn {
+    display: none !important;
+}
+
+/* 彻底隐藏"展开更多"按钮（向上箭头），新方案已用加号菜单替代 */
+#collapse-expand-btn {
+    display: none !important;
+}
+/* 同时压制收纳模式下的强制显示规则 */
+body.bottom-collapse-mode #collapse-expand-btn {
     display: none !important;
 }
