@@ -339,7 +339,14 @@
         <div class="input-area">
     <button id="collapse-expand-btn" title="展开更多" style="display:none;width:36px;height:36px;border:none;border-radius:50%;cursor:pointer;background:rgba(var(--accent-color-rgb),0.12);color:var(--accent-color);font-size:14px;transition:all 0.25s;flex-shrink:0;align-items:center;justify-content:center;" onclick="window.toggleCollapsedExtras && window.toggleCollapsedExtras()"><i class="fas fa-chevron-up"></i></button>
     <!-- 新增：语音按钮（仅 UI，无功能） -->
-    <button class="voice-btn input-btn" id="voice-btn" title="语音（开发中）"><i class="fas fa-volume-up"></i></button>
+    <button class="voice-btn input-btn" id="voice-btn" title="语音（开发中）">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <circle cx="7" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+            <path d="M11 9.5 A 3.5 3.5 0 0 1 11 14.5"/>
+            <path d="M14 7 A 7 7 0 0 1 14 17"/>
+            <path d="M17 4.5 A 10.5 10.5 0 0 1 17 19.5"/>
+        </svg>
+    </button>
     <button class="attachment-btn input-btn collapse-hideable" id="attachment-btn" title="发送图片"><i class="fas fa-image"></i></button>
     
     <button class="combo-btn input-btn collapse-hideable" id="combo-btn" title="表情 & 拍一拍">
