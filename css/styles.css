@@ -544,6 +544,7 @@
             color: var(--text-primary);
             transition: background-color 0.5s ease, color 0.5s ease;
             height: 100vh;
+            height: 100svh;
             display: flex;
             flex-direction: column;
             overflow: hidden; 
@@ -10901,7 +10902,8 @@
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
     z-index: 1500;
     display: none;
-    grid-template-columns: repeat(3, 72px);
+    grid-auto-flow: column;
+    grid-auto-columns: 72px;
     gap: 8px;
 }
 .plus-menu-popover.open {
@@ -10945,8 +10947,8 @@
 .plus-menu-icon {
     width: 44px; height: 44px;
     border-radius: 12px;
-    background: rgba(var(--accent-color-rgb), 0.10);
-    color: var(--accent-color);
+    background: var(--toolbar-btn-bg, var(--message-received-bg));
+    color: var(--toolbar-btn-color, var(--text-secondary));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -10969,9 +10971,9 @@ body.bottom-collapse-mode #collapse-expand-btn {
     display: none !important;
 }
 
-/* iOS 底部安全区避让（取系统建议值的一半，更贴边）*/
+/* 底部距离 14px（已含 home 条避让）*/
 .input-area {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) / 2) !important;
+    padding-bottom: 14px !important;
 }
 
 /* 输入框允许多行显示（最多 3 行，超出滚动）
