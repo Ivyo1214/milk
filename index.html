@@ -2,7 +2,7 @@
 <html lang="zh-CN" data-theme="light" data-color-theme="black-white">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -339,7 +339,7 @@
         <div class="input-area">
     <button id="collapse-expand-btn" title="展开更多" style="display:none;width:36px;height:36px;border:none;border-radius:50%;cursor:pointer;background:rgba(var(--accent-color-rgb),0.12);color:var(--accent-color);font-size:14px;transition:all 0.25s;flex-shrink:0;align-items:center;justify-content:center;" onclick="window.toggleCollapsedExtras && window.toggleCollapsedExtras()"><i class="fas fa-chevron-up"></i></button>
     <!-- 新增：语音按钮（仅 UI，无功能） -->
-    <button class="voice-btn input-btn" id="voice-btn" title="语音（开发中）"><i class="fas fa-microphone"></i></button>
+    <button class="voice-btn input-btn" id="voice-btn" title="语音（开发中）"><i class="fas fa-volume-up"></i></button>
     <button class="attachment-btn input-btn collapse-hideable" id="attachment-btn" title="发送图片"><i class="fas fa-image"></i></button>
     
     <button class="combo-btn input-btn collapse-hideable" id="combo-btn" title="表情 & 拍一拍">
@@ -367,14 +367,6 @@
             <button class="plus-menu-item" data-action="videocall">
                 <div class="plus-menu-icon"><i class="fas fa-video"></i></div>
                 <span>视频通话</span>
-            </button>
-            <button class="plus-menu-item" data-action="cards">
-                <div class="plus-menu-icon"><i class="fas fa-comment-dots"></i></div>
-                <span>字卡</span>
-            </button>
-            <button class="plus-menu-item" data-action="tarot">
-                <div class="plus-menu-icon"><i class="fas fa-star-and-crescent"></i></div>
-                <span>塔罗</span>
             </button>
         </div>
         
