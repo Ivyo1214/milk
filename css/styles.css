@@ -10861,3 +10861,180 @@
 .combo-tab-btn[data-tab="poke"] {
     display: none !important;
 }
+
+/* ────────────────────────────────────────────────────────────────
+   首页改造 · 第二步：语音 + 加号菜单 + 拍照弹窗
+   ──────────────────────────────────────────────────────────────── */
+
+/* 输入区视觉重排（用 flex order，不改 DOM 顺序）
+   目标：[🎤语音] [输入框] [😀表情] [➕加号]                       */
+#voice-btn       { order: 1; }
+.message-input   { order: 2; }
+#combo-btn       { order: 3; }
+.input-buttons   { order: 4; }      /* 加号在这个容器里 */
+/* 第一步已隐藏的按钮（attachment / continue / batch / send）不参与排版，
+   order 不必设，display:none 会让它们整体脱离 flex 流。              */
+
+/* 语音按钮样式（继承 .input-btn，单独点缀一下让它跟其他按钮一致）*/
+#voice-btn {
+    color: var(--accent-color);
+}
+
+/* 加号按钮 —— 突出强调，作为常用入口 */
+#plus-btn {
+    color: var(--accent-color);
+    transition: transform 0.2s ease;
+}
+#plus-btn.active {
+    transform: rotate(45deg);   /* 打开菜单时变 ×  */
+}
+
+/* 加号菜单 —— 从加号按钮上方弹出，仿微信 */
+.plus-menu-popover {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: 6px;
+    background: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 14px 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    z-index: 1500;
+    display: none;
+    grid-template-columns: repeat(3, 72px);
+    gap: 8px;
+}
+.plus-menu-popover.open {
+    display: grid;
+    animation: plus-menu-pop 0.18s ease-out;
+}
+@keyframes plus-menu-pop {
+    from { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+/* 菜单小三角箭头 */
+.plus-menu-popover::after {
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    right: 18px;
+    width: 12px; height: 12px;
+    background: var(--secondary-bg);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    transform: rotate(45deg);
+}
+
+.plus-menu-item {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-primary);
+    font-size: 12px;
+    border-radius: 10px;
+    transition: background 0.18s;
+}
+.plus-menu-item:hover {
+    background: rgba(var(--accent-color-rgb), 0.08);
+}
+.plus-menu-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(var(--accent-color-rgb), 0.10);
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+/* ─────────── 拍照弹窗（仿微信，全屏黑底） ─────────── */
+.camera-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+#camera-video,
+#camera-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+}
+.camera-topbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.45), transparent);
+}
+.camera-icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.35);
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background 0.2s;
+}
+.camera-icon-btn:hover { background: rgba(0, 0, 0, 0.55); }
+
+.camera-bottombar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 28px 20px 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 80px;
+    z-index: 2;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+}
+.camera-shutter {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: #fff;
+    border: 4px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: transform 0.12s;
+}
+.camera-shutter:active {
+    transform: scale(0.92);
+}
+.camera-bottombar-after { gap: 60px; }
+.camera-action-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 24px;
+    font-size: 14px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+.camera-action-btn:hover { background: rgba(255, 255, 255, 0.22); }
+.camera-action-use {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+.camera-action-use:hover { opacity: 0.9; }
