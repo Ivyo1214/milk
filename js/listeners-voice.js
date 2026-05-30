@@ -164,6 +164,7 @@
                 return;
             }
             console.log('[voice] >>> sendVoiceMessage called, duration=', duration);
+            const idBeforeAdd = Date.now();
             addMessage({
                 id: Date.now(),
                 sender: 'user',
@@ -176,6 +177,17 @@
                 replyTo: (typeof currentReplyTo !== 'undefined') ? currentReplyTo : null,
                 type: 'normal'
             });
+            // 检查 messages 数组里语音消息的数量
+            setTimeout(() => {
+                if (typeof messages !== 'undefined') {
+                    const voiceMsgs = messages.filter(m => m.voice);
+                    console.log('[voice] >>> after addMessage: total messages =', messages.length,
+                                ', voice messages =', voiceMsgs.length);
+                    const wrappers = document.querySelectorAll('.message-wrapper');
+                    const voiceBubbles = document.querySelectorAll('.voice-bubble');
+                    console.log('[voice] >>> DOM: wrappers =', wrappers.length, 'voice bubbles =', voiceBubbles.length);
+                }
+            }, 100);
             if (typeof playSound === 'function') playSound('send');
             if (typeof currentReplyTo !== 'undefined') window.currentReplyTo = null;
             if (typeof updateReplyPreview === 'function') updateReplyPreview();
@@ -455,6 +467,7 @@
             if (!msg || !msg.voice) return;
             if (wrapper.dataset.voiceRendered === '1') return;
             wrapper.dataset.voiceRendered = '1';
+            console.log('[voice] >>> renderVoice for msgId=', msgId, 'sender=', msg.sender, 'wrapper class=', wrapper.className);
 
             const bubble = wrapper.querySelector('.message');
             if (!bubble) return;
