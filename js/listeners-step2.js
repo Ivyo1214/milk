@@ -161,6 +161,69 @@
             }
         }
 
+        // ─────────── 7. 双击梦角头像 = 拍一拍 + 抖动动画 ───────────
+        const partnerAvatar = document.getElementById('partner-avatar');
+        if (partnerAvatar) {
+            // 监听双击（dblclick 已经覆盖 PC 和移动端）
+            partnerAvatar.addEventListener('dblclick', triggerPoke);
+
+            // 移动端额外做一个手动的双击识别（防止部分浏览器 dblclick 触发不灵）
+            let lastTap = 0;
+            partnerAvatar.addEventListener('touchend', (e) => {
+                const now = Date.now();
+                if (now - lastTap < 350) {
+                    e.preventDefault();
+                    triggerPoke();
+                }
+                lastTap = now;
+            });
+        }
+
+        function triggerPoke() {
+            if (!partnerAvatar) return;
+
+            // 1. 触发抖动动画（移除再加 class，确保连续双击也能重播）
+            partnerAvatar.classList.remove('poking');
+            void partnerAvatar.offsetWidth;   // 强制 reflow
+            partnerAvatar.classList.add('poking');
+            setTimeout(() => partnerAvatar.classList.remove('poking'), 600);
+
+            // 2. 组装文案
+            //   后续若设置里加了 myPokeText，这里改成：
+            //   const text = settings.myPokeText?.trim() || defaultText;
+            const myName      = (typeof settings !== 'undefined' && settings.myName)      ? settings.myName      : '我';
+            const partnerName = (typeof settings !== 'undefined' && settings.partnerName) ? settings.partnerName : '梦角';
+            let pokeText = `${myName} 拍了拍 ${partnerName}`;
+            if (typeof window._sanitizePokeTextForDisplay === 'function') {
+                pokeText = window._sanitizePokeTextForDisplay(pokeText);
+            }
+            const finalText = (typeof _formatPokeText === 'function')
+                ? _formatPokeText(pokeText)
+                : pokeText;
+
+            // 3. 发送 system 类型消息（沿用项目原逻辑，跟原拍一拍弹窗一模一样）
+            if (typeof addMessage !== 'function') {
+                notify('发送函数未就绪', 'error');
+                return;
+            }
+            addMessage({
+                id: Date.now(),
+                text: finalText,
+                timestamp: new Date(),
+                type: 'system'
+            });
+
+            // 4. 播放音效
+            if (typeof playSound === 'function') playSound('poke');
+
+            // 5. 触发对方回复（沿用原逻辑：随机延时）
+            if (typeof simulateReply === 'function' && typeof settings !== 'undefined') {
+                const range = (settings.replyDelayMax || 3000) - (settings.replyDelayMin || 1000);
+                const delay = (settings.replyDelayMin || 1000) + Math.random() * range;
+                setTimeout(simulateReply, delay);
+            }
+        }
+
         console.log('[step2] 加号菜单 + 拍照功能已就绪');
     });
 })();
