@@ -11024,14 +11024,16 @@ body.bottom-collapse-mode #collapse-expand-btn {
     display: none !important;
 }
 
-/* 把浮窗式 popover 改成微信样式：贴在输入区下方，全宽，撑到屏底 */
-#user-sticker-picker.sticker-picker-popover {
+/* 把浮窗式 popover 改成微信样式：贴在输入区下方，全宽，撑到屏底 
+   用 body 限定提高特异性 */
+body #user-sticker-picker.sticker-picker-popover,
+body #user-sticker-picker.sticker-picker-popover.active {
     position: fixed !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
     top: auto !important;
-    width: 100% !important;
+    width: 100vw !important;
     height: 50vh !important;
     min-height: 280px !important;
     max-height: 60vh !important;
@@ -11040,11 +11042,12 @@ body.bottom-collapse-mode #collapse-expand-btn {
     border-top: 1px solid var(--border-color) !important;
     box-shadow: 0 -4px 16px rgba(0,0,0,0.08) !important;
     z-index: 100 !important;
-    animation: stickerSlideUp 0.22s ease-out !important;
+    transform: none !important;
+    margin: 0 !important;
 }
-@keyframes stickerSlideUp {
-    from { transform: translateY(100%); }
-    to   { transform: translateY(0); }
+
+body #user-sticker-picker .empty-sticker-tip {
+    display: none !important;
 }
 
 /* 内容区上方加"添加表情"标题 —— 通过 JS 加 class 决定显示与否 */
