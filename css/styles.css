@@ -10987,3 +10987,22 @@ body.bottom-collapse-mode #collapse-expand-btn {
     max-height: 96px !important;   /* 约 3 行 */
     line-height: 1.4 !important;
 }
+
+/* ────────────────────────────────────────────────────────────────
+   首页改造 · 第三步：双击梦角头像 = 拍一拍
+   ──────────────────────────────────────────────────────────────── */
+#partner-avatar {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+#partner-avatar.poking {
+    animation: avatar-shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+}
+@keyframes avatar-shake {
+    10%, 90%  { transform: translateX(-2px) rotate(-3deg); }
+    20%, 80%  { transform: translateX(3px)  rotate(3deg);  }
+    30%, 50%, 70% { transform: translateX(-4px) rotate(-5deg); }
+    40%, 60%  { transform: translateX(4px)  rotate(5deg);  }
+}
