@@ -18,9 +18,19 @@
     ready(function init() {
         const contentArea = document.getElementById('combo-content-area');
         const uploadInput = document.getElementById('my-sticker-quick-upload');
+        const picker = document.getElementById('user-sticker-picker');
+        const inputArea = document.querySelector('.input-area');
+        const inputAreaWrapper = document.querySelector('.input-area-wrapper');
+
         if (!contentArea || !uploadInput) {
             console.warn('[sticker] 元素未找到，跳过');
             return;
+        }
+
+        // DOM 重排：把 picker 从 input-area 里搬出来，放到 input-area-wrapper 的最前面
+        // 这样 wrapper 用 column 布局后，picker 显示时会向上撑起 input-area
+        if (picker && inputAreaWrapper && inputArea && picker.parentElement !== inputAreaWrapper) {
+            inputAreaWrapper.insertBefore(picker, inputArea);
         }
 
         // 监听 grid 变化（用户切 tab、添加/删除表情时会 re-render）
