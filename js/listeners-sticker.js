@@ -27,10 +27,11 @@
             return;
         }
 
-        // DOM 重排：把 picker 从 input-area 里搬出来，放到 input-area-wrapper 的最前面
-        // 这样 wrapper 用 column 布局后，picker 显示时会向上撑起 input-area
+        // DOM 重排：把 picker 从 input-area 里搬出来，放到 input-area-wrapper 内 input-area 后面
+        // 这样 wrapper 用 column 布局后，input-area 在上、picker 在下（仿微信样式）
         if (picker && inputAreaWrapper && inputArea && picker.parentElement !== inputAreaWrapper) {
-            inputAreaWrapper.insertBefore(picker, inputArea);
+            // appendChild 会移到末尾，input-area 之后
+            inputAreaWrapper.appendChild(picker);
         }
 
         // 监听 grid 变化（用户切 tab、添加/删除表情时会 re-render）
@@ -78,6 +79,8 @@
             addBtn.innerHTML = '<i class="fas fa-plus"></i>';
             addBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                // 关闭表情面板（这样系统的文件选择弹窗出现时表情面板不会留在屏幕上）
+                if (picker) picker.classList.remove('active');
                 uploadInput.click();
             });
             // 插到第一个位置
