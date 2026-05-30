@@ -53,24 +53,25 @@
         // 我们自己监听 input 的 change，等图片处理完后重新点 combo-btn 触发面板刷新
         if (uploadInput) {
             uploadInput.addEventListener('change', () => {
-                // 项目处理图片是异步的（有 optimizeImage），需要等它处理完再刷新
-                // 用 setTimeout 多次轮询，看 myStickerLibrary 长度有没有变化
+                console.log('[sticker] upload change triggered');
                 const beforeLen = (typeof myStickerLibrary !== 'undefined' && Array.isArray(myStickerLibrary))
                     ? myStickerLibrary.length : 0;
+                console.log('[sticker] beforeLen=', beforeLen);
                 let tries = 0;
                 const check = setInterval(() => {
                     tries++;
                     const nowLen = (typeof myStickerLibrary !== 'undefined' && Array.isArray(myStickerLibrary))
                         ? myStickerLibrary.length : 0;
                     if (nowLen > beforeLen) {
+                        console.log('[sticker] detected new sticker, tries=', tries, 'nowLen=', nowLen, 'picker.active=', picker && picker.classList.contains('active'));
                         clearInterval(check);
-                        // 关闭再打开，触发 switchTab('my-sticker') 重新渲染
                         if (picker && picker.classList.contains('active')) {
                             picker.classList.remove('active');
                             setTimeout(() => picker.classList.add('active'), 10);
                         }
                     } else if (tries > 30) {
-                        clearInterval(check);  // 6 秒还没变化就放弃
+                        console.log('[sticker] gave up waiting, tries=', tries);
+                        clearInterval(check);
                     }
                 }, 200);
             });
