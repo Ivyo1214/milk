@@ -11024,7 +11024,8 @@ body.bottom-collapse-mode #collapse-expand-btn {
     display: none !important;
 }
 
-/* 表情面板仿微信：picker 已经被 JS 移到 input-area 之前，
+/* === STICKER PANEL v3 - 2026-05-31 ===
+   表情面板仿微信：picker 已经被 JS 移到 input-area 之前，
    wrapper 用 column 让 picker 在上、input-area 在下；
    picker 用 static 撑高 wrapper，因为 wrapper bottom:0 fixed，所以从底部往上长 */
 body .input-area-wrapper {
