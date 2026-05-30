@@ -462,12 +462,25 @@
             const transcript = msg.voice.transcript || '';
             const fakeText = msg.voice.fakeText || '';
 
-            // 微信风格：根据时长调整气泡宽度（最短 80px，最长 220px，60秒封顶）
-            const widthPx = Math.round(80 + Math.min(duration, 60) / 60 * 140);
+            // 加 class 让 CSS 禁掉 iOS 长按系统菜单
+            wrapper.classList.add('has-voice');
+
+            // 微信风格：根据时长调整气泡宽度
+            const widthPx = Math.round(70 + Math.min(duration, 60) / 60 * 90);
+
+            // 仿微信的"倒下的 wifi"声波弧图标（SVG）
+            const waveSvg = `
+                <svg class="voice-bubble-wifi" viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="5" cy="11" r="1.3" fill="currentColor" stroke="none"/>
+                    <path d="M9 8 A 3.5 3.5 0 0 1 9 14"/>
+                    <path d="M12 5 A 7 7 0 0 1 12 17"/>
+                    <path d="M15 2.5 A 10.5 10.5 0 0 1 15 19.5"/>
+                </svg>
+            `;
 
             const bubbleHtml = `
                 <div class="voice-bubble" ${isFake ? 'data-fake="1"' : `data-voice-url="${escapeAttr(msg.voice.url)}"`} data-duration="${duration}" style="width:${widthPx}px;">
-                    <span class="voice-bubble-icon"><i class="fas fa-volume-up"></i></span>
+                    ${waveSvg}
                     <span class="voice-bubble-duration">${duration}"</span>
                 </div>
                 ${isFake && fakeText ? `<div class="voice-fake-text">${escapeHtml(fakeText)}</div>` : ''}
@@ -568,6 +581,9 @@
             }
         }, true);
 
+        let pressStartX = 0;
+        let pressStartY = 0;
+
         // pointerdown：开始长按计时（任意消息）
         document.body.addEventListener('pointerdown', (e) => {
             const wrapper = findWrapperFromTarget(e.target);
@@ -577,6 +593,8 @@
 
             pressMoved = false;
             isLongPress = false;
+            pressStartX = e.clientX;
+            pressStartY = e.clientY;
             pressTimer = setTimeout(() => {
                 isLongPress = true;
                 showMessageMenu(wrapper);
@@ -586,11 +604,15 @@
         });
 
         document.body.addEventListener('pointermove', (e) => {
-            // 移动超过几像素 → 取消长按
+            // 移动超过 10px 才取消长按（过滤手指自然抖动）
             if (pressTimer) {
-                pressMoved = true;
-                clearTimeout(pressTimer);
-                pressTimer = null;
+                const dx = e.clientX - pressStartX;
+                const dy = e.clientY - pressStartY;
+                if (dx * dx + dy * dy > 100) {  // 10px²
+                    pressMoved = true;
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
             }
         });
 
