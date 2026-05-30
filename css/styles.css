@@ -11017,3 +11017,40 @@ body.bottom-collapse-mode #collapse-expand-btn {
     line-height: 1.5;
     padding: 0 4px;
 }
+
+/* ──────── 表情面板仿微信改造 ──────── */
+/* 隐藏整条 tab 栏（我/对方/拍一拍/添加/管理）*/
+#user-sticker-picker .combo-tabs-header {
+    display: none !important;
+}
+
+/* 内容区上方加"添加表情"标题 —— 通过 JS 加 class 决定显示与否 */
+#user-sticker-picker .combo-content-area.show-title::before {
+    content: "添加表情";
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 4px 4px 12px;
+    opacity: 0.9;
+}
+
+/* 加号格子（添加表情入口）*/
+.sticker-grid-add {
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1.5px dashed var(--border-color);
+    background-color: transparent;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 22px;
+}
+.sticker-grid-add:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    transform: scale(1.05);
+}
