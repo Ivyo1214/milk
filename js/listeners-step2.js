@@ -172,7 +172,8 @@
             const avatarEl = e.target.closest('.message-avatar');
             if (!avatarEl) return;
             const wrapper = avatarEl.closest('.message-wrapper');
-            if (!wrapper || !wrapper.classList.contains('received')) return;  // 只响应对方头像
+            if (!wrapper || !wrapper.classList.contains('received')) return;
+            console.log('[poke] dblclick triggered');
             triggerPoke(avatarEl);
         });
 
@@ -188,6 +189,7 @@
             const now = Date.now();
             if (now - lastTapTime < 350 && lastTapEl === avatarEl) {
                 e.preventDefault();
+                console.log('[poke] touchend double-tap triggered');
                 triggerPoke(avatarEl);
                 lastTapTime = 0;
                 lastTapEl = null;
@@ -199,10 +201,16 @@
 
         let lastPokeTime = 0;
         function triggerPoke(avatarEl) {
-            // 防抖：200ms 内重复触发只算一次（dblclick 和 touchend 在 iOS 上会双发）
+            // 防抖：800ms 内重复触发只算一次（dblclick 和 touchend 间隔可能较长）
             const now = Date.now();
-            if (now - lastPokeTime < 400) return;
+            const elapsed = now - lastPokeTime;
+            console.log('[poke] triggerPoke called, elapsed since last:', elapsed, 'ms');
+            if (elapsed < 800) {
+                console.log('[poke] BLOCKED by debounce');
+                return;
+            }
             lastPokeTime = now;
+            console.log('[poke] PROCEEDING');
 
             // 1. 触发抖动动画（作用于被双击的那个头像）
             if (avatarEl) {
