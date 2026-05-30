@@ -79,8 +79,6 @@
             addBtn.innerHTML = '<i class="fas fa-plus"></i>';
             addBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // 关闭表情面板（这样系统的文件选择弹窗出现时表情面板不会留在屏幕上）
-                if (picker) picker.classList.remove('active');
                 uploadInput.click();
             });
             // 插到第一个位置
