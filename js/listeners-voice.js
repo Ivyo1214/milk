@@ -98,10 +98,9 @@
             // 仿微信的"倒下的 wifi"声波弧（对方语音，图标朝右）
             const waveSvg = `
                 <svg class="voice-bubble-wifi" viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="5" cy="11" r="1.3" fill="currentColor" stroke="none"/>
-                    <path d="M9 8 A 3.5 3.5 0 0 1 9 14"/>
-                    <path d="M12 5 A 7 7 0 0 1 12 17"/>
-                    <path d="M15 2.5 A 10.5 10.5 0 0 1 15 19.5"/>
+                    <circle cx="6" cy="11" r="1.3" fill="currentColor" stroke="none"/>
+                    <path d="M10 8 A 3.5 3.5 0 0 1 10 14"/>
+                    <path d="M13 5 A 7 7 0 0 1 13 17"/>
                 </svg>
             `;
 
