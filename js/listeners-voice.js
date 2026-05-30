@@ -106,7 +106,11 @@
         });
 
         // ─────────── 发送按钮 ───────────
+        let sendBtnClickCount = 0;
         sendBtn.addEventListener('click', () => {
+            sendBtnClickCount++;
+            console.log('[voice] *** sendBtn clicked, count=', sendBtnClickCount, 'mediaRecorder.state=',
+                mediaRecorder ? mediaRecorder.state : 'null');
             stopReason = 'send';
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
@@ -128,8 +132,10 @@
         }
 
         // ─────────── 录音停止后的总处理 ───────────
+        let handleStopCallCount = 0;
         async function handleRecordingStop() {
-            console.log('[voice] >>> handleRecordingStop called, stopReason=', stopReason);
+            handleStopCallCount++;
+            console.log('[voice] *** handleRecordingStop called, count=', handleStopCallCount, 'stopReason=', stopReason);
             const duration = Math.round((Date.now() - startTime) / 1000);
             stopSpeechRecognition();
             // 保留识别文本到本地变量，因为 cleanup 后会被清掉
@@ -166,6 +172,21 @@
             console.log('[voice] >>> sendVoiceMessage called, duration=', duration);
             const lenBefore = (typeof messages !== 'undefined') ? messages.length : -1;
             const newId = Date.now();
+
+            // 监控接下来 3 秒里 messages 数组的变化
+            const beforeIds = (typeof messages !== 'undefined') ? messages.map(m => m.id) : [];
+            const checkMessages = (label) => {
+                if (typeof messages === 'undefined') return;
+                const newOnes = messages.filter(m => !beforeIds.includes(m.id));
+                console.log(`[voice] >>> [${label}] messages len=${messages.length}, NEW msgs since send:`,
+                    newOnes.map(m => ({
+                        id: m.id, sender: m.sender,
+                        hasVoice: !!m.voice, dur: m.voice && m.voice.duration,
+                        text: m.text && m.text.slice(0, 30)
+                    }))
+                );
+            };
+
             addMessage({
                 id: newId,
                 sender: 'user',
@@ -178,17 +199,12 @@
                 replyTo: (typeof currentReplyTo !== 'undefined') ? currentReplyTo : null,
                 type: 'normal'
             });
-            // 检查
-            setTimeout(() => {
-                if (typeof messages !== 'undefined') {
-                    console.log('[voice] >>> messages len: before=', lenBefore, 'after=', messages.length, '(应该 +1)');
-                    const voiceMsgs = messages.filter(m => m.voice);
-                    console.log('[voice] >>> voice messages:', voiceMsgs.map(m => ({id: m.id, dur: m.voice && m.voice.duration})));
-                    const wrappers = document.querySelectorAll('.message-wrapper');
-                    const voiceBubbles = document.querySelectorAll('.voice-bubble');
-                    console.log('[voice] >>> DOM: wrappers =', wrappers.length, 'voice bubbles =', voiceBubbles.length);
-                }
-            }, 200);
+
+            checkMessages('立刻');
+            setTimeout(() => checkMessages('200ms 后'), 200);
+            setTimeout(() => checkMessages('1秒后'), 1000);
+            setTimeout(() => checkMessages('3秒后'), 3000);
+            setTimeout(() => checkMessages('6秒后'), 6000);
             if (typeof playSound === 'function') playSound('send');
             if (typeof currentReplyTo !== 'undefined') window.currentReplyTo = null;
             if (typeof updateReplyPreview === 'function') updateReplyPreview();
