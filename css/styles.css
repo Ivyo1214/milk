@@ -11024,7 +11024,7 @@ body.bottom-collapse-mode #collapse-expand-btn {
     align-items: center;
     gap: 10px;
     height: 46px;
-    padding: 4px;
+    padding: 4px 8px 4px 4px;
     border-radius: 28px;
     background: var(--toolbar-btn-bg, var(--message-received-bg));
     border: 1px solid var(--border-color);
@@ -11050,27 +11050,29 @@ body.bottom-collapse-mode #collapse-expand-btn {
     color: #e55;
 }
 
-/* 中部：波形 + 时长 */
+/* 中部：波形 */
 .voice-recorder-body {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-width: 0;
-    padding: 0 4px;
+    height: 32px;
 }
 .voice-recorder-wave {
     flex: 1;
-    height: 32px;
     width: 100%;
+    height: 100%;
+    min-width: 0;
 }
+
+/* 时长（独立项，flex 排在波形和发送之间，不会被挤掉）*/
 .voice-recorder-time {
     flex-shrink: 0;
     font-size: 13px;
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
-    min-width: 38px;
-    text-align: right;
+    min-width: 40px;
+    text-align: center;
 }
 
 /* 右侧：发送 */
@@ -11093,49 +11095,46 @@ body.bottom-collapse-mode #collapse-expand-btn {
     transform: scale(1.05);
 }
 
-/* ──────── 语音气泡（仿微信，紧凑胶囊形） ──────── */
+/* ──────── 语音气泡（仿微信，简洁版：声波弧 + 时长） ──────── */
+/* 给消息加 user-select:none，防止 iOS 长按选中文本/弹系统菜单 */
+.message-wrapper.has-voice .message-content-wrapper,
+.message-wrapper.has-voice .message {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
 .voice-bubble {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    min-width: 80px;
+    justify-content: space-between;
+    gap: 10px;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
     padding: 2px 4px;
 }
-.voice-bubble-icon {
+.voice-bubble-wifi {
     flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
+    display: block;
 }
-.voice-bubble-icon i {
-    /* 仿微信小三角喇叭 */
-    transition: transform 0.15s;
-}
-.voice-bubble.playing .voice-bubble-icon i {
+.voice-bubble.playing .voice-bubble-wifi {
     animation: vb-wave 0.9s ease-in-out infinite;
 }
 @keyframes vb-wave {
-    0%, 100% { transform: scale(1);     opacity: 0.85; }
-    50%      { transform: scale(1.15);  opacity: 1;    }
+    0%, 100% { transform: scale(1);    opacity: 0.85; }
+    50%      { transform: scale(1.1);  opacity: 1;    }
 }
 .voice-bubble-duration {
     flex-shrink: 0;
     font-size: 14px;
     font-variant-numeric: tabular-nums;
+    opacity: 0.9;
 }
-/* 微信风格：根据时长决定胶囊宽度 —— 用 data-duration 通过 inline style 设置 */
-/* 我们在 JS 里给气泡设 style.width 控制 */
 
-/* 不再需要 .voice-bubble-bars，但保留兼容 —— 隐藏掉 */
-.voice-bubble-bars {
-    display: none !important;
-}
+/* 老元素隐藏（向后兼容）*/
+.voice-bubble-bars, .voice-bubble-wave, .voice-bubble-icon { display: none !important; }
 
 /* 长按消息时强制显示 meta-actions（覆盖 hover-only 行为）*/
 .message-wrapper.menu-visible .message-meta-actions {
