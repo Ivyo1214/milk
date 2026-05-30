@@ -197,7 +197,13 @@
             }
         });
 
+        let lastPokeTime = 0;
         function triggerPoke(avatarEl) {
+            // 防抖：200ms 内重复触发只算一次（dblclick 和 touchend 在 iOS 上会双发）
+            const now = Date.now();
+            if (now - lastPokeTime < 400) return;
+            lastPokeTime = now;
+
             // 1. 触发抖动动画（作用于被双击的那个头像）
             if (avatarEl) {
                 avatarEl.classList.remove('poking');
