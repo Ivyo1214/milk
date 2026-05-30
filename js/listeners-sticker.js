@@ -53,25 +53,29 @@
         // 我们自己监听 input 的 change，等图片处理完后重新点 combo-btn 触发面板刷新
         if (uploadInput) {
             uploadInput.addEventListener('change', () => {
-                console.log('[sticker] upload change triggered');
+                alert('1️⃣ upload change 触发');
                 const beforeLen = (typeof myStickerLibrary !== 'undefined' && Array.isArray(myStickerLibrary))
-                    ? myStickerLibrary.length : 0;
-                console.log('[sticker] beforeLen=', beforeLen);
+                    ? myStickerLibrary.length : -999;
+                alert('2️⃣ beforeLen = ' + beforeLen);
                 let tries = 0;
                 const check = setInterval(() => {
                     tries++;
                     const nowLen = (typeof myStickerLibrary !== 'undefined' && Array.isArray(myStickerLibrary))
-                        ? myStickerLibrary.length : 0;
+                        ? myStickerLibrary.length : -999;
                     if (nowLen > beforeLen) {
-                        console.log('[sticker] detected new sticker, tries=', tries, 'nowLen=', nowLen, 'picker.active=', picker && picker.classList.contains('active'));
                         clearInterval(check);
+                        const pickerActive = picker && picker.classList.contains('active');
+                        alert('3️⃣ 检测到新表情！tries=' + tries + ' nowLen=' + nowLen + ' picker.active=' + pickerActive);
                         if (picker && picker.classList.contains('active')) {
                             picker.classList.remove('active');
-                            setTimeout(() => picker.classList.add('active'), 10);
+                            setTimeout(() => {
+                                picker.classList.add('active');
+                                alert('4️⃣ 已重新打开 picker');
+                            }, 10);
                         }
                     } else if (tries > 30) {
-                        console.log('[sticker] gave up waiting, tries=', tries);
                         clearInterval(check);
+                        alert('❌ 6 秒没等到 myStickerLibrary 变化，放弃');
                     }
                 }, 200);
             });
