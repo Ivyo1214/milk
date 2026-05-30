@@ -11149,3 +11149,37 @@ body.bottom-collapse-mode #collapse-expand-btn {
     opacity: 0.7;
     font-variant-numeric: tabular-nums;
 }
+
+/* 长按消息时强制显示 meta-actions（覆盖 hover-only 行为）*/
+.message-wrapper.menu-visible .message-meta-actions {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+}
+
+/* 转文字结果展示在语音气泡下方 */
+.voice-transcript {
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: var(--toolbar-btn-bg, var(--message-received-bg));
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    border-top: 1px solid var(--border-color);
+    word-wrap: break-word;
+    word-break: break-word;
+}
+.voice-transcript-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* 对方伪语音条下方贴的文字 */
+.voice-fake-text {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding: 0 4px;
+}
