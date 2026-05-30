@@ -11093,67 +11093,63 @@ body.bottom-collapse-mode #collapse-expand-btn {
     transform: scale(1.05);
 }
 
-/* ──────── 语音气泡（消息列表内） ──────── */
+/* ──────── 语音气泡（仿微信，紧凑胶囊形） ──────── */
 .voice-bubble {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    min-width: 110px;
-    max-width: 240px;
-    padding: 10px 14px;
+    gap: 8px;
+    min-width: 80px;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
+    padding: 2px 4px;
 }
 .voice-bubble-icon {
     flex-shrink: 0;
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 18px;
 }
-.voice-bubble-bars {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    height: 22px;
+.voice-bubble-icon i {
+    /* 仿微信小三角喇叭 */
+    transition: transform 0.15s;
 }
-.voice-bubble-bars span {
-    flex: 1;
-    background: currentColor;
-    opacity: 0.55;
-    border-radius: 1px;
-    transition: opacity 0.18s;
+.voice-bubble.playing .voice-bubble-icon i {
+    animation: vb-wave 0.9s ease-in-out infinite;
 }
-.voice-bubble.playing .voice-bubble-bars span {
-    animation: vb-bounce 0.9s ease-in-out infinite;
-    opacity: 0.85;
-}
-.voice-bubble.playing .voice-bubble-bars span:nth-child(2) { animation-delay: 0.1s; }
-.voice-bubble.playing .voice-bubble-bars span:nth-child(3) { animation-delay: 0.2s; }
-.voice-bubble.playing .voice-bubble-bars span:nth-child(4) { animation-delay: 0.3s; }
-.voice-bubble.playing .voice-bubble-bars span:nth-child(5) { animation-delay: 0.4s; }
-.voice-bubble.playing .voice-bubble-bars span:nth-child(6) { animation-delay: 0.5s; }
-.voice-bubble.playing .voice-bubble-bars span:nth-child(7) { animation-delay: 0.4s; }
-.voice-bubble.playing .voice-bubble-bars span:nth-child(8) { animation-delay: 0.3s; }
-@keyframes vb-bounce {
-    0%, 100% { transform: scaleY(0.4); }
-    50%      { transform: scaleY(1.0); }
+@keyframes vb-wave {
+    0%, 100% { transform: scale(1);     opacity: 0.85; }
+    50%      { transform: scale(1.15);  opacity: 1;    }
 }
 .voice-bubble-duration {
     flex-shrink: 0;
-    font-size: 12px;
-    opacity: 0.7;
+    font-size: 14px;
     font-variant-numeric: tabular-nums;
+}
+/* 微信风格：根据时长决定胶囊宽度 —— 用 data-duration 通过 inline style 设置 */
+/* 我们在 JS 里给气泡设 style.width 控制 */
+
+/* 不再需要 .voice-bubble-bars，但保留兼容 —— 隐藏掉 */
+.voice-bubble-bars {
+    display: none !important;
 }
 
 /* 长按消息时强制显示 meta-actions（覆盖 hover-only 行为）*/
 .message-wrapper.menu-visible .message-meta-actions {
     opacity: 1 !important;
     transform: translateY(0) !important;
+}
+
+/* 触屏设备：禁掉 hover 触发 meta-actions（避免 iOS 第一次 tap 出现菜单）
+   只有 menu-visible 类才能让按钮显示 */
+@media (hover: none) {
+    .message-content-wrapper:hover .message-meta-actions {
+        opacity: 0 !important;
+        transform: translateY(5px) !important;
+    }
 }
 
 /* 转文字结果展示在语音气泡下方 */
