@@ -129,6 +129,7 @@
 
         // ─────────── 录音停止后的总处理 ───────────
         async function handleRecordingStop() {
+            console.log('[voice] >>> handleRecordingStop called, stopReason=', stopReason);
             const duration = Math.round((Date.now() - startTime) / 1000);
             stopSpeechRecognition();
             // 保留识别文本到本地变量，因为 cleanup 后会被清掉
@@ -162,6 +163,7 @@
                 notify('发送函数未就绪', 'error');
                 return;
             }
+            console.log('[voice] >>> sendVoiceMessage called, duration=', duration);
             addMessage({
                 id: Date.now(),
                 sender: 'user',
@@ -465,23 +467,34 @@
             // 加 class 让 CSS 禁掉 iOS 长按系统菜单
             wrapper.classList.add('has-voice');
 
-            // 微信风格：根据时长调整气泡宽度
-            const widthPx = Math.round(70 + Math.min(duration, 60) / 60 * 90);
+            // 判断是用户发的（sent）还是对方（received），用户那边镜像图标
+            const isSent = wrapper.classList.contains('sent');
+
+            // 微信风格：根据时长调整气泡宽度（短 80px → 长 200px，60s 封顶）
+            const widthPx = Math.round(80 + Math.min(duration, 60) / 60 * 120);
 
             // 仿微信的"倒下的 wifi"声波弧图标（SVG）
+            // 用户气泡镜像（图标朝左，因为开口指向气泡尖角）
+            const transformAttr = isSent ? ' transform="scale(-1,1) translate(-22,0)"' : '';
             const waveSvg = `
                 <svg class="voice-bubble-wifi" viewBox="0 0 22 22" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="5" cy="11" r="1.3" fill="currentColor" stroke="none"/>
-                    <path d="M9 8 A 3.5 3.5 0 0 1 9 14"/>
-                    <path d="M12 5 A 7 7 0 0 1 12 17"/>
-                    <path d="M15 2.5 A 10.5 10.5 0 0 1 15 19.5"/>
+                    <g${transformAttr}>
+                        <circle cx="5" cy="11" r="1.3" fill="currentColor" stroke="none"/>
+                        <path d="M9 8 A 3.5 3.5 0 0 1 9 14"/>
+                        <path d="M12 5 A 7 7 0 0 1 12 17"/>
+                        <path d="M15 2.5 A 10.5 10.5 0 0 1 15 19.5"/>
+                    </g>
                 </svg>
             `;
 
+            // 用户气泡：时长在左、图标在右；对方气泡：图标在左、时长在右
+            const bubbleInner = isSent
+                ? `<span class="voice-bubble-duration">${duration}"</span>${waveSvg}`
+                : `${waveSvg}<span class="voice-bubble-duration">${duration}"</span>`;
+
             const bubbleHtml = `
                 <div class="voice-bubble" ${isFake ? 'data-fake="1"' : `data-voice-url="${escapeAttr(msg.voice.url)}"`} data-duration="${duration}" style="width:${widthPx}px;">
-                    ${waveSvg}
-                    <span class="voice-bubble-duration">${duration}"</span>
+                    ${bubbleInner}
                 </div>
                 ${isFake && fakeText ? `<div class="voice-fake-text">${escapeHtml(fakeText)}</div>` : ''}
                 ${transcript && !isFake ? `<div class="voice-transcript" data-role="transcript" style="display:none;">${escapeHtml(transcript)}</div>` : ''}
@@ -491,6 +504,7 @@
             // 给真实语音的 meta-actions 追加"转文字"按钮
             if (!isFake) {
                 const actions = wrapper.querySelector('.message-meta-actions');
+                console.log('[voice] render: actions found =', !!actions, 'msgId=', msgId);
                 if (actions && !actions.querySelector('.transcript-btn')) {
                     const btn = document.createElement('button');
                     btn.className = 'meta-action-btn transcript-btn';
