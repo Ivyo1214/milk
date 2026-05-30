@@ -10846,11 +10846,10 @@
     display: none !important;
 }
 
-/* 底部输入区：隐藏让对方继续说、批量发送、发送按钮、独立的发图片按钮 */
+/* 底部输入区：隐藏让对方继续说、批量发送、发送按钮 */
 #continue-btn,
 #batch-btn,
 #send-btn,
-#attachment-btn,
 /* 也隐藏"展开"模式里的批量按钮 */
 #batch-btn-extra {
     display: none !important;
@@ -10867,103 +10866,32 @@
    ──────────────────────────────────────────────────────────────── */
 
 /* 输入区视觉重排（用 flex order，不改 DOM 顺序）
-   目标：[🎤语音] [输入框] [😀表情] [➕加号]                       */
-#voice-btn       { order: 1; }
+   目标布局：[📹视频通话] [输入框] [😀表情] [🖼图片] */
+#videocall-btn   { order: 1; }
 .message-input   { order: 2; }
 #combo-btn       { order: 3; }
-.input-buttons   { order: 4; }      /* 加号在这个容器里 */
-/* 第一步已隐藏的按钮（attachment / continue / batch / send）不参与排版，
-   order 不必设，display:none 会让它们整体脱离 flex 流。              */
+#attachment-btn  { order: 4; }
+.input-buttons   { order: 5; }
 
-/* 语音按钮样式（继承 .input-btn，单独点缀一下让它跟其他按钮一致）*/
-#voice-btn {
+/* attachment-btn 颜色和其他按钮一致 */
+#attachment-btn {
     background-color: var(--toolbar-btn-bg, var(--message-received-bg));
     color: var(--toolbar-btn-color, var(--text-secondary));
 }
-#voice-btn:hover {
+#attachment-btn:hover {
     color: var(--text-primary);
 }
 
-/* 加号按钮 —— 跟表情按钮完全一致的灰底灰 icon */
-#plus-btn {
+/* 视频通话按钮 —— 跟其他按钮一致的灰底灰 icon */
+#videocall-btn {
     background-color: var(--toolbar-btn-bg, var(--message-received-bg));
     color: var(--toolbar-btn-color, var(--text-secondary));
-    transition: transform 0.2s ease;
 }
-#plus-btn:hover {
+#videocall-btn:hover {
     color: var(--text-primary);
 }
-#plus-btn.active {
-    transform: rotate(45deg);   /* 打开菜单时变 ×  */
-}
 
-/* 加号菜单 —— 从加号按钮上方弹出，仿微信 */
-.plus-menu-popover {
-    position: absolute;
-    bottom: calc(100% + 10px);
-    right: 6px;
-    background: var(--secondary-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 14px 10px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-    z-index: 1500;
-    display: none;
-    grid-auto-flow: column;
-    grid-auto-columns: 72px;
-    gap: 8px;
-}
-.plus-menu-popover.open {
-    display: grid;
-    animation: plus-menu-pop 0.18s ease-out;
-}
-@keyframes plus-menu-pop {
-    from { opacity: 0; transform: translateY(8px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0)   scale(1); }
-}
-/* 菜单小三角箭头 */
-.plus-menu-popover::after {
-    content: "";
-    position: absolute;
-    bottom: -6px;
-    right: 18px;
-    width: 12px; height: 12px;
-    background: var(--secondary-bg);
-    border-right: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
-    transform: rotate(45deg);
-}
-
-.plus-menu-item {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px 4px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-primary);
-    font-size: 12px;
-    border-radius: 10px;
-    transition: background 0.18s;
-}
-.plus-menu-item:hover {
-    background: rgba(var(--accent-color-rgb), 0.08);
-}
-.plus-menu-icon {
-    width: 44px; height: 44px;
-    border-radius: 12px;
-    background: var(--toolbar-btn-bg, var(--message-received-bg));
-    color: var(--toolbar-btn-color, var(--text-secondary));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-}
-
-
-/* 隐藏加号外的视频通话按钮（避免和加号菜单里的视频通话重复入口） */
+/* 隐藏项目内置的视频通话浮动按钮（我们在输入区有自己的视频通话按钮）*/
 #collapsed-call-btn,
 #call-toolbar-btn {
     display: none !important;
@@ -11005,95 +10933,6 @@ body.bottom-collapse-mode #collapse-expand-btn {
     40%, 60%  { transform: translateX(4px)  rotate(5deg);  }
 }
 
-/* ────────────────────────────────────────────────────────────────
-   首页改造 · 第四步（批次1）：录音条 + 语音气泡
-   ──────────────────────────────────────────────────────────────── */
-
-/* 录音状态下：隐藏原输入区的其他控件（保留 voice-recorder 显示）*/
-.input-area.recording > *:not(#voice-recorder) {
-    display: none !important;
-}
-.input-area.recording {
-    align-items: center;
-}
-
-/* 录音条容器（仿 IG 胶囊样式，颜色用项目主色） */
-.voice-recorder {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 46px;
-    padding: 4px 8px 4px 4px;
-    border-radius: 28px;
-    background: var(--toolbar-btn-bg, var(--message-received-bg));
-    border: 1px solid var(--border-color);
-}
-
-/* 左侧：取消（垃圾桶）*/
-.voice-recorder-cancel {
-    flex-shrink: 0;
-    width: 38px; height: 38px;
-    border: none;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 15px;
-    cursor: pointer;
-    transition: all 0.18s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.voice-recorder-cancel:hover {
-    background: rgba(255, 80, 80, 0.12);
-    color: #e55;
-}
-
-/* 中部：波形 */
-.voice-recorder-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    height: 32px;
-}
-.voice-recorder-wave {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-}
-
-/* 时长（独立项，flex 排在波形和发送之间，不会被挤掉）*/
-.voice-recorder-time {
-    flex-shrink: 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-    font-variant-numeric: tabular-nums;
-    min-width: 40px;
-    text-align: center;
-}
-
-/* 右侧：发送 */
-.voice-recorder-send {
-    flex-shrink: 0;
-    width: 38px; height: 38px;
-    border: none;
-    border-radius: 50%;
-    background: var(--accent-color);
-    color: #fff;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.18s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.voice-recorder-send:hover {
-    opacity: 0.88;
-    transform: scale(1.05);
-}
 
 /* ──────── 语音气泡（仿微信，简洁版：声波弧 + 时长） ──────── */
 /* 给消息加 user-select:none，防止 iOS 长按选中文本/弹系统菜单 */
