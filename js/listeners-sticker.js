@@ -27,11 +27,16 @@
             return;
         }
 
-        // DOM 重排：把 picker 从 input-area 里搬出来，放到 input-area-wrapper 内 input-area 后面
+        // DOM 重排 1：把 picker 从 input-area 里搬出来，放到 input-area-wrapper 内 input-area 后面
         // 这样 wrapper 用 column 布局后，input-area 在上、picker 在下（仿微信样式）
         if (picker && inputAreaWrapper && inputArea && picker.parentElement !== inputAreaWrapper) {
-            // appendChild 会移到末尾，input-area 之后
             inputAreaWrapper.appendChild(picker);
+        }
+
+        // DOM 重排 2：把 uploadInput 节点移到 picker 内
+        // 避免 uploadInput.click() 触发后被项目的"点击 picker 外部就关闭"监听识别为外部点击
+        if (picker && uploadInput && !picker.contains(uploadInput)) {
+            picker.appendChild(uploadInput);
         }
 
         // 监听 grid 变化（用户切 tab、添加/删除表情时会 re-render）
