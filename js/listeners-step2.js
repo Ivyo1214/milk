@@ -167,50 +167,16 @@
         //       顶部 #partner-avatar 不动，保留原项目的"打开头像框设置"行为。
         const chatContainer = document.getElementById('chat-container') || document.body;
 
-        // 桌面端 dblclick
+        // 桌面端 + 移动端都用 dblclick（iOS Safari 现版本支持良好）
         chatContainer.addEventListener('dblclick', (e) => {
             const avatarEl = e.target.closest('.message-avatar');
             if (!avatarEl) return;
             const wrapper = avatarEl.closest('.message-wrapper');
             if (!wrapper || !wrapper.classList.contains('received')) return;
-            console.log('[poke] dblclick triggered');
             triggerPoke(avatarEl);
         });
 
-        // 移动端 touchend 时间差双击识别
-        let lastTapTime = 0;
-        let lastTapEl = null;
-        chatContainer.addEventListener('touchend', (e) => {
-            const avatarEl = e.target.closest('.message-avatar');
-            if (!avatarEl) return;
-            const wrapper = avatarEl.closest('.message-wrapper');
-            if (!wrapper || !wrapper.classList.contains('received')) return;
-
-            const now = Date.now();
-            if (now - lastTapTime < 350 && lastTapEl === avatarEl) {
-                e.preventDefault();
-                console.log('[poke] touchend double-tap triggered');
-                triggerPoke(avatarEl);
-                lastTapTime = 0;
-                lastTapEl = null;
-            } else {
-                lastTapTime = now;
-                lastTapEl = avatarEl;
-            }
-        });
-
-        let lastPokeTime = 0;
         function triggerPoke(avatarEl) {
-            // 防抖：800ms 内重复触发只算一次（dblclick 和 touchend 间隔可能较长）
-            const now = Date.now();
-            const elapsed = now - lastPokeTime;
-            console.log('[poke] triggerPoke called, elapsed since last:', elapsed, 'ms');
-            if (elapsed < 800) {
-                console.log('[poke] BLOCKED by debounce');
-                return;
-            }
-            lastPokeTime = now;
-            console.log('[poke] PROCEEDING');
 
             // 1. 触发抖动动画（作用于被双击的那个头像）
             if (avatarEl) {
