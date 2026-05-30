@@ -11095,3 +11095,11 @@ body #user-sticker-picker .empty-sticker-tip {
     color: var(--accent-color);
     transform: scale(1.05);
 }
+
+/* 触屏设备上，删除按钮默认可见（不靠 hover），避免 iOS 第一次 tap 仅触发 hover */
+@media (hover: none) {
+    body #user-sticker-picker .sticker-delete-btn {
+        opacity: 0.85 !important;
+        transform: scale(1) !important;
+    }
+}
