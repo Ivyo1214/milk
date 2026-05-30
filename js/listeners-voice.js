@@ -216,7 +216,11 @@
             recorder.style.display = 'none';
         }
 
-        // ─────────── 波形动画（实时） ───────────
+        // ─────────── 波形动画（IG 风格：滚动的音量历史） ───────────
+        let volumeHistory = [];
+        const MAX_HISTORY = 38;     // 总共 38 个采样点
+        const SAMPLE_INTERVAL = 80; // 每 80ms 采样一次
+
         function startWaveAnimation() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -232,37 +236,69 @@
             const ctx = waveCanvas.getContext('2d');
             const bufferLen = analyser.frequencyBinCount;
             const data = new Uint8Array(bufferLen);
+            volumeHistory = [];
+
+            let lastSample = 0;
 
             function draw() {
                 if (!analyser) return;
                 waveRafId = requestAnimationFrame(draw);
-                analyser.getByteFrequencyData(data);
 
-                // 取 CSS color: 使用 accent-color
-                const cssColor = getComputedStyle(document.documentElement)
-                    .getPropertyValue('--accent-color').trim() || '#888';
+                // 定时采样当前音量（RMS）
+                const now = Date.now();
+                if (now - lastSample > SAMPLE_INTERVAL) {
+                    lastSample = now;
+                    analyser.getByteFrequencyData(data);
+                    let sum = 0;
+                    for (let i = 0; i < bufferLen; i++) sum += data[i];
+                    const avg = sum / bufferLen / 255;   // 0..1
+                    // 推入历史，保留最近 MAX_HISTORY 个
+                    volumeHistory.push(avg);
+                    if (volumeHistory.length > MAX_HISTORY) volumeHistory.shift();
+                }
 
-                // resize canvas to its CSS size for crisp render
+                // 高 DPI 适配
                 const w = waveCanvas.clientWidth;
                 const h = waveCanvas.clientHeight;
-                if (waveCanvas.width !== w || waveCanvas.height !== h) {
-                    waveCanvas.width = w;
-                    waveCanvas.height = h;
+                const dpr = window.devicePixelRatio || 1;
+                if (waveCanvas.width !== w * dpr || waveCanvas.height !== h * dpr) {
+                    waveCanvas.width = w * dpr;
+                    waveCanvas.height = h * dpr;
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);  // 重置变换
+                    ctx.scale(dpr, dpr);
                 }
                 ctx.clearRect(0, 0, w, h);
 
-                const barCount = 28;
-                const barGap = 3;
-                const barW = (w - barGap * (barCount - 1)) / barCount;
+                const cssColor = getComputedStyle(document.documentElement)
+                    .getPropertyValue('--accent-color').trim() || '#888';
                 ctx.fillStyle = cssColor;
 
-                for (let i = 0; i < barCount; i++) {
-                    const idx = Math.floor(i * bufferLen / barCount);
-                    const v = data[idx] / 255;            // 0..1
-                    const barH = Math.max(2, v * h * 0.9);
-                    const x = i * (barW + barGap);
-                    const y = (h - barH) / 2;
-                    ctx.fillRect(x, y, barW, barH);
+                const barW = 3;
+                const barGap = 4;
+                const slotW = barW + barGap;
+                const startX = 0;
+                const centerY = h / 2;
+
+                // 画历史音量：最近的（队尾）画在最左边
+                // IG 风格：有声音的呈竖条；接近 0 的呈小圆点/虚线
+                for (let i = 0; i < MAX_HISTORY; i++) {
+                    const x = startX + i * slotW;
+                    if (x + barW > w) break;
+                    // 反向取：最新的在最左
+                    const idx = volumeHistory.length - 1 - i;
+                    const v = (idx >= 0) ? volumeHistory[idx] : 0;
+
+                    if (v < 0.04) {
+                        // 几乎没声音：画一个小圆点（虚线效果）
+                        ctx.beginPath();
+                        ctx.arc(x + barW / 2, centerY, 1.2, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // 有声音：画竖条
+                        const barH = Math.max(4, v * h * 1.6);
+                        const y = centerY - barH / 2;
+                        ctx.fillRect(x, y, barW, barH);
+                    }
                 }
             }
             draw();
@@ -421,20 +457,17 @@
             const bubble = wrapper.querySelector('.message');
             if (!bubble) return;
 
-            const isFake = !msg.voice.url;   // 对方伪语音：没有 url
+            const isFake = !msg.voice.url;
             const duration = msg.voice.duration || 0;
             const transcript = msg.voice.transcript || '';
             const fakeText = msg.voice.fakeText || '';
 
-            const bars = Array.from({ length: 8 }, () =>
-                `<span style="width:2px;height:${30 + Math.random() * 50}%;"></span>`
-            ).join('');
+            // 微信风格：根据时长调整气泡宽度（最短 80px，最长 220px，60秒封顶）
+            const widthPx = Math.round(80 + Math.min(duration, 60) / 60 * 140);
 
-            // 气泡内部：语音条
             const bubbleHtml = `
-                <div class="voice-bubble" ${isFake ? 'data-fake="1"' : `data-voice-url="${escapeAttr(msg.voice.url)}"`} data-duration="${duration}">
+                <div class="voice-bubble" ${isFake ? 'data-fake="1"' : `data-voice-url="${escapeAttr(msg.voice.url)}"`} data-duration="${duration}" style="width:${widthPx}px;">
                     <span class="voice-bubble-icon"><i class="fas fa-volume-up"></i></span>
-                    <span class="voice-bubble-bars">${bars}</span>
                     <span class="voice-bubble-duration">${duration}"</span>
                 </div>
                 ${isFake && fakeText ? `<div class="voice-fake-text">${escapeHtml(fakeText)}</div>` : ''}
