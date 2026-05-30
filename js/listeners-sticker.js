@@ -48,6 +48,34 @@
         // 启动时也插一次
         injectAddButton();
 
+        // ─────── 监听上传成功 → 强制刷新表情面板 ───────
+        // 项目自己的代码会调用 renderComboContent（但这个函数其实未定义），所以面板不会刷新
+        // 我们自己监听 input 的 change，等图片处理完后重新点 combo-btn 触发面板刷新
+        if (uploadInput) {
+            uploadInput.addEventListener('change', () => {
+                // 项目处理图片是异步的（有 optimizeImage），需要等它处理完再刷新
+                // 用 setTimeout 多次轮询，看 myStickerLibrary 长度有没有变化
+                const beforeLen = (typeof myStickerLibrary !== 'undefined' && Array.isArray(myStickerLibrary))
+                    ? myStickerLibrary.length : 0;
+                let tries = 0;
+                const check = setInterval(() => {
+                    tries++;
+                    const nowLen = (typeof myStickerLibrary !== 'undefined' && Array.isArray(myStickerLibrary))
+                        ? myStickerLibrary.length : 0;
+                    if (nowLen > beforeLen) {
+                        clearInterval(check);
+                        // 关闭再打开，触发 switchTab('my-sticker') 重新渲染
+                        if (picker && picker.classList.contains('active')) {
+                            picker.classList.remove('active');
+                            setTimeout(() => picker.classList.add('active'), 10);
+                        }
+                    } else if (tries > 30) {
+                        clearInterval(check);  // 6 秒还没变化就放弃
+                    }
+                }, 200);
+            });
+        }
+
         function injectAddButton() {
             // 决定要不要显示"添加表情"标题
             const hasEmptyTip = !!contentArea.querySelector('.empty-sticker-tip');
