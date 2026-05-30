@@ -161,32 +161,50 @@
             }
         }
 
-        // ─────────── 7. 双击梦角头像 = 拍一拍 + 抖动动画 ───────────
-        const partnerAvatar = document.getElementById('partner-avatar');
-        if (partnerAvatar) {
-            // 监听双击（dblclick 已经覆盖 PC 和移动端）
-            partnerAvatar.addEventListener('dblclick', triggerPoke);
+        // ─────────── 7. 双击聊天气泡里"对方头像" = 拍一拍 + 抖动 ───────────
+        // 注意：聊天里的 .message-avatar 是动态创建的，所以用事件委托。
+        //       只对"对方"的头像生效（消息容器 class 含 'received'），自己的头像不响应。
+        //       顶部 #partner-avatar 不动，保留原项目的"打开头像框设置"行为。
+        const chatContainer = document.getElementById('chat-container') || document.body;
 
-            // 移动端额外做一个手动的双击识别（防止部分浏览器 dblclick 触发不灵）
-            let lastTap = 0;
-            partnerAvatar.addEventListener('touchend', (e) => {
-                const now = Date.now();
-                if (now - lastTap < 350) {
-                    e.preventDefault();
-                    triggerPoke();
-                }
-                lastTap = now;
-            });
-        }
+        // 桌面端 dblclick
+        chatContainer.addEventListener('dblclick', (e) => {
+            const avatarEl = e.target.closest('.message-avatar');
+            if (!avatarEl) return;
+            const wrapper = avatarEl.closest('.message-wrapper');
+            if (!wrapper || !wrapper.classList.contains('received')) return;  // 只响应对方头像
+            triggerPoke(avatarEl);
+        });
 
-        function triggerPoke() {
-            if (!partnerAvatar) return;
+        // 移动端 touchend 时间差双击识别
+        let lastTapTime = 0;
+        let lastTapEl = null;
+        chatContainer.addEventListener('touchend', (e) => {
+            const avatarEl = e.target.closest('.message-avatar');
+            if (!avatarEl) return;
+            const wrapper = avatarEl.closest('.message-wrapper');
+            if (!wrapper || !wrapper.classList.contains('received')) return;
 
-            // 1. 触发抖动动画（移除再加 class，确保连续双击也能重播）
-            partnerAvatar.classList.remove('poking');
-            void partnerAvatar.offsetWidth;   // 强制 reflow
-            partnerAvatar.classList.add('poking');
-            setTimeout(() => partnerAvatar.classList.remove('poking'), 600);
+            const now = Date.now();
+            if (now - lastTapTime < 350 && lastTapEl === avatarEl) {
+                e.preventDefault();
+                triggerPoke(avatarEl);
+                lastTapTime = 0;
+                lastTapEl = null;
+            } else {
+                lastTapTime = now;
+                lastTapEl = avatarEl;
+            }
+        });
+
+        function triggerPoke(avatarEl) {
+            // 1. 触发抖动动画（作用于被双击的那个头像）
+            if (avatarEl) {
+                avatarEl.classList.remove('poking');
+                void avatarEl.offsetWidth;   // 强制 reflow
+                avatarEl.classList.add('poking');
+                setTimeout(() => avatarEl.classList.remove('poking'), 600);
+            }
 
             // 2. 组装文案
             //   后续若设置里加了 myPokeText，这里改成：
