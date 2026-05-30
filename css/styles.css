@@ -11004,3 +11004,148 @@ body.bottom-collapse-mode #collapse-expand-btn {
     30%, 50%, 70% { transform: translateX(-4px) rotate(-5deg); }
     40%, 60%  { transform: translateX(4px)  rotate(5deg);  }
 }
+
+/* ────────────────────────────────────────────────────────────────
+   首页改造 · 第四步（批次1）：录音条 + 语音气泡
+   ──────────────────────────────────────────────────────────────── */
+
+/* 录音状态下：隐藏原输入区的其他控件（保留 voice-recorder 显示）*/
+.input-area.recording > *:not(#voice-recorder) {
+    display: none !important;
+}
+.input-area.recording {
+    align-items: center;
+}
+
+/* 录音条容器（仿 IG 胶囊样式，颜色用项目主色） */
+.voice-recorder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 46px;
+    padding: 4px;
+    border-radius: 28px;
+    background: var(--toolbar-btn-bg, var(--message-received-bg));
+    border: 1px solid var(--border-color);
+}
+
+/* 左侧：取消（垃圾桶）*/
+.voice-recorder-cancel {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.voice-recorder-cancel:hover {
+    background: rgba(255, 80, 80, 0.12);
+    color: #e55;
+}
+
+/* 中部：波形 + 时长 */
+.voice-recorder-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 0 4px;
+}
+.voice-recorder-wave {
+    flex: 1;
+    height: 32px;
+    width: 100%;
+}
+.voice-recorder-time {
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    min-width: 38px;
+    text-align: right;
+}
+
+/* 右侧：发送 */
+.voice-recorder-send {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent-color);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.voice-recorder-send:hover {
+    opacity: 0.88;
+    transform: scale(1.05);
+}
+
+/* ──────── 语音气泡（消息列表内） ──────── */
+.voice-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 110px;
+    max-width: 240px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.voice-bubble-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+.voice-bubble-bars {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 22px;
+}
+.voice-bubble-bars span {
+    flex: 1;
+    background: currentColor;
+    opacity: 0.55;
+    border-radius: 1px;
+    transition: opacity 0.18s;
+}
+.voice-bubble.playing .voice-bubble-bars span {
+    animation: vb-bounce 0.9s ease-in-out infinite;
+    opacity: 0.85;
+}
+.voice-bubble.playing .voice-bubble-bars span:nth-child(2) { animation-delay: 0.1s; }
+.voice-bubble.playing .voice-bubble-bars span:nth-child(3) { animation-delay: 0.2s; }
+.voice-bubble.playing .voice-bubble-bars span:nth-child(4) { animation-delay: 0.3s; }
+.voice-bubble.playing .voice-bubble-bars span:nth-child(5) { animation-delay: 0.4s; }
+.voice-bubble.playing .voice-bubble-bars span:nth-child(6) { animation-delay: 0.5s; }
+.voice-bubble.playing .voice-bubble-bars span:nth-child(7) { animation-delay: 0.4s; }
+.voice-bubble.playing .voice-bubble-bars span:nth-child(8) { animation-delay: 0.3s; }
+@keyframes vb-bounce {
+    0%, 100% { transform: scaleY(0.4); }
+    50%      { transform: scaleY(1.0); }
+}
+.voice-bubble-duration {
+    flex-shrink: 0;
+    font-size: 12px;
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+}
