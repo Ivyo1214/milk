@@ -10989,15 +10989,13 @@ body.bottom-collapse-mode #collapse-expand-btn {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   首页改造 · 第三步：双击梦角头像 = 拍一拍
+   首页改造 · 第三步：双击聊天里"对方头像" = 拍一拍
    ──────────────────────────────────────────────────────────────── */
-#partner-avatar {
+.message-avatar {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    -webkit-user-select: none;
 }
-#partner-avatar.poking {
+.poking {
     animation: avatar-shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
 }
 @keyframes avatar-shake {
