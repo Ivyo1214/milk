@@ -53,29 +53,24 @@
         // 我们自己监听 input 的 change，等图片处理完后重新点 combo-btn 触发面板刷新
         if (uploadInput) {
             uploadInput.addEventListener('change', () => {
-                alert('1️⃣ upload change 触发');
                 const beforeLen = (typeof myStickerLibrary !== 'undefined' && Array.isArray(myStickerLibrary))
-                    ? myStickerLibrary.length : -999;
-                alert('2️⃣ beforeLen = ' + beforeLen);
+                    ? myStickerLibrary.length : 0;
                 let tries = 0;
                 const check = setInterval(() => {
                     tries++;
                     const nowLen = (typeof myStickerLibrary !== 'undefined' && Array.isArray(myStickerLibrary))
-                        ? myStickerLibrary.length : -999;
+                        ? myStickerLibrary.length : 0;
                     if (nowLen > beforeLen) {
                         clearInterval(check);
-                        const pickerActive = picker && picker.classList.contains('active');
-                        alert('3️⃣ 检测到新表情！tries=' + tries + ' nowLen=' + nowLen + ' picker.active=' + pickerActive);
-                        if (picker && picker.classList.contains('active')) {
+                        // 直接强制刷新：先 remove active，再点 combo-btn（触发 switchTab + add active）
+                        const comboBtn = document.getElementById('combo-btn');
+                        if (comboBtn && picker) {
                             picker.classList.remove('active');
-                            setTimeout(() => {
-                                picker.classList.add('active');
-                                alert('4️⃣ 已重新打开 picker');
-                            }, 10);
+                            // 50ms 让 DOM 反应一下，再 click 触发 switchTab + 重新打开
+                            setTimeout(() => comboBtn.click(), 50);
                         }
                     } else if (tries > 30) {
                         clearInterval(check);
-                        alert('❌ 6 秒没等到 myStickerLibrary 变化，放弃');
                     }
                 }, 200);
             });
