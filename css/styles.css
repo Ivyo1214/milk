@@ -1,4 +1,4 @@
-        * {
+* {
             scrollbar-width: none;
             -ms-overflow-style: none;
             margin: 0;
@@ -10835,3 +10835,256 @@
             border-color: var(--accent-color) !important;
             outline: none;
         }
+
+/* ────────────────────────────────────────────────────────────────
+   首页改造 · 第一步：隐藏不需要的功能入口（代码保留）
+   ──────────────────────────────────────────────────────────────── */
+
+/* 顶部栏：隐藏会话管理 + 群聊设置（单梦角场景不需要）*/
+#session-manager-btn,
+#group-chat-btn {
+    display: none !important;
+}
+
+/* 底部输入区：隐藏让对方继续说、批量发送、发送按钮 */
+#continue-btn,
+#batch-btn,
+#send-btn,
+/* 也隐藏"展开"模式里的批量按钮 */
+#batch-btn-extra {
+    display: none !important;
+}
+
+/* 表情按钮里：隐藏"对方"tab 和"拍一拍"tab（对方表情不在用户控制范围，拍一拍改用点头像触发）*/
+.combo-tab-btn[data-tab="partner-sticker"],
+.combo-tab-btn[data-tab="poke"] {
+    display: none !important;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   首页改造 · 第二步：语音 + 加号菜单 + 拍照弹窗
+   ──────────────────────────────────────────────────────────────── */
+
+/* 输入区视觉重排（用 flex order，不改 DOM 顺序）
+   目标布局：[📹视频通话] [输入框] [😀表情] [🖼图片] */
+#videocall-btn   { order: 1; }
+.message-input   { order: 2; }
+#combo-btn       { order: 3; }
+#attachment-btn  { order: 4; }
+.input-buttons   { order: 5; }
+
+/* attachment-btn 颜色和其他按钮一致 */
+#attachment-btn {
+    background-color: var(--toolbar-btn-bg, var(--message-received-bg));
+    color: var(--toolbar-btn-color, var(--text-secondary));
+}
+#attachment-btn:hover {
+    color: var(--text-primary);
+}
+
+/* 视频通话按钮 —— 跟其他按钮一致的灰底灰 icon */
+#videocall-btn {
+    background-color: var(--toolbar-btn-bg, var(--message-received-bg));
+    color: var(--toolbar-btn-color, var(--text-secondary));
+}
+#videocall-btn:hover {
+    color: var(--text-primary);
+}
+
+/* 隐藏项目内置的视频通话浮动按钮（我们在输入区有自己的视频通话按钮）*/
+#collapsed-call-btn,
+#call-toolbar-btn {
+    display: none !important;
+}
+
+/* 彻底隐藏"展开更多"按钮（向上箭头），新方案已用加号菜单替代 */
+#collapse-expand-btn {
+    display: none !important;
+}
+/* 同时压制收纳模式下的强制显示规则 */
+body.bottom-collapse-mode #collapse-expand-btn {
+    display: none !important;
+}
+
+/* 输入框允许多行显示（最多 3 行，超出滚动）
+   原 CSS 强制 nowrap + hidden + ellipsis 锁成单行，这里覆盖回 textarea 默认行为 */
+.message-input {
+    white-space: pre-wrap !important;
+    overflow-y: auto !important;
+    text-overflow: clip !important;
+    max-height: 96px !important;   /* 约 3 行 */
+    line-height: 1.4 !important;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   首页改造 · 第三步：双击聊天里"对方头像" = 拍一拍
+   ──────────────────────────────────────────────────────────────── */
+.message-avatar {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.poking {
+    animation: avatar-shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+}
+@keyframes avatar-shake {
+    10%, 90%  { transform: translateX(-2px) rotate(-3deg); }
+    20%, 80%  { transform: translateX(3px)  rotate(3deg);  }
+    30%, 50%, 70% { transform: translateX(-4px) rotate(-5deg); }
+    40%, 60%  { transform: translateX(4px)  rotate(5deg);  }
+}
+
+
+/* ──────── 语音气泡（仿微信，简洁版：声波弧 + 时长） ──────── */
+/* 给消息加 user-select:none，防止 iOS 长按选中文本/弹系统菜单 */
+.message-wrapper.has-voice .message-content-wrapper,
+.message-wrapper.has-voice .message {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.voice-bubble {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    padding: 2px 4px;
+}
+.voice-bubble-wifi {
+    flex-shrink: 0;
+    display: block;
+}
+.voice-bubble.playing .voice-bubble-wifi {
+    animation: vb-wave 0.9s ease-in-out infinite;
+}
+@keyframes vb-wave {
+    0%, 100% { transform: scale(1);    opacity: 0.85; }
+    50%      { transform: scale(1.1);  opacity: 1;    }
+}
+.voice-bubble-duration {
+    flex-shrink: 0;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.9;
+}
+
+/* 老元素隐藏（向后兼容）*/
+.voice-bubble-bars, .voice-bubble-wave, .voice-bubble-icon { display: none !important; }
+
+/* 转文字结果展示在语音气泡下方 */
+.voice-transcript {
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: var(--toolbar-btn-bg, var(--message-received-bg));
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    border-top: 1px solid var(--border-color);
+    word-wrap: break-word;
+    word-break: break-word;
+}
+.voice-transcript-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* 对方伪语音条下方贴的文字 */
+.voice-fake-text {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    padding: 0 4px;
+}
+
+/* ──────── 表情面板仿微信改造 ──────── */
+/* 隐藏整条 tab 栏（我/对方/拍一拍/添加/管理）*/
+#user-sticker-picker .combo-tabs-header {
+    display: none !important;
+}
+
+/* === STICKER PANEL v3 - 2026-05-31 ===
+   表情面板仿微信：picker 已经被 JS 移到 input-area 之前，
+   wrapper 用 column 让 picker 在上、input-area 在下；
+   picker 用 static 撑高 wrapper，因为 wrapper bottom:0 fixed，所以从底部往上长 */
+body .input-area-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+}
+body #user-sticker-picker.sticker-picker-popover,
+body #user-sticker-picker.sticker-picker-popover.active {
+    position: static !important;
+    width: 100% !important;
+    height: 50vh !important;
+    min-height: 280px !important;
+    max-height: 60vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-top: 1px solid var(--border-color) !important;
+    box-shadow: none !important;
+    z-index: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+}
+
+body #user-sticker-picker .empty-sticker-tip {
+    display: none !important;
+}
+
+/* 内容区上方加"添加表情"标题 —— 通过 JS 加 class 决定显示与否 */
+#user-sticker-picker .combo-content-area.show-title::before {
+    content: "添加表情";
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 4px 4px 14px;
+    opacity: 0.9;
+}
+
+/* 内容区内边距加大（仿微信感觉），表情格也大一点 */
+#user-sticker-picker .combo-content-area {
+    padding: 16px 16px 24px !important;
+}
+#user-sticker-picker .sticker-grid-view {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 14px !important;
+}
+
+/* 加号格子（添加表情入口）*/
+.sticker-grid-add {
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1.5px dashed var(--border-color);
+    background-color: transparent;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 22px;
+}
+.sticker-grid-add:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+/* 触屏设备上，删除按钮默认可见（不靠 hover），避免 iOS 第一次 tap 仅触发 hover */
+@media (hover: none) {
+    body #user-sticker-picker .sticker-delete-btn {
+        opacity: 0.85 !important;
+        transform: scale(1) !important;
+    }
+}
