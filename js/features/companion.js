@@ -1154,6 +1154,9 @@
             return;
         }
 
+        // 防御：清理可能残留的白噪音（避免上次未完全关闭时新陪伴叠加播放）
+        stopNoise();
+
         // 设置背景
         const bgs = companionData.backgrounds[currentMode];
         const bg = bgs[Math.floor(Math.random() * bgs.length)];
@@ -2315,6 +2318,52 @@
             }
             document.documentElement.setAttribute('data-color-theme', theme);
             console.log(`[companion] 已切换到 ${theme} 主题`);
+        },
+
+        // 测试：直接进陪伴页（跳过场景选择和邀请等待，秒进）
+        // 用法：companionModule.testEnter('study', 25)   — 学习模式 25 分钟
+        //      companionModule.testEnter('sleep', 'rest') — 睡觉模式好好休息
+        testEnter: async (mode = 'study', time = 10) => {
+            await ensureDataLoaded();
+            currentMode = mode;
+            if (time === 'rest') {
+                isCountdown = false;
+                timerSeconds = 0;
+                totalSeconds = 0;
+            } else {
+                isCountdown = true;
+                timerSeconds = parseInt(time) * 60;
+                totalSeconds = parseInt(time) * 60;
+            }
+            openCompanionPage();
+            console.log(`[companion] 已直接进入${mode}陪伴，${time === 'rest' ? '好好休息' : time + '分钟'}`);
+        },
+
+        // 测试：直接打开白噪音卡片（不需要在陪伴中）
+        testNoiseCard: () => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 请先 testEnter() 进入陪伴页');
+                return;
+            }
+            openNoiseCard();
+        },
+
+        // 测试：查看当前 noises 数据（看上传了什么）
+        testNoiseData: () => {
+            console.log('当前 noises:', JSON.parse(JSON.stringify(companionData.noises)));
+            console.log('lastNoiseChoice:', JSON.parse(JSON.stringify(companionData.lastNoiseChoice)));
+        },
+
+        // 测试：手动播放白噪音（绕过 UI，直接调用 startNoise）
+        // 用法：companionModule.testPlayNoise('rain')   — 雨天（音频文件待添加）
+        //      companionModule.testPlayNoise('fire')   — 篝火
+        //      companionModule.testPlayNoise('silent') — 停止
+        testPlayNoise: (type) => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 请先 testEnter() 进入陪伴页');
+                return;
+            }
+            startNoise(type);
         },
 
         // 控制随机邀请定时器
