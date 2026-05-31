@@ -1298,7 +1298,7 @@
             const list = (companionData.noises && companionData.noises[currentMode]) || [];
             const item = list.find(n => n.id === id);
             if (!item) {
-                notify('白噪音不存在', 'warning');
+                notify('音乐不存在', 'warning');
                 return;
             }
             src = item.data || item.src;
@@ -1423,6 +1423,14 @@
         const choice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[currentMode];
         const activeType = typeof choice === 'string' ? choice : (choice && choice.type === 'custom' ? 'custom' : 'silent');
 
+        // 如果"我的列表"激活，找到正在播的那首的名字
+        let currentSongName = '';
+        if (activeType === 'custom' && choice && choice.id) {
+            const list = (companionData.noises && companionData.noises[currentMode]) || [];
+            const item = list.find(n => n.id === choice.id);
+            if (item) currentSongName = item.name || '未命名';
+        }
+
         const card = document.createElement('div');
         card.id = 'companion-noise-card';
         card.className = 'companion-noise-card';
@@ -1430,7 +1438,7 @@
             <div class="companion-noise-card-inner">
                 <div class="companion-noise-card-title">
                     <i class="fas fa-headphones"></i>
-                    <span>选择白噪音</span>
+                    <span>选择背景音</span>
                 </div>
                 <div class="companion-noise-options">
                     <div class="companion-noise-option ${activeType === 'rain' ? 'active' : ''}" data-type="rain">
@@ -1446,10 +1454,33 @@
                         <i class="fas fa-volume-mute"></i><span>无声</span>
                     </div>
                 </div>
+                ${currentSongName ? `
+                    <div class="companion-noise-now-playing">
+                        <i class="fas fa-music"></i>
+                        <div class="companion-noise-now-playing-track">
+                            <span class="companion-noise-now-playing-name">${escapeHtml(currentSongName)}</span>
+                        </div>
+                    </div>
+                ` : ''}
                 <button class="companion-noise-card-close">关闭</button>
             </div>
         `;
         document.documentElement.appendChild(card);
+
+        // 检测歌名是否溢出，溢出就启动跑马灯
+        if (currentSongName) {
+            requestAnimationFrame(() => {
+                const trackEl = card.querySelector('.companion-noise-now-playing-track');
+                const nameEl = card.querySelector('.companion-noise-now-playing-name');
+                if (trackEl && nameEl && nameEl.scrollWidth > trackEl.clientWidth) {
+                    // 溢出 → 启动滚动
+                    nameEl.classList.add('scrolling');
+                    // 设置动画时长（按字数长度，让滚动速度恒定）
+                    const duration = Math.max(8, currentSongName.length * 0.6);
+                    nameEl.style.animationDuration = `${duration}s`;
+                }
+            });
+        }
 
         // 点遮罩关闭
         card.addEventListener('click', e => {
@@ -1501,10 +1532,10 @@
             bodyHtml = `
                 <div class="companion-noise-list-empty">
                     <i class="fas fa-folder-open"></i>
-                    还没有添加白噪音
+                    还没有添加音乐
                     <div style="margin-top:8px;">
                         <button class="companion-noise-list-card-add">
-                            <i class="fas fa-plus"></i> 添加白噪音
+                            <i class="fas fa-plus"></i> 添加音乐
                         </button>
                     </div>
                 </div>
@@ -1543,7 +1574,7 @@
             <div class="companion-noise-card-inner companion-noise-list-card">
                 <div class="companion-noise-card-title">
                     <i class="fas fa-folder-open"></i>
-                    <span>我的白噪音</span>
+                    <span>我的音乐</span>
                 </div>
                 ${bodyHtml}
                 <button class="companion-noise-card-close">返回</button>
@@ -1590,7 +1621,7 @@
             }
             if (addedCount > 0) {
                 await saveCompanionData();
-                notify(`已添加 ${addedCount} 段白噪音`, 'success');
+                notify(`已添加 ${addedCount} 段音乐`, 'success');
                 // 刷新卡片显示
                 openNoiseListCard();
             }
@@ -2007,17 +2038,17 @@
         let html = '';
         if (items.length === 0) {
             html += `<div class="companion-mgr-empty">
-                还没有添加${escapeHtml(MODES[mode].label.slice(2))}场景的白噪音<br>
+                还没有添加${escapeHtml(MODES[mode].label.slice(2))}场景的音乐<br>
                 点击下方按钮上传音频文件
             </div>`;
         } else {
             html += items.map(v => `
                 <div class="companion-voice-card" data-id="${v.id}">
-                    <i class="fas fa-cloud-rain"></i>
+                    <i class="fas fa-music"></i>
                     <input type="text" class="companion-voice-card-name"
                         value="${escapeHtml(v.name || '')}"
                         data-action="rename-noise" data-id="${v.id}"
-                        placeholder="白噪音名称">
+                        placeholder="音乐名称">
                     <div class="companion-voice-card-actions">
                         <button class="companion-mgr-iconbtn" data-action="play-noise" data-id="${v.id}" title="试听">
                             <i class="fas fa-play"></i>
@@ -2030,7 +2061,7 @@
             `).join('');
         }
         html += `<button class="companion-mgr-add" id="companion-noise-add-btn">
-            <i class="fas fa-plus"></i> 添加${escapeHtml(MODES[mode].label.slice(2))}白噪音
+            <i class="fas fa-plus"></i> 添加${escapeHtml(MODES[mode].label.slice(2))}音乐
         </button>`;
         list.innerHTML = html;
     }
@@ -2146,7 +2177,7 @@
             const v = companionData.voices[mode].find(x => x.id === id);
             if (v) playVoice(v);
         } else if (action === 'delete-noise') {
-            if (!confirm('确定删除这段白噪音吗？')) return;
+            if (!confirm('确定删除这段音乐吗？')) return;
             companionData.noises[mode] = companionData.noises[mode].filter(x => x.id !== id);
             // 如果当前播放的就是这个，停掉
             const choice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[mode];
@@ -2208,7 +2239,7 @@
         if (addedCount > 0) {
             await saveCompanionData();
             renderCompanionNoiseManager();
-            notify(`已添加 ${addedCount} 段白噪音${skippedCount ? `（${skippedCount} 个跳过）` : ''}`, 'success');
+            notify(`已添加 ${addedCount} 段音乐${skippedCount ? `（${skippedCount} 个跳过）` : ''}`, 'success');
         } else if (skippedCount > 0) {
             notify('请选择音频文件（mp3/m4a/wav 等）', 'warning');
         }
