@@ -10975,21 +10975,6 @@ body.bottom-collapse-mode #collapse-expand-btn {
 /* 老元素隐藏（向后兼容）*/
 .voice-bubble-bars, .voice-bubble-wave, .voice-bubble-icon { display: none !important; }
 
-/* 长按消息时强制显示 meta-actions（覆盖 hover-only 行为）*/
-.message-wrapper.menu-visible .message-meta-actions {
-    opacity: 1 !important;
-    transform: translateY(0) !important;
-}
-
-/* 触屏设备：禁掉 hover 触发 meta-actions（避免 iOS 第一次 tap 出现菜单）
-   只有 menu-visible 类才能让按钮显示 */
-@media (hover: none) {
-    .message-content-wrapper:hover .message-meta-actions {
-        opacity: 0 !important;
-        transform: translateY(5px) !important;
-    }
-}
-
 /* 转文字结果展示在语音气泡下方 */
 .voice-transcript {
     margin-top: 6px;
