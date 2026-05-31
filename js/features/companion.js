@@ -1490,9 +1490,9 @@
 
         // 模式按钮的图标 + tooltip
         const modeIcons = {
-            single: { icon: 'fa-repeat-1', title: '单曲循环' },
-            list:   { icon: 'fa-repeat',   title: '列表循环' },
-            random: { icon: 'fa-shuffle',  title: '随机播放' }
+            single: { icon: 'fa-repeat', title: '单曲循环', extraClass: 'mode-icon-single' },
+            list:   { icon: 'fa-repeat', title: '列表循环', extraClass: '' },
+            random: { icon: 'fa-shuffle', title: '随机播放', extraClass: '' }
         };
         const modeInfo = modeIcons[playMode] || modeIcons.single;
 
@@ -1513,7 +1513,7 @@
             // 顶部：模式切换按钮 + 占位
             const modeBtnHtml = `
                 <div class="companion-noise-list-toolbar">
-                    <button class="companion-noise-mode-btn" title="${modeInfo.title}">
+                    <button class="companion-noise-mode-btn ${modeInfo.extraClass}" title="${modeInfo.title}">
                         <i class="fas ${modeInfo.icon}"></i>
                     </button>
                 </div>
@@ -1634,6 +1634,9 @@
                 const info = modeIcons[next];
                 modeBtn.querySelector('i').className = `fas ${info.icon}`;
                 modeBtn.title = info.title;
+                // 更新按钮的 mode-icon-single 标记（用于显示 "1" 上标）
+                modeBtn.classList.remove('mode-icon-single');
+                if (info.extraClass) modeBtn.classList.add(info.extraClass);
                 notify(info.title, 'info', 1200);
 
                 // 如果当前正在播用户上传的，立刻切换播放模式（重新启动当前曲目让 loop 设置生效）
