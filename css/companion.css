@@ -741,3 +741,194 @@ html[data-theme="dark"] .companion-mode-card i {
     background: rgba(255,255,255,0.55) !important;
     border-color: rgba(106,83,64,0.18) !important;
 }
+
+/* ────────────────────────────────────────────────────────────────
+   陪伴白噪音
+   ──────────────────────────────────────────────────────────────── */
+
+/* 右下角悬浮的白噪音按钮 */
+.companion-noise-corner {
+    position: absolute;
+    bottom: max(30px, env(safe-area-inset-bottom, 30px));
+    right: 20px;
+    z-index: 5;
+    background: rgba(0,0,0,0.35) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    color: rgba(255,255,255,0.92) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.companion-noise-corner.active {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+    color: #fff !important;
+    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.5) !important;
+    box-shadow: 0 4px 16px rgba(var(--accent-color-rgb, 197,164,126), 0.4);
+}
+
+/* 浅色背景下按钮文字色 */
+#companion-page.companion-light-bg .companion-noise-corner {
+    color: #6a5340 !important;
+    background: rgba(255,255,255,0.55) !important;
+    border-color: rgba(106,83,64,0.18) !important;
+}
+#companion-page.companion-light-bg .companion-noise-corner.active {
+    color: #fff !important;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+}
+
+/* 白噪音选择卡片（中间弹出）*/
+.companion-noise-card {
+    position: fixed;
+    inset: 0;
+    z-index: 99997;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: noiseCardFadeIn 0.25s ease;
+}
+@keyframes noiseCardFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.companion-noise-card-inner {
+    width: min(86vw, 320px);
+    background: var(--secondary-bg, #fff);
+    border-radius: 18px;
+    padding: 22px 18px 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    animation: noiseCardPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes noiseCardPopIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.companion-noise-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a1a);
+    text-align: center;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.companion-noise-card-title i {
+    color: var(--accent-color, #c5a47e);
+}
+.companion-noise-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+.companion-noise-option {
+    background: var(--primary-bg, #fafafa);
+    border: 1.5px solid var(--border-color, #eee);
+    border-radius: 12px;
+    padding: 16px 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+.companion-noise-option i {
+    font-size: 22px;
+    color: var(--accent-color, #c5a47e);
+}
+.companion-noise-option span {
+    font-size: 13px;
+    color: var(--text-primary, #1a1a1a);
+    font-weight: 500;
+}
+.companion-noise-option:hover {
+    border-color: var(--accent-color, #c5a47e);
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.06);
+}
+.companion-noise-option.active {
+    border-color: var(--accent-color, #c5a47e);
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.12);
+}
+.companion-noise-option.active i,
+.companion-noise-option.active span {
+    color: var(--accent-color, #c5a47e);
+}
+
+/* 关闭按钮 */
+.companion-noise-card-close {
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px;
+    border: 1px solid var(--border-color, rgba(0,0,0,0.1));
+    border-radius: 10px;
+    background: var(--primary-bg, #f5f5f5);
+    color: var(--text-secondary, #666);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* "我的列表" 二级弹窗（用户上传的白噪音列表） */
+.companion-noise-list-card .companion-noise-options {
+    grid-template-columns: 1fr;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+.companion-noise-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--primary-bg, #fafafa);
+    border: 1.5px solid var(--border-color, #eee);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.companion-noise-list-item i {
+    color: var(--accent-color, #c5a47e);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.companion-noise-list-item span {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary, #1a1a1a);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.companion-noise-list-item:hover {
+    border-color: var(--accent-color, #c5a47e);
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.06);
+}
+.companion-noise-list-item.active {
+    border-color: var(--accent-color, #c5a47e);
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.12);
+}
+.companion-noise-list-empty {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--text-secondary, #888);
+    font-size: 13px;
+    line-height: 1.7;
+}
+.companion-noise-list-empty i {
+    font-size: 28px;
+    color: var(--accent-color, #c5a47e);
+    opacity: 0.5;
+    margin-bottom: 10px;
+    display: block;
+}
+.companion-noise-list-card-go-settings {
+    margin-top: 12px;
+    padding: 10px 20px;
+    background: var(--accent-color, #c5a47e);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+}
