@@ -932,3 +932,121 @@ html[data-theme="dark"] .companion-mode-card i {
     font-size: 13px;
     cursor: pointer;
 }
+
+/* ────────────────────────────────────────────────────────────────
+   陪伴白噪音 - "我的列表"新增 UI（v2 增强）
+   ──────────────────────────────────────────────────────────────── */
+
+/* 顶部工具栏（模式按钮）*/
+.companion-noise-list-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+.companion-noise-mode-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-color, #eee);
+    background: var(--secondary-bg, #fff);
+    color: var(--accent-color, #c5a47e);
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.companion-noise-mode-btn:hover {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.1);
+    transform: scale(1.05);
+}
+.companion-noise-mode-btn:active {
+    transform: scale(0.95);
+}
+
+/* 列表项的"主体区域"（点击播放）和"改名按钮" */
+.companion-noise-list-item {
+    /* 覆盖之前的 padding，因为现在是 flex 容器把 main + edit 分开 */
+    padding: 0 !important;
+    overflow: hidden;
+}
+.companion-noise-list-item-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    min-width: 0; /* 让 text-overflow 生效 */
+}
+.companion-noise-list-item-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary, #1a1a1a);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.companion-noise-list-item-edit {
+    width: 40px;
+    height: 100%;
+    background: none;
+    border: none;
+    border-left: 1px solid var(--border-color, #eee);
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.companion-noise-list-item-edit:hover {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.1);
+    color: var(--accent-color, #c5a47e);
+}
+
+/* 就地改名的输入框 */
+.companion-noise-list-item-name-input {
+    flex: 1;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.08);
+    border: 1px solid var(--accent-color, #c5a47e);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: var(--text-primary, #1a1a1a);
+    font-family: inherit;
+    outline: none;
+    min-width: 0;
+}
+
+/* "添加白噪音" 按钮（空列表用）和 "添加更多" 按钮（非空底部用）*/
+.companion-noise-list-card-add,
+.companion-noise-list-card-add-more {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: var(--accent-color, #c5a47e);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+.companion-noise-list-card-add-more {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    background: var(--primary-bg, #fafafa);
+    color: var(--accent-color, #c5a47e);
+    border: 1.5px dashed var(--accent-color, #c5a47e);
+}
+.companion-noise-list-card-add:hover,
+.companion-noise-list-card-add-more:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(var(--accent-color-rgb, 197,164,126), 0.25);
+}
