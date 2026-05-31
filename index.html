@@ -2401,5 +2401,58 @@
     <script src="js/listeners-sticker.js"></script>
     <script src="js/features/companion.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- ✦ 修复：点消息显示操作菜单（引用 / 收藏 / 删除等）✦ -->
+    <script>
+    (function () {
+        'use strict';
+
+        function init() {
+            const chatContainer = document.getElementById('chat-container');
+            if (!chatContainer) {
+                setTimeout(init, 200);
+                return;
+            }
+
+            chatContainer.addEventListener('click', (e) => {
+                // 批量收藏模式下不显示操作菜单（让原项目的批量选择逻辑独占）
+                if (typeof isBatchFavoriteMode !== 'undefined' && isBatchFavoriteMode) {
+                    return;
+                }
+
+                // 排除掉点到操作按钮本身、图片、链接、回复指示器等情况
+                if (e.target.closest('.message-meta-actions, .message-image, a, button, input, .reply-indicator, .voice-bubble')) {
+                    return;
+                }
+
+                const wrapper = e.target.closest('.message-wrapper');
+                if (!wrapper) {
+                    // 点到聊天空白处 → 关掉所有菜单
+                    document.querySelectorAll('.message-wrapper.menu-visible').forEach(w => {
+                        w.classList.remove('menu-visible');
+                    });
+                    return;
+                }
+
+                // 切换当前消息的菜单显隐
+                const isOpen = wrapper.classList.contains('menu-visible');
+                // 先关掉所有别的
+                document.querySelectorAll('.message-wrapper.menu-visible').forEach(w => {
+                    if (w !== wrapper) w.classList.remove('menu-visible');
+                });
+                // 再切换自己
+                wrapper.classList.toggle('menu-visible', !isOpen);
+            });
+
+            console.log('[message-actions-fix] 消息操作菜单点击逻辑已绑定');
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
+    </script>
 </body>
 </html>
