@@ -46,6 +46,8 @@
     let companionData = {
         backgrounds: { study: [], work: [], exercise: [], sleep: [] },
         voices:      { study: [], work: [], exercise: [], sleep: [] },
+        noises:      { study: [], work: [], exercise: [], sleep: [] },
+        lastNoiseChoice: { study: null, work: null, exercise: null, sleep: null }, // null=无声, 'rain'/'fire'=内置, 字符串id=用户上传
         history: []
     };
 
@@ -55,6 +57,7 @@
     let isCountdown   = true;   // false = 正计时（好好休息）
     let totalSeconds  = 0;
     let currentAudio  = null;
+    let currentNoiseAudio = null;  // 白噪音独立 Audio 实例（与 currentAudio 叠加播放）
     let isVoicePanelOpen = false;
 
     // ─── 存储 ────────────────────────────────────────────────────────────────
@@ -63,6 +66,8 @@
         return {
             backgrounds: { study: [], work: [], exercise: [], sleep: [] },
             voices:      { study: [], work: [], exercise: [], sleep: [] },
+            noises:      { study: [], work: [], exercise: [], sleep: [] },
+            lastNoiseChoice: { study: null, work: null, exercise: null, sleep: null },
             history: []
         };
     }
@@ -97,6 +102,20 @@
                 }
                 for (const m of Object.keys(MODES)) {
                     if (!companionData.voices[m]) companionData.voices[m] = [];
+                }
+                // ── noises 字段补全（老用户没有这个字段）──
+                if (typeof companionData.noises !== 'object' || Array.isArray(companionData.noises)) {
+                    companionData.noises = { study: [], work: [], exercise: [], sleep: [] };
+                }
+                for (const m of Object.keys(MODES)) {
+                    if (!companionData.noises[m]) companionData.noises[m] = [];
+                }
+                // ── lastNoiseChoice 字段补全 ──
+                if (typeof companionData.lastNoiseChoice !== 'object' || !companionData.lastNoiseChoice) {
+                    companionData.lastNoiseChoice = { study: null, work: null, exercise: null, sleep: null };
+                }
+                for (const m of Object.keys(MODES)) {
+                    if (!(m in companionData.lastNoiseChoice)) companionData.lastNoiseChoice[m] = null;
                 }
             }
         } catch (e) {
@@ -1160,6 +1179,10 @@
 
         // 启动计时器
         startTimer();
+
+        // 续播上次的白噪音（如果有）
+        resumeLastNoise();
+
         console.log('[companion] 陪伴页面已打开');
     }
 
@@ -1211,16 +1234,271 @@
         stopEarlyLeaveCheck();
         recordHistory();
 
-        // 停止音频
+        // 停止语音
         if (currentAudio) {
             currentAudio.pause();
             currentAudio = null;
         }
+        // 停止白噪音
+        stopNoise();
 
         $('companion-page').classList.remove('active');
         document.body.style.overflow = '';
         closeSettingsPanel();
         $('companion-exit-confirm').classList.remove('active');
+    }
+
+    // ─── 白噪音 ──────────────────────────────────────────────────────────────
+
+    // 内置白噪音预设（音频文件待添加到 assets/audio/）
+    const BUILTIN_NOISES = {
+        rain: {
+            label: '雨天',
+            icon: 'fas fa-cloud-rain',
+            src: 'assets/audio/rain.mp3'  // ← 待添加
+        },
+        fire: {
+            label: '篝火',
+            icon: 'fas fa-fire',
+            src: 'assets/audio/campfire.mp3'  // ← 待添加
+        }
+    };
+
+    // 启动白噪音播放
+    // type: 'rain' | 'fire' | 'custom' | 'silent'
+    // id: 当 type='custom' 时是用户上传项的 id
+    function startNoise(type, id) {
+        // 先停掉现有的
+        stopNoise();
+
+        if (type === 'silent' || !type) {
+            // 静音模式，已经停了，更新记忆并退出
+            companionData.lastNoiseChoice[currentMode] = null;
+            saveCompanionData();
+            updateNoiseButtonState(null);
+            return;
+        }
+
+        let src;
+        if (type === 'rain' || type === 'fire') {
+            src = BUILTIN_NOISES[type].src;
+        } else if (type === 'custom' && id) {
+            const list = (companionData.noises && companionData.noises[currentMode]) || [];
+            const item = list.find(n => n.id === id);
+            if (!item) {
+                notify('白噪音不存在', 'warning');
+                return;
+            }
+            src = item.data || item.src;
+        } else {
+            return;
+        }
+
+        if (!src) {
+            notify('音频文件待添加', 'info');
+            return;
+        }
+
+        try {
+            const audio = new Audio(src);
+            audio.loop = true;
+            audio.volume = 0.6;
+            audio.play().catch(err => {
+                console.warn('[companion] 白噪音播放失败', err);
+                notify('音频文件待添加', 'info');
+            });
+            currentNoiseAudio = audio;
+
+            // 记忆用户选择
+            companionData.lastNoiseChoice[currentMode] = (type === 'custom') ? { type: 'custom', id } : type;
+            saveCompanionData();
+            updateNoiseButtonState(type);
+        } catch (e) {
+            console.warn('[companion] 白噪音初始化失败', e);
+            notify('音频播放失败', 'warning');
+        }
+    }
+
+    function stopNoise() {
+        if (currentNoiseAudio) {
+            try { currentNoiseAudio.pause(); } catch (_) {}
+            currentNoiseAudio = null;
+        }
+    }
+
+    // 更新右下角按钮的视觉状态（有声=主题色，无声=半透明）
+    function updateNoiseButtonState(activeType) {
+        const btn = $('companion-noise-btn');
+        if (!btn) return;
+        if (activeType && activeType !== 'silent') {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+
+    // 进入陪伴时尝试续播上次的白噪音
+    function resumeLastNoise() {
+        const choice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[currentMode];
+        if (!choice) {
+            updateNoiseButtonState(null);
+            return;
+        }
+        if (typeof choice === 'string') {
+            // 内置预设
+            startNoise(choice);
+        } else if (choice && choice.type === 'custom' && choice.id) {
+            startNoise('custom', choice.id);
+        }
+    }
+
+    // 打开白噪音选择卡片
+    function openNoiseCard() {
+        // 移除残留
+        document.querySelectorAll('#companion-noise-card').forEach(el => el.remove());
+
+        // 当前激活的类型（高亮用）
+        const choice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[currentMode];
+        const activeType = typeof choice === 'string' ? choice : (choice && choice.type === 'custom' ? 'custom' : 'silent');
+
+        const card = document.createElement('div');
+        card.id = 'companion-noise-card';
+        card.className = 'companion-noise-card';
+        card.innerHTML = `
+            <div class="companion-noise-card-inner">
+                <div class="companion-noise-card-title">
+                    <i class="fas fa-headphones"></i>
+                    <span>选择白噪音</span>
+                </div>
+                <div class="companion-noise-options">
+                    <div class="companion-noise-option ${activeType === 'rain' ? 'active' : ''}" data-type="rain">
+                        <i class="fas fa-cloud-rain"></i><span>雨天</span>
+                    </div>
+                    <div class="companion-noise-option ${activeType === 'fire' ? 'active' : ''}" data-type="fire">
+                        <i class="fas fa-fire"></i><span>篝火</span>
+                    </div>
+                    <div class="companion-noise-option ${activeType === 'custom' ? 'active' : ''}" data-type="custom">
+                        <i class="fas fa-folder-open"></i><span>我的列表</span>
+                    </div>
+                    <div class="companion-noise-option ${activeType === 'silent' ? 'active' : ''}" data-type="silent">
+                        <i class="fas fa-volume-mute"></i><span>无声</span>
+                    </div>
+                </div>
+                <button class="companion-noise-card-close">关闭</button>
+            </div>
+        `;
+        document.documentElement.appendChild(card);
+
+        // 点遮罩关闭
+        card.addEventListener('click', e => {
+            if (e.target === card) card.remove();
+        });
+        card.querySelector('.companion-noise-card-close').addEventListener('click', () => card.remove());
+
+        // 选项点击
+        card.querySelectorAll('.companion-noise-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                const type = opt.dataset.type;
+                if (type === 'custom') {
+                    card.remove();
+                    openNoiseListCard();
+                } else if (type === 'silent') {
+                    startNoise('silent');
+                    card.remove();
+                } else {
+                    startNoise(type);
+                    card.remove();
+                }
+            });
+        });
+    }
+
+    // 打开"我的列表"二级卡片
+    function openNoiseListCard() {
+        document.querySelectorAll('#companion-noise-card').forEach(el => el.remove());
+
+        const list = (companionData.noises && companionData.noises[currentMode]) || [];
+        const choice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[currentMode];
+        const activeId = (choice && choice.type === 'custom') ? choice.id : null;
+
+        const card = document.createElement('div');
+        card.id = 'companion-noise-card';
+        card.className = 'companion-noise-card';
+
+        let bodyHtml;
+        if (list.length === 0) {
+            bodyHtml = `
+                <div class="companion-noise-list-empty">
+                    <i class="fas fa-folder-open"></i>
+                    还没有添加白噪音<br>去设置里上传吧
+                    <div>
+                        <button class="companion-noise-list-card-go-settings">去设置</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            bodyHtml = `<div class="companion-noise-options">` +
+                list.map(item => `
+                    <div class="companion-noise-list-item ${activeId === item.id ? 'active' : ''}" data-id="${item.id}">
+                        <i class="fas fa-music"></i>
+                        <span>${item.name || '未命名'}</span>
+                    </div>
+                `).join('') +
+                `</div>`;
+        }
+
+        card.innerHTML = `
+            <div class="companion-noise-card-inner companion-noise-list-card">
+                <div class="companion-noise-card-title">
+                    <i class="fas fa-folder-open"></i>
+                    <span>我的白噪音</span>
+                </div>
+                ${bodyHtml}
+                <button class="companion-noise-card-close">返回</button>
+            </div>
+        `;
+        document.documentElement.appendChild(card);
+
+        card.addEventListener('click', e => {
+            if (e.target === card) card.remove();
+        });
+        card.querySelector('.companion-noise-card-close').addEventListener('click', () => {
+            card.remove();
+            openNoiseCard(); // 返回主卡片
+        });
+
+        // 列表项点击
+        card.querySelectorAll('.companion-noise-list-item').forEach(item => {
+            item.addEventListener('click', () => {
+                startNoise('custom', item.dataset.id);
+                card.remove();
+            });
+        });
+
+        // "去设置"按钮
+        const goBtn = card.querySelector('.companion-noise-list-card-go-settings');
+        if (goBtn) {
+            goBtn.addEventListener('click', () => {
+                card.remove();
+                // 先关闭陪伴页面，再打开外观设置并切到背景&字体面板
+                closeCompanionPage();
+                setTimeout(() => {
+                    const appearanceModal = document.getElementById('appearance-modal');
+                    if (appearanceModal && typeof showModal === 'function') {
+                        showModal(appearanceModal);
+                        // 切到"背景&字体"子面板
+                        if (typeof window.showAppearancePanel === 'function') {
+                            window.showAppearancePanel('font-bg');
+                        }
+                        // 滚到"陪伴白噪音"区块
+                        setTimeout(() => {
+                            const target = document.getElementById('companion-noise-section');
+                            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 400);
+                    }
+                }, 300);
+            });
+        }
     }
 
     // ─── 计时器 ──────────────────────────────────────────────────────────────
@@ -1432,7 +1710,7 @@
     // ────────────────────────────────────────────────────────────────────
 
     // 当前选中的 tab（背景管理 + 语音管理 各自记录）
-    const _mgrState = { bg: 'study', voice: 'study' };
+    const _mgrState = { bg: 'study', voice: 'study', noise: 'study' };
 
     function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, c => ({
@@ -1518,10 +1796,51 @@
         list.innerHTML = html;
     }
 
+    // ── 渲染：陪伴白噪音列表 ──
+    function renderCompanionNoiseManager() {
+        const list = document.getElementById('companion-noise-list');
+        if (!list) return;
+        const mode = _mgrState.noise;
+        const items = (companionData.noises[mode] || []);
+
+        let html = '';
+        if (items.length === 0) {
+            html += `<div class="companion-mgr-empty">
+                还没有添加${escapeHtml(MODES[mode].label.slice(2))}场景的白噪音<br>
+                点击下方按钮上传音频文件
+            </div>`;
+        } else {
+            html += items.map(v => `
+                <div class="companion-voice-card" data-id="${v.id}">
+                    <i class="fas fa-cloud-rain"></i>
+                    <input type="text" class="companion-voice-card-name"
+                        value="${escapeHtml(v.name || '')}"
+                        data-action="rename-noise" data-id="${v.id}"
+                        placeholder="白噪音名称">
+                    <div class="companion-voice-card-actions">
+                        <button class="companion-mgr-iconbtn" data-action="play-noise" data-id="${v.id}" title="试听">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="companion-mgr-iconbtn danger" data-action="delete-noise" data-id="${v.id}" title="删除">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        html += `<button class="companion-mgr-add" id="companion-noise-add-btn">
+            <i class="fas fa-plus"></i> 添加${escapeHtml(MODES[mode].label.slice(2))}白噪音
+        </button>`;
+        list.innerHTML = html;
+    }
+
     // ── 切换 tab ──
     function switchMgrTab(type, mode) {
         _mgrState[type] = mode;
-        const tabsId = type === 'bg' ? 'companion-bg-tabs' : 'companion-voice-tabs';
+        let tabsId;
+        if (type === 'bg') tabsId = 'companion-bg-tabs';
+        else if (type === 'voice') tabsId = 'companion-voice-tabs';
+        else if (type === 'noise') tabsId = 'companion-noise-tabs';
         const tabs = document.getElementById(tabsId);
         if (tabs) {
             tabs.querySelectorAll('.companion-mgr-tab').forEach(t => {
@@ -1529,7 +1848,8 @@
             });
         }
         if (type === 'bg') renderCompanionBgManager();
-        else renderCompanionVoiceManager();
+        else if (type === 'voice') renderCompanionVoiceManager();
+        else if (type === 'noise') renderCompanionNoiseManager();
     }
 
     // ── 上传：背景 ──
@@ -1604,7 +1924,10 @@
 
     // ── 删除/重命名/试听 ──
     function handleMgrAction(action, id) {
-        const mode = action.includes('voice') ? _mgrState.voice : _mgrState.bg;
+        let mode;
+        if (action.includes('noise')) mode = _mgrState.noise;
+        else if (action.includes('voice')) mode = _mgrState.voice;
+        else mode = _mgrState.bg;
 
         if (action === 'delete-bg') {
             if (!confirm('确定删除这个背景吗？')) return;
@@ -1621,6 +1944,21 @@
         } else if (action === 'play-voice') {
             const v = companionData.voices[mode].find(x => x.id === id);
             if (v) playVoice(v);
+        } else if (action === 'delete-noise') {
+            if (!confirm('确定删除这段白噪音吗？')) return;
+            companionData.noises[mode] = companionData.noises[mode].filter(x => x.id !== id);
+            // 如果当前播放的就是这个，停掉
+            const choice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[mode];
+            if (choice && choice.type === 'custom' && choice.id === id) {
+                companionData.lastNoiseChoice[mode] = null;
+                stopNoise();
+            }
+            saveCompanionData();
+            renderCompanionNoiseManager();
+            notify('已删除', 'success');
+        } else if (action === 'play-noise') {
+            const v = companionData.noises[mode].find(x => x.id === id);
+            if (v) playVoice(v);  // 复用 playVoice（就是简单播放音频）
         }
     }
 
@@ -1631,6 +1969,49 @@
             v.name = newName;
             saveCompanionData();
         }
+    }
+
+    function handleMgrNoiseRename(id, newName) {
+        const mode = _mgrState.noise;
+        const v = companionData.noises[mode].find(x => x.id === id);
+        if (v) {
+            v.name = newName;
+            saveCompanionData();
+        }
+    }
+
+    // ── 上传：白噪音 ──
+    async function handleMgrNoiseUpload(e) {
+        const files = Array.from(e.target.files);
+        let addedCount = 0;
+        let skippedCount = 0;
+        await ensureDataLoaded();
+        for (const file of files) {
+            const isAudio = file.type.startsWith('audio/') ||
+                /\.(mp3|m4a|aac|wav|ogg|flac|amr|opus)$/i.test(file.name);
+            if (!isAudio) { skippedCount++; continue; }
+            try {
+                const base64 = await readFileAsBase64(file);
+                companionData.noises[_mgrState.noise].push({
+                    id: generateId(),
+                    data: base64,
+                    name: file.name.replace(/\.[^/.]+$/, ''),
+                    addedAt: Date.now()
+                });
+                addedCount++;
+            } catch (err) {
+                console.error('[companion] 白噪音读取失败', err);
+                skippedCount++;
+            }
+        }
+        if (addedCount > 0) {
+            await saveCompanionData();
+            renderCompanionNoiseManager();
+            notify(`已添加 ${addedCount} 段白噪音${skippedCount ? `（${skippedCount} 个跳过）` : ''}`, 'success');
+        } else if (skippedCount > 0) {
+            notify('请选择音频文件（mp3/m4a/wav 等）', 'warning');
+        }
+        e.target.value = '';
     }
 
     // ── 绑定外观设置面板的事件（用事件委托，因为 DOM 可能在打开外观设置时才显示）──
@@ -1653,7 +2034,7 @@
             if (actionBtn) {
                 const action = actionBtn.dataset.action;
                 const id = actionBtn.dataset.id;
-                if (action && id && action !== 'rename-voice') {
+                if (action && id && action !== 'rename-voice' && action !== 'rename-noise') {
                     handleMgrAction(action, id);
                     return;
                 }
@@ -1668,12 +2049,18 @@
                 document.getElementById('companion-voice-upload-input')?.click();
                 return;
             }
+            if (e.target.closest('#companion-noise-add-btn')) {
+                document.getElementById('companion-noise-upload-input')?.click();
+                return;
+            }
         });
 
-        // 语音重命名
+        // 语音 / 白噪音重命名
         document.addEventListener('change', function (e) {
             if (e.target.matches('[data-action="rename-voice"]')) {
                 handleMgrVoiceRename(e.target.dataset.id, e.target.value);
+            } else if (e.target.matches('[data-action="rename-noise"]')) {
+                handleMgrNoiseRename(e.target.dataset.id, e.target.value);
             }
         });
 
@@ -1682,29 +2069,31 @@
         if (bgInput) bgInput.addEventListener('change', handleMgrBgUpload);
         const voiceInput = document.getElementById('companion-voice-upload-input');
         if (voiceInput) voiceInput.addEventListener('change', handleMgrVoiceUpload);
+        const noiseInput = document.getElementById('companion-noise-upload-input');
+        if (noiseInput) noiseInput.addEventListener('change', handleMgrNoiseUpload);
 
         // 触发渲染：用户切到"背景&字体"面板时
-        // 策略 1：监听父弹窗的所有点击，凡是带 showAppearancePanel('font-bg') 的元素都刷一下
         document.addEventListener('click', async (e) => {
-            // 点击进入"背景&字体"子面板的入口
             const card = e.target.closest('[onclick*="font-bg"], [onclick*="background"]');
             if (card) {
                 setTimeout(async () => {
                     await ensureDataLoaded();
                     renderCompanionBgManager();
                     renderCompanionVoiceManager();
+                    renderCompanionNoiseManager();
                 }, 100);
             }
         });
 
-        // 策略 2：直接立即渲染一次（即使容器还隐藏，innerHTML 也能设上，等显示时就有内容了）
+        // 策略 2：直接立即渲染一次
         setTimeout(async () => {
             await ensureDataLoaded();
             renderCompanionBgManager();
             renderCompanionVoiceManager();
+            renderCompanionNoiseManager();
         }, 500);
 
-        // 策略 3：原 MutationObserver 也保留作为兜底
+        // 策略 3：MutationObserver 兜底
         const bgPanel = document.getElementById('appearance-panel-background');
         if (bgPanel) {
             const observer = new MutationObserver(async () => {
@@ -1712,6 +2101,7 @@
                     await ensureDataLoaded();
                     renderCompanionBgManager();
                     renderCompanionVoiceManager();
+                    renderCompanionNoiseManager();
                 }
             });
             observer.observe(bgPanel, { attributes: true, attributeFilter: ['style'] });
@@ -1764,6 +2154,15 @@
 
         const exitConfirmNo = $('exit-confirm-no');
         if (exitConfirmNo) exitConfirmNo.addEventListener('click', hideExitConfirm);
+
+        // 白噪音按钮（右下角悬浮）
+        const noiseBtn = $('companion-noise-btn');
+        if (noiseBtn) {
+            noiseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();  // 阻止冒泡到 handlePageClick 触发语音
+                openNoiseCard();
+            });
+        }
 
         // 设置面板入口和相关元素已移除（统一去外观设置 → 背景&字体 管理）
     }
