@@ -48,6 +48,7 @@
         voices:      { study: [], work: [], exercise: [], sleep: [] },
         noises:      { study: [], work: [], exercise: [], sleep: [] },
         lastNoiseChoice: { study: null, work: null, exercise: null, sleep: null }, // null=无声, 'rain'/'fire'=内置, 字符串id=用户上传
+        lastPlayMode:    { study: 'single', work: 'single', exercise: 'single', sleep: 'single' }, // 'single'/'list'/'random'
         history: []
     };
 
@@ -68,6 +69,7 @@
             voices:      { study: [], work: [], exercise: [], sleep: [] },
             noises:      { study: [], work: [], exercise: [], sleep: [] },
             lastNoiseChoice: { study: null, work: null, exercise: null, sleep: null },
+            lastPlayMode:    { study: 'single', work: 'single', exercise: 'single', sleep: 'single' },
             history: []
         };
     }
@@ -116,6 +118,13 @@
                 }
                 for (const m of Object.keys(MODES)) {
                     if (!(m in companionData.lastNoiseChoice)) companionData.lastNoiseChoice[m] = null;
+                }
+                // ── lastPlayMode 字段补全 ──
+                if (typeof companionData.lastPlayMode !== 'object' || !companionData.lastPlayMode) {
+                    companionData.lastPlayMode = { study: 'single', work: 'single', exercise: 'single', sleep: 'single' };
+                }
+                for (const m of Object.keys(MODES)) {
+                    if (!(m in companionData.lastPlayMode)) companionData.lastPlayMode[m] = 'single';
                 }
             }
         } catch (e) {
@@ -1304,7 +1313,22 @@
 
         try {
             const audio = new Audio(src);
-            audio.loop = true;
+
+            // 决定 loop 行为：内置永远单曲循环；用户上传看 playMode
+            const isCustom = (type === 'custom');
+            const playMode = (companionData.lastPlayMode && companionData.lastPlayMode[currentMode]) || 'single';
+
+            if (!isCustom || playMode === 'single') {
+                audio.loop = true;
+            } else {
+                // 列表循环 / 随机播放 → 不 loop，用 ended 事件接管
+                audio.loop = false;
+                audio.addEventListener('ended', () => {
+                    if (audio !== currentNoiseAudio) return; // 已被替换，不处理
+                    playNextInQueue();
+                });
+            }
+
             audio.volume = 0.6;
             audio.play().catch(err => {
                 console.warn('[companion] 白噪音播放失败', err);
@@ -1313,12 +1337,47 @@
             currentNoiseAudio = audio;
 
             // 记忆用户选择
-            companionData.lastNoiseChoice[currentMode] = (type === 'custom') ? { type: 'custom', id } : type;
+            companionData.lastNoiseChoice[currentMode] = isCustom ? { type: 'custom', id } : type;
             saveCompanionData();
             updateNoiseButtonState(type);
         } catch (e) {
             console.warn('[companion] 白噪音初始化失败', e);
             notify('音频播放失败', 'warning');
+        }
+    }
+
+    // 列表/随机模式下，播放队列里的下一首
+    function playNextInQueue() {
+        const list = (companionData.noises && companionData.noises[currentMode]) || [];
+        if (list.length === 0) return;
+
+        const choice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[currentMode];
+        const playMode = (companionData.lastPlayMode && companionData.lastPlayMode[currentMode]) || 'single';
+
+        // 拿到当前播放的 id
+        const currentId = (choice && choice.type === 'custom') ? choice.id : null;
+
+        let nextItem;
+        if (playMode === 'random') {
+            // 随机：如果只有 1 首就只能继续放它；多首避开当前
+            if (list.length === 1) {
+                nextItem = list[0];
+            } else {
+                const candidates = list.filter(item => item.id !== currentId);
+                nextItem = candidates[Math.floor(Math.random() * candidates.length)];
+            }
+        } else if (playMode === 'list') {
+            // 列表循环：找当前位置 + 1，超过末尾回到 0
+            const currentIdx = list.findIndex(item => item.id === currentId);
+            const nextIdx = (currentIdx + 1) % list.length;
+            nextItem = list[nextIdx];
+        } else {
+            // single 模式不该走到这里，但兜底
+            return;
+        }
+
+        if (nextItem) {
+            startNoise('custom', nextItem.id);
         }
     }
 
@@ -1423,31 +1482,61 @@
         const list = (companionData.noises && companionData.noises[currentMode]) || [];
         const choice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[currentMode];
         const activeId = (choice && choice.type === 'custom') ? choice.id : null;
+        const playMode = (companionData.lastPlayMode && companionData.lastPlayMode[currentMode]) || 'single';
 
         const card = document.createElement('div');
         card.id = 'companion-noise-card';
         card.className = 'companion-noise-card';
+
+        // 模式按钮的图标 + tooltip
+        const modeIcons = {
+            single: { icon: 'fa-repeat-1', title: '单曲循环' },
+            list:   { icon: 'fa-repeat',   title: '列表循环' },
+            random: { icon: 'fa-shuffle',  title: '随机播放' }
+        };
+        const modeInfo = modeIcons[playMode] || modeIcons.single;
 
         let bodyHtml;
         if (list.length === 0) {
             bodyHtml = `
                 <div class="companion-noise-list-empty">
                     <i class="fas fa-folder-open"></i>
-                    还没有添加白噪音<br>去设置里上传吧
-                    <div>
-                        <button class="companion-noise-list-card-go-settings">去设置</button>
+                    还没有添加白噪音
+                    <div style="margin-top:8px;">
+                        <button class="companion-noise-list-card-add">
+                            <i class="fas fa-plus"></i> 添加白噪音
+                        </button>
                     </div>
                 </div>
             `;
         } else {
-            bodyHtml = `<div class="companion-noise-options">` +
-                list.map(item => `
-                    <div class="companion-noise-list-item ${activeId === item.id ? 'active' : ''}" data-id="${item.id}">
+            // 顶部：模式切换按钮 + 占位
+            const modeBtnHtml = `
+                <div class="companion-noise-list-toolbar">
+                    <button class="companion-noise-mode-btn" title="${modeInfo.title}">
+                        <i class="fas ${modeInfo.icon}"></i>
+                    </button>
+                </div>
+            `;
+            const itemsHtml = list.map(item => `
+                <div class="companion-noise-list-item ${activeId === item.id ? 'active' : ''}" data-id="${item.id}">
+                    <div class="companion-noise-list-item-main" data-action="play" data-id="${item.id}">
                         <i class="fas fa-music"></i>
-                        <span>${item.name || '未命名'}</span>
+                        <span class="companion-noise-list-item-name">${escapeHtml(item.name || '未命名')}</span>
                     </div>
-                `).join('') +
-                `</div>`;
+                    <button class="companion-noise-list-item-edit" data-action="rename" data-id="${item.id}" title="重命名">
+                        <i class="fas fa-pencil"></i>
+                    </button>
+                </div>
+            `).join('');
+            const addMoreHtml = `
+                <button class="companion-noise-list-card-add-more">
+                    <i class="fas fa-plus"></i> 添加更多
+                </button>
+            `;
+            bodyHtml = modeBtnHtml +
+                `<div class="companion-noise-options">${itemsHtml}</div>` +
+                addMoreHtml;
         }
 
         card.innerHTML = `
@@ -1462,46 +1551,152 @@
         `;
         document.documentElement.appendChild(card);
 
+        // 隐藏的 file input（用于卡片内直接上传）
+        let hiddenInput = document.getElementById('companion-noise-card-upload');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'file';
+            hiddenInput.id = 'companion-noise-card-upload';
+            hiddenInput.accept = '*/*';
+            hiddenInput.multiple = true;
+            hiddenInput.style.display = 'none';
+            document.body.appendChild(hiddenInput);
+        }
+        // 移除可能残留的旧 listener（重新创建后再加，确保每次都是新 handler）
+        const newHandler = async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            let addedCount = 0;
+            let firstAddedId = null;
+            await ensureDataLoaded();
+            for (const file of files) {
+                const isAudio = file.type.startsWith('audio/') ||
+                    /\.(mp3|m4a|aac|wav|ogg|flac|amr|opus)$/i.test(file.name);
+                if (!isAudio) continue;
+                try {
+                    const base64 = await readFileAsBase64(file);
+                    const id = generateId();
+                    if (!firstAddedId) firstAddedId = id;
+                    companionData.noises[currentMode].push({
+                        id,
+                        data: base64,
+                        name: file.name.replace(/\.[^/.]+$/, ''),
+                        addedAt: Date.now()
+                    });
+                    addedCount++;
+                } catch (err) {
+                    console.error('[companion] 白噪音读取失败', err);
+                }
+            }
+            if (addedCount > 0) {
+                await saveCompanionData();
+                notify(`已添加 ${addedCount} 段白噪音`, 'success');
+                // 刷新卡片显示
+                openNoiseListCard();
+            }
+            e.target.value = '';
+        };
+        hiddenInput.onchange = newHandler;
+
+        // 点遮罩关闭
         card.addEventListener('click', e => {
             if (e.target === card) card.remove();
         });
+        // 返回主卡片
         card.querySelector('.companion-noise-card-close').addEventListener('click', () => {
             card.remove();
-            openNoiseCard(); // 返回主卡片
+            openNoiseCard();
         });
 
-        // 列表项点击
-        card.querySelectorAll('.companion-noise-list-item').forEach(item => {
-            item.addEventListener('click', () => {
-                startNoise('custom', item.dataset.id);
-                card.remove();
-            });
-        });
+        // 空列表 → 添加按钮
+        const emptyAddBtn = card.querySelector('.companion-noise-list-card-add');
+        if (emptyAddBtn) {
+            emptyAddBtn.addEventListener('click', () => hiddenInput.click());
+        }
 
-        // "去设置"按钮
-        const goBtn = card.querySelector('.companion-noise-list-card-go-settings');
-        if (goBtn) {
-            goBtn.addEventListener('click', () => {
-                card.remove();
-                // 先关闭陪伴页面，再打开外观设置并切到背景&字体面板
-                closeCompanionPage();
-                setTimeout(() => {
-                    const appearanceModal = document.getElementById('appearance-modal');
-                    if (appearanceModal && typeof showModal === 'function') {
-                        showModal(appearanceModal);
-                        // 切到"背景&字体"子面板
-                        if (typeof window.showAppearancePanel === 'function') {
-                            window.showAppearancePanel('font-bg');
-                        }
-                        // 滚到"陪伴白噪音"区块
-                        setTimeout(() => {
-                            const target = document.getElementById('companion-noise-section');
-                            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 400);
-                    }
-                }, 300);
+        // 非空 → 添加更多按钮
+        const addMoreBtn = card.querySelector('.companion-noise-list-card-add-more');
+        if (addMoreBtn) {
+            addMoreBtn.addEventListener('click', () => hiddenInput.click());
+        }
+
+        // 模式切换按钮
+        const modeBtn = card.querySelector('.companion-noise-mode-btn');
+        if (modeBtn) {
+            modeBtn.addEventListener('click', () => {
+                const cycle = ['single', 'list', 'random'];
+                const cur = (companionData.lastPlayMode && companionData.lastPlayMode[currentMode]) || 'single';
+                const idx = cycle.indexOf(cur);
+                const next = cycle[(idx + 1) % cycle.length];
+                companionData.lastPlayMode[currentMode] = next;
+                saveCompanionData();
+                // 刷新按钮显示
+                const info = modeIcons[next];
+                modeBtn.querySelector('i').className = `fas ${info.icon}`;
+                modeBtn.title = info.title;
+                notify(info.title, 'info', 1200);
+
+                // 如果当前正在播用户上传的，立刻切换播放模式（重新启动当前曲目让 loop 设置生效）
+                const curChoice = companionData.lastNoiseChoice && companionData.lastNoiseChoice[currentMode];
+                if (curChoice && curChoice.type === 'custom' && curChoice.id) {
+                    startNoise('custom', curChoice.id);
+                }
             });
         }
+
+        // 列表项 — 点击主体区域播放 / 点 ✎ 改名
+        card.querySelectorAll('[data-action="play"]').forEach(main => {
+            main.addEventListener('click', () => {
+                startNoise('custom', main.dataset.id);
+                card.remove();
+            });
+        });
+        card.querySelectorAll('[data-action="rename"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                renameNoiseInline(btn.dataset.id, btn.closest('.companion-noise-list-item'));
+            });
+        });
+    }
+
+    // 在卡片里就地改名（点 ✎ 后名字变输入框）
+    function renameNoiseInline(id, itemEl) {
+        if (!itemEl) return;
+        const list = (companionData.noises && companionData.noises[currentMode]) || [];
+        const item = list.find(n => n.id === id);
+        if (!item) return;
+        const nameSpan = itemEl.querySelector('.companion-noise-list-item-name');
+        if (!nameSpan) return;
+        const oldName = item.name || '';
+        // 把 span 替换为 input
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = oldName;
+        input.className = 'companion-noise-list-item-name-input';
+        nameSpan.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let finished = false;
+        const commit = async () => {
+            if (finished) return;
+            finished = true;
+            const newName = input.value.trim() || oldName;
+            item.name = newName;
+            await saveCompanionData();
+            // 还原 span
+            const newSpan = document.createElement('span');
+            newSpan.className = 'companion-noise-list-item-name';
+            newSpan.textContent = newName;
+            input.replaceWith(newSpan);
+        };
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') { input.value = oldName; input.blur(); }
+        });
+        // 拦截输入框被点击时不要冒泡到 play 区
+        input.addEventListener('click', e => e.stopPropagation());
     }
 
     // ─── 计时器 ──────────────────────────────────────────────────────────────
