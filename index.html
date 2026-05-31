@@ -2403,6 +2403,22 @@
     <script src="js/app.js"></script>
 
     <!-- ✦ 修复：点消息显示操作菜单（引用 / 收藏 / 删除等）✦ -->
+    <style>
+        /* 透明状态的菜单不能响应点击（防止盲点） */
+        .message-meta-actions {
+            pointer-events: none !important;
+        }
+        /* menu-visible 类显示菜单时才允许点击 */
+        .message-wrapper.menu-visible .message-meta-actions {
+            pointer-events: auto !important;
+        }
+        /* 桌面端 hover 显示菜单时也允许点击（保留原行为） */
+        @media (hover: hover) {
+            .message-content-wrapper:hover .message-meta-actions {
+                pointer-events: auto !important;
+            }
+        }
+    </style>
     <script>
     (function () {
         'use strict';
