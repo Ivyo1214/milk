@@ -1068,3 +1068,47 @@ html[data-theme="dark"] .companion-mode-card i {
     padding: 1px 2px;
     border-radius: 2px;
 }
+
+/* "正在播放"提示条（主卡片底部，仅 custom 激活时显示）*/
+.companion-noise-now-playing {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.08);
+    border: 1px solid rgba(var(--accent-color-rgb, 197,164,126), 0.18);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+}
+.companion-noise-now-playing > i {
+    color: var(--accent-color, #c5a47e);
+    flex-shrink: 0;
+    font-size: 13px;
+}
+.companion-noise-now-playing-track {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    height: 18px;
+    /* 两端淡出 */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%);
+}
+.companion-noise-now-playing-name {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--text-primary, #1a1a1a);
+    font-weight: 500;
+    line-height: 18px;
+}
+/* 启用跑马灯滚动（JS 检测溢出后加 .scrolling）*/
+.companion-noise-now-playing-name.scrolling {
+    animation: companion-marquee linear infinite;
+    padding-left: 100%;
+}
+@keyframes companion-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
