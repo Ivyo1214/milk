@@ -1,4 +1,4 @@
-/**
+、/**
  * companion.js — 陪伴功能模块
  * 依赖：localforage, APP_PREFIX, getStorageKey, showNotification
  */
@@ -35,7 +35,7 @@
         sleep:    {
             label: '一起睡觉',
             icon:  'fa-moon',
-            hint:  '闭上眼睛 · 我就在旁边',
+            hint:  '正在一起睡觉 · 好梦',
             times: [10,20,30,60,'rest'],
             inviteTimes: [30, 60, 'rest'],
         },
@@ -312,25 +312,24 @@
 
     // 梦角主动邀请的台词（按场景区分）
     const INVITE_LINES = {
-        study: ['要一起学习吗？', '陪你看会儿书？', '一起努力吧，我陪你'],
-        work:  ['在忙吗？我陪你工作', '一起加油干活吧', '陪你度过这段时间'],
-        exercise: ['动一动吧，我陪你', '一起活动一下？', '该锻炼了，我陪着你'],
-        sleep: ['该休息了，陪你睡', '困了吗？我陪你', '一起入睡吧'],
+        study: ['要一起学习吗？', '陪我看会书好吗？'],
+        work:  ['一起加油工作吧', '可以陪我一起工作吗？'],
+        exercise: ['一起活动一下？', '我想锻炼了，陪我一会？'],
+        sleep: ['困了，陪我睡觉好吗？', '一起入睡吧'],
     };
 
     // ─── 过渡画面文案库（梦角第一人称）──────────────────────────────────────
     const TRANSITION_LINES = {
-        userInviteAccept: ['我来了……', '来陪你了……', '在你身边了……'],   // 1
-        partnerInviteAccept: ['我在等你……', '等你好久了……'],                // 2
-        extendUserAccept: ['我还想陪着你……', '再陪你一会儿……', '不想这么快就走……'], // 3
-        userAcceptExtend: ['那我留下来……', '再陪你一会儿……', '不走了……'],  // 4
-        partnerInviteReject: ['好，下次见……', '好，你先忙……', '下次再见……'], // 7
-        userRejectExtend: ['那我走了……', '好，下次见……', '下次再陪我……'],  // 8
-        userExit: ['那下次再见……', '这次到这里了……'],                       // 9 & 10
-        cancelInvite: ['等你下次再来……', '随时找我……'],                     // 11
-        timeUp: ['时间到了……', '这次的时间到了……'],                          // 12
-        partnerEarlyLeave: ['我先走了……', '下次再陪你……'],                   // 13
-        partnerGoodbye: ['该起床啦……', '天亮了，我走啦……', '醒醒，新的一天……'], // 14
+        userInviteAccept: ['我来了……', '抱歉，久等了……', '在你身边了……'],    // 1
+        partnerInviteAccept: ['我在等你……', '等你好久了……', '你终于来了……'],  // 2
+        extendUserAccept: ['好，再陪你一会……', '正好，我也不想这么快就走……'],   // 3
+        userAcceptExtend: ['再陪我一会', '不想离开你'],                            // 4
+        partnerInviteReject: ['好，下次见……', '好，你先忙……', '下次再见……'],   // 5
+        userRejectExtend: ['好，下次见……', '好，你先忙……', '下次再见……'],      // 6
+        userExit: ['那下次再见……', '那这次先到这里……'],                          // 7
+        timeUp: ['时间到了……', '时间过得好快……'],                                // 9
+        partnerEarlyLeave: ['我先走了……', '下次再与你一起……'],                   // 10
+        partnerGoodbye: ['该起床啦……', '天亮了，新的一天开始了……'],              // 11
     };
 
     // ─── 过渡画面工具：显示一段 3.5s 的过渡，回调在结束时触发 ──────────────
@@ -538,8 +537,6 @@
             closeInviting();
             const sceneName = MODES[mode]?.label?.replace(/^一起/, '') || '';
             sendChatEvent('fa-circle-xmark', `取消了对${partnerName}的${sceneName}邀请`, null);
-            // 过渡画面
-            showCompanionTransition(pickRandom(TRANSITION_LINES.cancelInvite));
         });
 
         // 决定结果
@@ -768,12 +765,12 @@
     // 在陪伴中每 5 分钟检查一次，5% 概率梦角提前离开（睡觉场景排除）
 
     const FAREWELL_LINES = [
-        '有事，先走了',
-        '我得忙一下，你自己加油',
-        '突然有点事，下次再陪你',
-        '先走一步，记得照顾自己',
+        '有点事，我先走了',
+        '我得忙一下，一会回来',
+        '突然有点事，下次再跟你一起',
+        '我先走一步，你别太累了',
         '我先离开了，你继续',
-        '不好意思，得走了',
+        '抱歉，得走了',
     ];
 
     let _earlyLeaveTimer = null;
@@ -812,11 +809,10 @@
     // 触发：弹梦角头像 + 道别文案 + "再见"按钮，用户必须点才能关
 
     const PARTNER_GOODNIGHT_LINES = [
-        '天亮了，该起床啦～',
-        '时间不早了，要好好生活哦',
-        '我先离开一会儿，你也起来活动活动吧',
-        '陪了你这么久，该回归现实啦',
-        '该开始新的一天了，加油哦'
+        '天亮了，起床啦～',
+        '我先起床了，你再睡会儿？',
+        '要去处理工作了，一会见',
+        '新的一天开始了，一起加油吧！'
     ];
 
     let _partnerGoodnightTimer = null;
@@ -901,7 +897,7 @@
 
         // 写入聊天记录（带时长）
         const elapsed = formatElapsed(getElapsedSeconds());
-        sendChatEvent('fa-moon', `${partnerName}说了再见 · ${elapsed}`, null);
+        sendChatEvent('fa-moon', `${partnerName}说了再见`, elapsed);
 
         // "再见" 按钮 → 过渡画面 → 关闭陪伴页
         const ackBtn = overlay.querySelector('#companion-goodnight-ack');
@@ -975,7 +971,7 @@
 
         // 写入聊天记录（带时长）
         const elapsed = formatElapsed(getElapsedSeconds());
-        sendChatEvent('fa-hand', `${partnerName}提前离开了陪伴 · ${elapsed}`, null);
+        sendChatEvent('fa-hand', `${partnerName}提前离开了陪伴`, elapsed);
 
         // "知道了" 按钮点击 → 过渡画面 → 关闭陪伴页
         const ackBtn = overlay.querySelector('#companion-farewell-ack');
@@ -1473,9 +1469,9 @@
             const sceneName = getSceneName();
             const elapsed = formatElapsed(getElapsedSeconds());
             const label = sceneName
-                ? `${sceneName}陪伴已结束 · ${elapsed}`
-                : `陪伴已结束 · ${elapsed}`;
-            sendChatEvent('fa-moon', label, null);
+                ? `${sceneName}陪伴已结束`
+                : `陪伴已结束`;
+            sendChatEvent('fa-moon', label, elapsed);
         }
 
         // 停止语音
@@ -2067,7 +2063,7 @@
         overlay.innerHTML = `
             <div style="display:flex;flex-direction:column;align-items:center;gap:20px;color:#fff;max-width:300px;padding:0 20px;animation:companionPopIn 0.5s ease;">
                 <div style="font-size:22px;font-weight:600;letter-spacing:2px;">时间到啦 ✦</div>
-                <div style="font-size:14px;color:rgba(255,255,255,0.7);text-align:center;">这次陪伴结束了，要继续吗？</div>
+                <div style="font-size:14px;color:rgba(255,255,255,0.7);text-align:center;">这次陪伴结束了。</div>
                 <div style="display:flex;gap:12px;margin-top:10px;">
                     <button id="extend-prompt-yes" style="
                         padding:11px 26px;border-radius:22px;border:none;
@@ -2187,10 +2183,8 @@
             window._extendInvitingSession = null;
             clearTimeout(window._extendInvitingTimer);
             overlay.remove();
-            // 过渡画面 → 关闭
-            showCompanionTransition(pickRandom(TRANSITION_LINES.cancelInvite), () => {
-                closeCompanionPage();
-            });
+            // 直接关闭陪伴页（留痕"xx陪伴已结束 · MM:SS"）
+            closeCompanionPage();
         });
 
         // 1~3 秒后梦角回应 — 35% 拒绝 / 65% 同意
@@ -2221,11 +2215,10 @@
 
     // ─── 倒计时归零后：梦角先发起延长 ──────────────────────────────────────
     const EXTEND_INVITE_LINES = [
-        '时间到啦，再陪你一会儿？',
-        '舍不得放你走，再来一会儿？',
-        '刚刚状态正好，再继续？',
-        '我还想陪着你～再一会儿可以吗？',
-        '陪你陪得很开心，再来一段？'
+        '时间过得好看，再陪我一会儿？',
+        '舍不得你走，再来一会儿？',
+        '刚刚状态正好，可以继续？',
+        '我还想你陪着我，再一会儿可以吗？'
     ];
 
     function showExtendPromptByPartner() {
