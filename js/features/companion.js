@@ -318,6 +318,89 @@
         sleep: ['该休息了，陪你睡', '困了吗？我陪你', '一起入睡吧'],
     };
 
+    // ─── 过渡画面文案库（梦角第一人称）──────────────────────────────────────
+    const TRANSITION_LINES = {
+        userInviteAccept: ['我来了……', '来陪你了……', '在你身边了……'],   // 1
+        partnerInviteAccept: ['我在等你……', '等你好久了……'],                // 2
+        extendUserAccept: ['我还想陪着你……', '再陪你一会儿……', '不想这么快就走……'], // 3
+        userAcceptExtend: ['那我留下来……', '再陪你一会儿……', '不走了……'],  // 4
+        partnerInviteReject: ['好，下次见……', '好，你先忙……', '下次再见……'], // 7
+        userRejectExtend: ['那我走了……', '好，下次见……', '下次再陪我……'],  // 8
+        userExit: ['那下次再见……', '这次到这里了……'],                       // 9 & 10
+        cancelInvite: ['等你下次再来……', '随时找我……'],                     // 11
+        timeUp: ['时间到了……', '这次的时间到了……'],                          // 12
+        partnerEarlyLeave: ['我先走了……', '下次再陪你……'],                   // 13
+        partnerGoodbye: ['该起床啦……', '天亮了，我走啦……', '醒醒，新的一天……'], // 14
+    };
+
+    // ─── 过渡画面工具：显示一段 3.5s 的过渡，回调在结束时触发 ──────────────
+    let _transitionTimers = []; // 存当前所有 timer，新过渡触发时清除旧的
+    function showCompanionTransition(text, onComplete) {
+        // 清理之前的过渡和它的所有 timer
+        _transitionTimers.forEach(t => clearTimeout(t));
+        _transitionTimers = [];
+        document.querySelectorAll('.companion-transition').forEach(el => el.remove());
+
+        const el = document.createElement('div');
+        el.className = 'companion-transition';
+        el.innerHTML = `
+            <div class="stars"></div>
+            <div class="glow"></div>
+            <div class="text">${escapeHtml(text)}</div>
+        `;
+        document.documentElement.appendChild(el);
+
+        // 触发渐入（下一帧加 active）
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => el.classList.add('active'));
+        });
+
+        // 3.5 秒后渐出 + 移除 + 回调
+        const t1 = setTimeout(() => {
+            el.classList.remove('active');
+            const t2 = setTimeout(() => {
+                if (el.isConnected) el.remove();
+                if (typeof onComplete === 'function') onComplete();
+            }, 1000); // 等渐出动画完成
+            _transitionTimers.push(t2);
+        }, 3500);
+        _transitionTimers.push(t1);
+    }
+
+    // ─── 陪伴时长统计 ───────────────────────────────────────────────────────
+    let _sessionStartTime = null;   // 进陪伴页时记录
+    let _accumulatedExtendTime = 0; // 之前几段陪伴累计时长（继续陪伴时累加）
+
+    function startSessionClock() {
+        _sessionStartTime = Date.now();
+        _accumulatedExtendTime = 0;
+    }
+    function getElapsedSeconds() {
+        if (!_sessionStartTime) return 0;
+        const cur = (Date.now() - _sessionStartTime) / 1000;
+        return Math.floor(cur + _accumulatedExtendTime);
+    }
+    function accumulateExtendTime() {
+        if (_sessionStartTime) {
+            _accumulatedExtendTime += (Date.now() - _sessionStartTime) / 1000;
+            _sessionStartTime = Date.now();
+        }
+    }
+    function formatElapsed(seconds) {
+        seconds = Math.max(0, Math.floor(seconds));
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        const pad = n => String(n).padStart(2, '0');
+        if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+        return `${pad(m)}:${pad(s)}`;
+    }
+    // 获取场景名（"一起学习" → "学习"）
+    function getSceneName() {
+        const label = MODES[currentMode]?.label || '';
+        return label.replace(/^一起/, '');
+    }
+
     function pickRandom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
@@ -453,7 +536,10 @@
         overlay.querySelector('#companion-inviting-cancel').addEventListener('click', () => {
             clearTimeout(window._invitingTimer);
             closeInviting();
-            sendChatEvent('fa-circle-xmark', `取消了对${partnerName}的陪伴邀请`, null);
+            const sceneName = MODES[mode]?.label?.replace(/^一起/, '') || '';
+            sendChatEvent('fa-circle-xmark', `取消了对${partnerName}的${sceneName}邀请`, null);
+            // 过渡画面
+            showCompanionTransition(pickRandom(TRANSITION_LINES.cancelInvite));
         });
 
         // 决定结果
@@ -477,10 +563,14 @@
                 if (!isStillThisSession()) return;
                 closeInviting();
                 const line = pickRandom(REJECT_LINES);
-                sendChatEvent('fa-heart-crack', `${partnerName}：${line}`, null);
+                const sceneName = MODES[mode]?.label?.replace(/^一起/, '') || '';
+                // 新留痕：梦角拒绝了这次xx邀请
+                sendChatEvent('fa-heart-crack', `${partnerName}拒绝了这次${sceneName}邀请`, null);
                 if (typeof showNotification === 'function') {
                     showNotification(`${partnerName} 拒绝了陪伴邀请`, 'info');
                 }
+                // 过渡画面：梦角原话
+                showCompanionTransition(`${line}……`);
             }, delay);
         } else {
             // 1~3 秒后接受
@@ -488,8 +578,10 @@
             window._invitingTimer = setTimeout(() => {
                 if (!isStillThisSession()) return;
                 closeInviting();
-                sendChatEvent('fa-heart', `${partnerName}同意了一起陪伴`, null);
-                enterAfterUserAccepted();
+                // 过渡画面后再进入陪伴
+                showCompanionTransition(pickRandom(TRANSITION_LINES.userInviteAccept), () => {
+                    enterAfterUserAccepted();
+                });
             }, delay);
         }
     }
@@ -506,9 +598,9 @@
         const ok = await ensureDataLoaded();
         if (!ok) return;
 
-        // 如果当前已经在陪伴中或有其他陪伴弹窗在，跳过
+        // 如果当前已经在陪伴中或有其他陪伴弹窗/过渡画面在，跳过
         if (document.getElementById('companion-page')?.classList.contains('active')) return;
-        if (document.querySelector('#companion-inviting-overlay, #companion-incoming-overlay, #companion-modal-dynamic, #setup-modal-dynamic, #time-modal-dynamic')) return;
+        if (document.querySelector('#companion-inviting-overlay, #companion-incoming-overlay, #companion-modal-dynamic, #setup-modal-dynamic, #time-modal-dynamic, .companion-transition')) return;
 
         // 如果没指定 mode，随机选一个
         if (!mode) {
@@ -620,26 +712,32 @@
         injectKeyframes();
         document.documentElement.appendChild(overlay);
 
-        // 22 秒未接听自动消失（用 isConnected 检查 overlay 是否还在 DOM）
+        // 22 秒未接听自动消失 → 错过（不走过渡画面）
         const autoTimer = setTimeout(() => {
             if (!overlay.isConnected) return; // 已被其他操作移除了
             overlay.remove();
-            sendChatEvent('fa-heart-crack', `错过了${partnerName}的陪伴邀请`, null);
+            const sceneName = MODES[mode]?.label?.replace(/^一起/, '') || '';
+            sendChatEvent('fa-heart-crack', `错过了${partnerName}的${sceneName}邀请`, null);
         }, 22000);
 
         // 拒绝
         overlay.querySelector('#companion-incoming-reject').addEventListener('click', () => {
             clearTimeout(autoTimer);
             if (overlay.isConnected) overlay.remove();
-            sendChatEvent('fa-heart-crack', `拒绝了${partnerName}的陪伴邀请`, null);
+            const sceneName = MODES[mode]?.label?.replace(/^一起/, '') || '';
+            sendChatEvent('fa-heart-crack', `我拒绝了这次${sceneName}邀请`, null);
+            // 过渡画面：旁白·梦角第一人称
+            showCompanionTransition(pickRandom(TRANSITION_LINES.partnerInviteReject));
         });
 
-        // 接受 → 直接进入陪伴页（用梦角说的那个时间）
+        // 接受 → 过渡画面 → 进入陪伴页
         overlay.querySelector('#companion-incoming-accept').addEventListener('click', () => {
             clearTimeout(autoTimer);
             if (overlay.isConnected) overlay.remove();
-            sendChatEvent('fa-heart', `接受了${partnerName}的陪伴邀请`, null);
-            enterWithInviteTime(mode, inviteTime);
+            // 过渡画面：「我在等你……」
+            showCompanionTransition(pickRandom(TRANSITION_LINES.partnerInviteAccept), () => {
+                enterWithInviteTime(mode, inviteTime);
+            });
         });
     }
 
@@ -801,15 +899,19 @@
         injectKeyframes();
         document.documentElement.appendChild(overlay);
 
-        // 写入聊天记录
-        sendChatEvent('fa-moon', `${partnerName}说了再见`, null);
+        // 写入聊天记录（带时长）
+        const elapsed = formatElapsed(getElapsedSeconds());
+        sendChatEvent('fa-moon', `${partnerName}说了再见 · ${elapsed}`, null);
 
-        // "再见" 按钮 → 关闭告别画面 + 关闭陪伴页
+        // "再见" 按钮 → 过渡画面 → 关闭陪伴页
         const ackBtn = overlay.querySelector('#companion-goodnight-ack');
         if (ackBtn) {
             ackBtn.addEventListener('click', () => {
                 if (overlay.isConnected) overlay.remove();
-                closeCompanionPage({ skipLogEvent: true });
+                // 过渡画面：旁白
+                showCompanionTransition(pickRandom(TRANSITION_LINES.partnerGoodbye), () => {
+                    closeCompanionPage({ skipLogEvent: true });
+                });
             });
             ackBtn.addEventListener('mouseenter', () => {
                 ackBtn.style.background = 'rgba(255,255,255,0.18)';
@@ -871,15 +973,19 @@
         injectKeyframes();
         document.documentElement.appendChild(overlay);
 
-        // 写入聊天记录
-        sendChatEvent('fa-hand', `${partnerName}提前离开了陪伴`, null);
+        // 写入聊天记录（带时长）
+        const elapsed = formatElapsed(getElapsedSeconds());
+        sendChatEvent('fa-hand', `${partnerName}提前离开了陪伴 · ${elapsed}`, null);
 
-        // "知道了" 按钮点击 → 关闭告别画面 + 关闭陪伴页
+        // "知道了" 按钮点击 → 过渡画面 → 关闭陪伴页
         const ackBtn = overlay.querySelector('#companion-farewell-ack');
         if (ackBtn) {
             ackBtn.addEventListener('click', () => {
                 if (overlay.isConnected) overlay.remove();
-                closeCompanionPage({ skipLogEvent: true });
+                // 过渡画面：旁白·梦角第一人称
+                showCompanionTransition(pickRandom(TRANSITION_LINES.partnerEarlyLeave), () => {
+                    closeCompanionPage({ skipLogEvent: true });
+                });
             });
             ackBtn.addEventListener('mouseenter', () => {
                 ackBtn.style.background = 'rgba(255,255,255,0.18)';
@@ -1300,6 +1406,9 @@
         page.classList.add('active');
         document.body.style.overflow = 'hidden';
 
+        // 启动会话时钟（统计陪伴时长用）
+        startSessionClock();
+
         // 启动计时器
         startTimer();
 
@@ -1361,9 +1470,11 @@
 
         // 默认留痕，除非显式 skipLogEvent
         if (!opts.skipLogEvent) {
-            // 文案带场景名：结束了一次 XX 陪伴
-            const sceneName = MODES[currentMode]?.label?.slice(2) || '';  // "一起学习" → "学习"
-            const label = sceneName ? `结束了一次${sceneName}陪伴` : '结束了一次陪伴';
+            const sceneName = getSceneName();
+            const elapsed = formatElapsed(getElapsedSeconds());
+            const label = sceneName
+                ? `${sceneName}陪伴已结束 · ${elapsed}`
+                : `陪伴已结束 · ${elapsed}`;
             sendChatEvent('fa-moon', label, null);
         }
 
@@ -1379,6 +1490,10 @@
         document.body.style.overflow = '';
         closeSettingsPanel();
         $('companion-exit-confirm').classList.remove('active');
+
+        // 清空会话时钟
+        _sessionStartTime = null;
+        _accumulatedExtendTime = 0;
     }
 
     // ─── 白噪音 ──────────────────────────────────────────────────────────────
@@ -1921,18 +2036,18 @@
         // 正计时（睡觉好好休息）不会到这里，因为不归零。但兜底防御一下。
         if (!isCountdown) return;
 
-        // 倒计时归零 → 抛骰子决定谁先发起延长邀请
-        // 60% 用户先发起，40% 梦角先发起
-        setTimeout(() => {
+        // 倒计时归零 → 过渡画面 → 抛骰子决定谁先发起延长邀请
+        showCompanionTransition(pickRandom(TRANSITION_LINES.timeUp), () => {
             // 用户可能已经退出了（比如点 ✕ 取消）
             if (!document.getElementById('companion-page')?.classList.contains('active')) return;
 
+            // 60% 用户先发起，40% 梦角先发起
             if (Math.random() < 0.6) {
                 showExtendPromptByUser();
             } else {
                 showExtendPromptByPartner();
             }
-        }, 1200); // 留 1.2 秒让用户看清"时间到啦"
+        });
     }
 
     // ─── 倒计时归零后：用户先发起延长 ──────────────────────────────────────
@@ -1983,8 +2098,10 @@
         });
         overlay.querySelector('#extend-prompt-no').addEventListener('click', () => {
             overlay.remove();
-            // 走正常退出流程（会留痕"结束了一次陪伴"）
-            closeCompanionPage();
+            // 过渡画面 → 关闭（会留痕"xx陪伴已结束 · MM:SS"）
+            showCompanionTransition(pickRandom(TRANSITION_LINES.userExit), () => {
+                closeCompanionPage();
+            });
         });
     }
 
@@ -2070,8 +2187,10 @@
             window._extendInvitingSession = null;
             clearTimeout(window._extendInvitingTimer);
             overlay.remove();
-            // 不再单独发"取消了继续陪伴"，统一让 closeCompanionPage 留"结束了一次XX陪伴"
-            closeCompanionPage();
+            // 过渡画面 → 关闭
+            showCompanionTransition(pickRandom(TRANSITION_LINES.cancelInvite), () => {
+                closeCompanionPage();
+            });
         });
 
         // 1~3 秒后梦角回应 — 35% 拒绝 / 65% 同意
@@ -2084,12 +2203,18 @@
             overlay.remove();
 
             if (willReject) {
-                // 不再发拒绝台词，统一让 closeCompanionPage 留"结束了一次XX陪伴"
-                closeCompanionPage();
+                // 过渡画面：梦角原话 → 关闭（留痕"xx陪伴已结束 · MM:SS"）
+                const line = pickRandom(REJECT_LINES);
+                showCompanionTransition(`${line}……`, () => {
+                    closeCompanionPage();
+                });
             } else {
                 sendChatEvent('fa-heart', `${partnerName}同意了继续陪伴`, null);
-                // 继续陪伴：重新启动计时器（timerSeconds/totalSeconds 已经在 openTimeModal 阶段设置）
-                continueCompanionAfterExtend();
+                // 过渡画面：旁白 → 累计时长 → 继续陪伴
+                showCompanionTransition(pickRandom(TRANSITION_LINES.extendUserAccept), () => {
+                    accumulateExtendTime();
+                    continueCompanionAfterExtend();
+                });
             }
         }, delay);
     }
@@ -2189,13 +2314,19 @@
                 timerSeconds = parseInt(inviteTime) * 60;
                 totalSeconds = parseInt(inviteTime) * 60;
             }
-            continueCompanionAfterExtend();
+            // 过渡画面：旁白 → 累计时长 → 继续陪伴
+            showCompanionTransition(pickRandom(TRANSITION_LINES.userAcceptExtend), () => {
+                accumulateExtendTime();
+                continueCompanionAfterExtend();
+            });
         });
 
         overlay.querySelector('#extend-partner-no').addEventListener('click', () => {
             overlay.remove();
-            // 不再单独发"拒绝了xx的邀请"，统一让 closeCompanionPage 留"结束了一次XX陪伴"
-            closeCompanionPage();
+            // 过渡画面：旁白·梦角第一人称 → 关闭
+            showCompanionTransition(pickRandom(TRANSITION_LINES.userRejectExtend), () => {
+                closeCompanionPage();
+            });
         });
     }
 
@@ -2797,7 +2928,14 @@
         if (exitBtn) exitBtn.addEventListener('click', showExitConfirm);
 
         const exitConfirmYes = $('exit-confirm-yes');
-        if (exitConfirmYes) exitConfirmYes.addEventListener('click', closeCompanionPage);
+        if (exitConfirmYes) exitConfirmYes.addEventListener('click', () => {
+            // 先收起退出确认弹窗
+            $('companion-exit-confirm')?.classList.remove('active');
+            // 显示过渡画面，3.5 秒后再真正关闭
+            showCompanionTransition(pickRandom(TRANSITION_LINES.userExit), () => {
+                closeCompanionPage();
+            });
+        });
 
         const exitConfirmNo = $('exit-confirm-no');
         if (exitConfirmNo) exitConfirmNo.addEventListener('click', hideExitConfirm);
@@ -3092,6 +3230,38 @@
         forceNextPartnerGoodnight: () => {
             _forcePartnerGoodnight = true;
             console.log('[companion] 下次 4~7 小时检查时将强制告别');
+        },
+
+        // 测试：直接显示一段过渡画面（任意文字）
+        // 用法：companionModule.testTransition('我来了……')
+        //      companionModule.testTransition() — 用默认占位文字
+        testTransition: (text) => {
+            showCompanionTransition(text || '过渡画面测试……');
+        },
+
+        // 测试：依次展示所有 14 个过渡场景
+        // 用法：companionModule.demoAllTransitions()
+        demoAllTransitions: () => {
+            const list = [];
+            Object.entries(TRANSITION_LINES).forEach(([key, arr]) => {
+                list.push(`【${key}】 ${arr[0]}`);
+            });
+            // 也加上一句梦角原话
+            list.push(`【拒绝原话】 ${REJECT_LINES[0]}……`);
+            console.log('[companion] 依次展示', list.length, '个过渡');
+            let idx = 0;
+            const next = () => {
+                if (idx >= list.length) {
+                    console.log('[companion] 全部过渡演示完毕');
+                    return;
+                }
+                console.log(`  [${idx + 1}/${list.length}]`, list[idx]);
+                showCompanionTransition(list[idx], () => {
+                    idx++;
+                    setTimeout(next, 300);
+                });
+            };
+            next();
         },
 
         // 控制随机邀请定时器
