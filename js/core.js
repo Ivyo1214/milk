@@ -957,7 +957,10 @@ function createMessageFragment(msg, prevMsg, nextMsg, lastSenderRef) {
         callEvDiv.className = 'call-event-message';
         callEvDiv.dataset.id = msg.id;
         const icon = msg.callIcon || 'fa-video';
-        const isRejected = icon === 'fa-phone-slash';
+        // 红色样式：通话拒绝/未接 + 陪伴拒绝/错过/取消
+        const isRejected = icon === 'fa-phone-slash' ||
+                           icon === 'fa-heart-crack' ||
+                           icon === 'fa-circle-xmark';
         const colorClass = isRejected ? 'call-event-pill--rejected' : 'call-event-pill--ended';
         const detail = msg.callDetail ? `<span class="call-event-detail">${msg.callDetail}</span>` : '';
         callEvDiv.innerHTML = `<div class="call-event-pill ${colorClass}"><i class="fas ${icon} call-event-icon"></i><span class="call-event-label">${msg.text.replace(/ · .*/, '')}</span>${detail}<button class="call-event-delete" title="删除" onclick="(function(btn){const id=btn.closest('[data-id]').dataset.id;const idx=messages.findIndex(m=>String(m.id)===String(id));if(idx>-1){messages.splice(idx,1);renderMessages();throttledSaveData();}})(this)"><i class="fas fa-times"></i></button></div>`;
