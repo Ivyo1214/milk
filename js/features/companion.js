@@ -900,15 +900,14 @@
         const sceneIcon = MODES[currentMode]?.icon || 'fa-moon';
         sendChatEvent(sceneIcon, `${partnerName}说了再见`, elapsed);
 
-        // "再见" 按钮 → 过渡画面 → 关闭陪伴页
+        // "再见" 按钮 → 立刻关闭陪伴页 → 过渡画面盖在首页上
         const ackBtn = overlay.querySelector('#companion-goodnight-ack');
         if (ackBtn) {
             ackBtn.addEventListener('click', () => {
                 if (overlay.isConnected) overlay.remove();
-                // 过渡画面：旁白
-                showCompanionTransition(pickRandom(TRANSITION_LINES.partnerGoodbye), () => {
-                    closeCompanionPage({ skipLogEvent: true });
-                });
+                // 先关闭陪伴页（已留痕），再显示过渡盖在首页上
+                closeCompanionPage({ skipLogEvent: true });
+                showCompanionTransition(pickRandom(TRANSITION_LINES.partnerGoodbye));
             });
             ackBtn.addEventListener('mouseenter', () => {
                 ackBtn.style.background = 'rgba(255,255,255,0.18)';
@@ -975,15 +974,14 @@
         const sceneIcon = MODES[currentMode]?.icon || 'fa-hand';
         sendChatEvent(sceneIcon, `${partnerName}提前离开了陪伴`, elapsed);
 
-        // "知道了" 按钮点击 → 过渡画面 → 关闭陪伴页
+        // "知道了" 按钮点击 → 立刻关闭陪伴页 → 过渡画面盖在首页上
         const ackBtn = overlay.querySelector('#companion-farewell-ack');
         if (ackBtn) {
             ackBtn.addEventListener('click', () => {
                 if (overlay.isConnected) overlay.remove();
-                // 过渡画面：旁白·梦角第一人称
-                showCompanionTransition(pickRandom(TRANSITION_LINES.partnerEarlyLeave), () => {
-                    closeCompanionPage({ skipLogEvent: true });
-                });
+                // 先关闭陪伴页（已留痕），再显示过渡盖在首页上
+                closeCompanionPage({ skipLogEvent: true });
+                showCompanionTransition(pickRandom(TRANSITION_LINES.partnerEarlyLeave));
             });
             ackBtn.addEventListener('mouseenter', () => {
                 ackBtn.style.background = 'rgba(255,255,255,0.18)';
@@ -2098,10 +2096,9 @@
         });
         overlay.querySelector('#extend-prompt-no').addEventListener('click', () => {
             overlay.remove();
-            // 过渡画面 → 关闭（会留痕"xx陪伴已结束 · MM:SS"）
-            showCompanionTransition(pickRandom(TRANSITION_LINES.userExit), () => {
-                closeCompanionPage();
-            });
+            // 先关闭陪伴页（会留痕"xx陪伴已结束 · MM:SS"），再过渡盖在首页
+            closeCompanionPage();
+            showCompanionTransition(pickRandom(TRANSITION_LINES.userExit));
         });
     }
 
@@ -2201,11 +2198,10 @@
             overlay.remove();
 
             if (willReject) {
-                // 过渡画面：梦角原话 → 关闭（留痕"xx陪伴已结束 · MM:SS"）
+                // 先关闭陪伴页（留痕），再过渡盖在首页上（用梦角原话）
                 const line = pickRandom(REJECT_LINES);
-                showCompanionTransition(`${line}……`, () => {
-                    closeCompanionPage();
-                });
+                closeCompanionPage();
+                showCompanionTransition(`${line}……`);
             } else {
                 sendChatEvent('fa-heart', `${partnerName}同意了继续陪伴`, null);
                 // 过渡画面：旁白 → 累计时长 → 继续陪伴
@@ -2320,10 +2316,9 @@
 
         overlay.querySelector('#extend-partner-no').addEventListener('click', () => {
             overlay.remove();
-            // 过渡画面：旁白·梦角第一人称 → 关闭
-            showCompanionTransition(pickRandom(TRANSITION_LINES.userRejectExtend), () => {
-                closeCompanionPage();
-            });
+            // 先关闭陪伴页，再过渡盖在首页
+            closeCompanionPage();
+            showCompanionTransition(pickRandom(TRANSITION_LINES.userRejectExtend));
         });
     }
 
@@ -2928,10 +2923,9 @@
         if (exitConfirmYes) exitConfirmYes.addEventListener('click', () => {
             // 先收起退出确认弹窗
             $('companion-exit-confirm')?.classList.remove('active');
-            // 显示过渡画面，3.5 秒后再真正关闭
-            showCompanionTransition(pickRandom(TRANSITION_LINES.userExit), () => {
-                closeCompanionPage();
-            });
+            // 先关闭陪伴页（会留痕），再显示过渡盖在首页上
+            closeCompanionPage();
+            showCompanionTransition(pickRandom(TRANSITION_LINES.userExit));
         });
 
         const exitConfirmNo = $('exit-confirm-no');
