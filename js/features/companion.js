@@ -3244,10 +3244,10 @@
         demoAllTransitions: () => {
             const list = [];
             Object.entries(TRANSITION_LINES).forEach(([key, arr]) => {
-                list.push(`【${key}】 ${arr[0]}`);
+                list.push({ key, text: arr[0] });
             });
             // 也加上一句梦角原话
-            list.push(`【拒绝原话】 ${REJECT_LINES[0]}……`);
+            list.push({ key: '拒绝原话', text: `${REJECT_LINES[0]}……` });
             console.log('[companion] 依次展示', list.length, '个过渡');
             let idx = 0;
             const next = () => {
@@ -3255,8 +3255,8 @@
                     console.log('[companion] 全部过渡演示完毕');
                     return;
                 }
-                console.log(`  [${idx + 1}/${list.length}]`, list[idx]);
-                showCompanionTransition(list[idx], () => {
+                console.log(`  [${idx + 1}/${list.length}] 【${list[idx].key}】 ${list[idx].text}`);
+                showCompanionTransition(list[idx].text, () => {
                     idx++;
                     setTimeout(next, 300);
                 });
