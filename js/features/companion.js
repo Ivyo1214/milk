@@ -768,7 +768,7 @@
         if (ackBtn) {
             ackBtn.addEventListener('click', () => {
                 if (overlay.isConnected) overlay.remove();
-                closeCompanionPage();
+                closeCompanionPage({ skipLogEvent: true });
             });
             ackBtn.addEventListener('mouseenter', () => {
                 ackBtn.style.background = 'rgba(255,255,255,0.18)';
@@ -1241,10 +1241,16 @@
         }
     }
 
-    function closeCompanionPage() {
+    function closeCompanionPage(opts) {
+        opts = opts || {};
         stopTimer();
         stopEarlyLeaveCheck();
         recordHistory();
+
+        // 默认留痕"结束了一次陪伴"，除非显式 skipLogEvent
+        if (!opts.skipLogEvent) {
+            sendChatEvent('fa-moon', '结束了一次陪伴', null);
+        }
 
         // 停止语音
         if (currentAudio) {
@@ -1778,6 +1784,8 @@
     function onTimerEnd() {
         // 时间已到，停止"梦角提前离开"检查（不然会在用户看结束页时还可能触发）
         stopEarlyLeaveCheck();
+        // 停止计时器（避免重复触发）
+        stopTimer();
 
         // 震动提示
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -1785,14 +1793,301 @@
         // 播放随机语音
         playRandomVoice();
 
-        // 显示结束提示
+        // 显示"时间到啦"文字
         const hint = $('companion-hint-text');
-        if (hint) {
-            hint.textContent = '时间到啦 ✦';
-            setTimeout(() => {
-                if (hint) hint.textContent = MODES[currentMode]?.hint || '';
-            }, 3000);
+        if (hint) hint.textContent = '时间到啦 ✦';
+
+        // 正计时（睡觉好好休息）不会到这里，因为不归零。但兜底防御一下。
+        if (!isCountdown) return;
+
+        // 倒计时归零 → 抛骰子决定谁先发起延长邀请
+        // 60% 用户先发起，40% 梦角先发起
+        setTimeout(() => {
+            // 用户可能已经退出了（比如点 ✕ 取消）
+            if (!document.getElementById('companion-page')?.classList.contains('active')) return;
+
+            if (Math.random() < 0.6) {
+                showExtendPromptByUser();
+            } else {
+                showExtendPromptByPartner();
+            }
+        }, 1200); // 留 1.2 秒让用户看清"时间到啦"
+    }
+
+    // ─── 倒计时归零后：用户先发起延长 ──────────────────────────────────────
+    // 显示一个简单的二选一弹窗：再陪一会儿 / 下次见
+    function showExtendPromptByUser() {
+        // 移除残留
+        document.querySelectorAll('#companion-extend-prompt').forEach(el => el.remove());
+
+        const overlay = document.createElement('div');
+        overlay.id = 'companion-extend-prompt';
+        overlay.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99998',
+            'background:rgba(15,15,20,0.92)',
+            'display:flex', 'align-items:center', 'justify-content:center',
+            'animation:companionFadeIn 0.5s ease'
+        ].join(';'));
+        overlay.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:20px;color:#fff;max-width:300px;padding:0 20px;animation:companionPopIn 0.5s ease;">
+                <div style="font-size:22px;font-weight:600;letter-spacing:2px;">时间到啦 ✦</div>
+                <div style="font-size:14px;color:rgba(255,255,255,0.7);text-align:center;">这次陪伴结束了，要继续吗？</div>
+                <div style="display:flex;gap:12px;margin-top:10px;">
+                    <button id="extend-prompt-yes" style="
+                        padding:11px 26px;border-radius:22px;border:none;
+                        background:var(--accent-color,#c5a47e);color:#fff;
+                        font-size:14px;letter-spacing:1px;cursor:pointer;
+                        font-weight:500;
+                    ">再陪一会儿</button>
+                    <button id="extend-prompt-no" style="
+                        padding:11px 26px;border-radius:22px;
+                        border:1px solid rgba(255,255,255,0.25);
+                        background:rgba(255,255,255,0.08);color:#fff;
+                        font-size:14px;letter-spacing:1px;cursor:pointer;
+                    ">下次见</button>
+                </div>
+            </div>
+        `;
+        injectKeyframes();
+        document.documentElement.appendChild(overlay);
+
+        overlay.querySelector('#extend-prompt-yes').addEventListener('click', () => {
+            overlay.remove();
+            // 选时间 → 邀请等待 → 同意/拒绝
+            openTimeModal(currentMode, (selectedTime) => {
+                // 时间已经在 openTimeModal 内部 set 好（isCountdown/timerSeconds/totalSeconds）
+                // 现在向梦角发起邀请，等待结果
+                showExtendInvitingByUser();
+            });
+        });
+        overlay.querySelector('#extend-prompt-no').addEventListener('click', () => {
+            overlay.remove();
+            // 走正常退出流程（会留痕"结束了一次陪伴"）
+            closeCompanionPage();
+        });
+    }
+
+    // 用户邀请继续 → 等待画面（复刻 showCompanionInviting，但成功后不开新陪伴页而是续上）
+    function showExtendInvitingByUser() {
+        const cfg = MODES[currentMode];
+        const partnerName = getPartnerName();
+        const avSrc = getPartnerAvatarSrc();
+
+        // 时间文字（用于"邀请等待中"副标题）
+        let timeText;
+        if (!isCountdown) {
+            timeText = '好好休息';
+        } else {
+            timeText = `${Math.round(totalSeconds / 60)} 分钟`;
         }
+
+        document.querySelectorAll('#companion-inviting-overlay').forEach(el => el.remove());
+
+        const sessionId = Symbol('extend-invite-session');
+        window._extendInvitingSession = sessionId;
+        const isStillThisSession = () => window._extendInvitingSession === sessionId;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'companion-inviting-overlay';
+        overlay.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99998',
+            'background:rgba(15,15,20,0.92)',
+            'display:flex', 'align-items:center', 'justify-content:center'
+        ].join(';'));
+
+        const avatarHtml = avSrc
+            ? `<img src="${avSrc}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<i class="fas fa-user" style="font-size:36px;color:rgba(255,255,255,.85);"></i>`;
+
+        overlay.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;">
+                <div style="position:relative;width:96px;height:96px;">
+                    <div style="
+                        position:absolute;inset:-12px;border-radius:50%;
+                        border:2px solid rgba(var(--accent-color-rgb,197,164,126),.55);
+                        animation:companionPulseRing 1.6s ease-out infinite;
+                    "></div>
+                    <div style="
+                        position:absolute;inset:-24px;border-radius:50%;
+                        border:1px solid rgba(var(--accent-color-rgb,197,164,126),.32);
+                        animation:companionPulseRing 1.6s ease-out infinite 0.4s;
+                    "></div>
+                    <div style="
+                        width:96px;height:96px;border-radius:50%;overflow:hidden;
+                        background:rgba(255,255,255,0.08);
+                        display:flex;align-items:center;justify-content:center;
+                        border:2px solid rgba(255,255,255,0.15);
+                        position:relative;z-index:1;
+                    ">${avatarHtml}</div>
+                </div>
+                <div style="font-size:20px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:8px;">
+                    <i class="fas ${cfg.icon}" style="color:var(--accent-color, #c5a47e);"></i>
+                    <span>继续陪伴 · ${timeText}</span>
+                    <span style="display:inline-flex;gap:3px;">
+                        <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite;"></span>
+                        <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite 0.2s;"></span>
+                        <span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.6);animation:companionDot 1.2s infinite 0.4s;"></span>
+                    </span>
+                </div>
+                <button id="companion-extend-cancel" style="
+                    margin-top:30px;width:64px;height:64px;border-radius:50%;border:none;
+                    background:linear-gradient(135deg,#ff5252,#c62828);
+                    color:#fff;font-size:22px;cursor:pointer;
+                    box-shadow:0 6px 20px rgba(255,82,82,.45);
+                    display:flex;align-items:center;justify-content:center;
+                "><i class="fas fa-xmark"></i></button>
+                <div style="font-size:11px;color:rgba(255,255,255,0.35);">取消</div>
+            </div>
+        `;
+        injectKeyframes();
+        document.documentElement.appendChild(overlay);
+
+        // 取消邀请
+        overlay.querySelector('#companion-extend-cancel').addEventListener('click', () => {
+            if (!isStillThisSession()) return;
+            window._extendInvitingSession = null;
+            clearTimeout(window._extendInvitingTimer);
+            overlay.remove();
+            sendChatEvent('fa-xmark', '取消了继续陪伴的邀请', null);
+            closeCompanionPage({ skipLogEvent: true });
+        });
+
+        // 1~3 秒后梦角回应 — 35% 拒绝 / 65% 同意
+        const delay = 1000 + Math.random() * 2000;
+        const willReject = (_forceResult === 'reject') || (_forceResult !== 'accept' && Math.random() < 0.35);
+
+        window._extendInvitingTimer = setTimeout(() => {
+            if (!isStillThisSession()) return;
+            window._extendInvitingSession = null;
+            overlay.remove();
+
+            if (willReject) {
+                const rejectLine = pickRandom(REJECT_LINES);
+                sendChatEvent('fa-heart-broken', `${partnerName}：${rejectLine}`, null);
+                closeCompanionPage({ skipLogEvent: true });
+            } else {
+                sendChatEvent('fa-heart', `${partnerName}同意了继续陪伴`, null);
+                // 继续陪伴：重新启动计时器（timerSeconds/totalSeconds 已经在 openTimeModal 阶段设置）
+                continueCompanionAfterExtend();
+            }
+        }, delay);
+    }
+
+    // ─── 倒计时归零后：梦角先发起延长 ──────────────────────────────────────
+    const EXTEND_INVITE_LINES = [
+        '时间到啦，再陪你一会儿？',
+        '舍不得放你走，再来一会儿？',
+        '刚刚状态正好，再继续？',
+        '我还想陪着你～再一会儿可以吗？',
+        '陪你陪得很开心，再来一段？'
+    ];
+
+    function showExtendPromptByPartner() {
+        const cfg = MODES[currentMode];
+        const partnerName = getPartnerName();
+        const avSrc = getPartnerAvatarSrc();
+        const baseLine = pickRandom(EXTEND_INVITE_LINES);
+
+        // 梦角自选时间（从 inviteTimes 池里随机选一个，sleep 排除 rest）
+        let candidateTimes = (cfg.inviteTimes || [25]).filter(t => t !== 'rest');
+        if (candidateTimes.length === 0) candidateTimes = [25];
+        const inviteTime = pickRandom(candidateTimes);
+        const timeText = `${inviteTime} 分钟`;
+
+        // 拼接文案：跟 showIncomingCompanion 一样的智能拼接
+        let line;
+        if (/陪你|陪着你/.test(baseLine)) {
+            line = `${baseLine.replace(/[？！?!]$/, '')} ${timeText}`;
+        } else if (/[？！?!]$/.test(baseLine)) {
+            line = `${baseLine} 陪你 ${timeText}`;
+        } else {
+            line = `${baseLine}，陪你 ${timeText}`;
+        }
+
+        // 移除残留
+        document.querySelectorAll('#companion-extend-prompt-partner').forEach(el => el.remove());
+
+        const overlay = document.createElement('div');
+        overlay.id = 'companion-extend-prompt-partner';
+        overlay.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99998',
+            'background:rgba(15,15,20,0.92)',
+            'display:flex', 'align-items:center', 'justify-content:center',
+            'animation:companionFadeIn 0.5s ease'
+        ].join(';'));
+
+        const avatarHtml = avSrc
+            ? `<img src="${avSrc}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<i class="fas fa-user" style="font-size:30px;color:rgba(255,255,255,.85);"></i>`;
+
+        overlay.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;max-width:320px;padding:0 20px;animation:companionPopIn 0.6s ease;">
+                <div style="
+                    width:80px;height:80px;border-radius:50%;overflow:hidden;
+                    background:rgba(255,255,255,0.1);
+                    display:flex;align-items:center;justify-content:center;
+                    border:2px solid rgba(255,255,255,0.15);
+                ">${avatarHtml}</div>
+                <div style="font-size:18px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
+                <div style="
+                    background:rgba(255,255,255,0.08);border-radius:14px;padding:14px 22px;
+                    display:flex;align-items:center;gap:10px;text-align:center;
+                ">
+                    <i class="fas ${cfg.icon}" style="color:var(--accent-color,#c5a47e);font-size:16px;"></i>
+                    <span style="font-size:14px;">${line}</span>
+                </div>
+                <div style="display:flex;gap:14px;margin-top:8px;">
+                    <button id="extend-partner-yes" style="
+                        padding:11px 26px;border-radius:22px;border:none;
+                        background:var(--accent-color,#c5a47e);color:#fff;
+                        font-size:14px;letter-spacing:1px;cursor:pointer;
+                        font-weight:500;
+                    ">好啊</button>
+                    <button id="extend-partner-no" style="
+                        padding:11px 26px;border-radius:22px;
+                        border:1px solid rgba(255,255,255,0.25);
+                        background:rgba(255,255,255,0.08);color:#fff;
+                        font-size:14px;letter-spacing:1px;cursor:pointer;
+                    ">不了</button>
+                </div>
+            </div>
+        `;
+        injectKeyframes();
+        document.documentElement.appendChild(overlay);
+
+        overlay.querySelector('#extend-partner-yes').addEventListener('click', () => {
+            overlay.remove();
+            sendChatEvent('fa-heart', `接受了${partnerName}继续陪伴的邀请`, null);
+            // 应用梦角说的时长
+            if (inviteTime === 'rest') {
+                isCountdown = false;
+                timerSeconds = 0;
+                totalSeconds = 0;
+            } else {
+                isCountdown = true;
+                timerSeconds = parseInt(inviteTime) * 60;
+                totalSeconds = parseInt(inviteTime) * 60;
+            }
+            continueCompanionAfterExtend();
+        });
+
+        overlay.querySelector('#extend-partner-no').addEventListener('click', () => {
+            overlay.remove();
+            sendChatEvent('fa-heart-broken', `拒绝了${partnerName}继续陪伴的邀请`, null);
+            closeCompanionPage({ skipLogEvent: true });
+        });
+    }
+
+    // 继续陪伴：重置计时器显示，重新启动 startTimer（不重新进 openCompanionPage）
+    function continueCompanionAfterExtend() {
+        // 把 hint 还原
+        const hint = $('companion-hint-text');
+        if (hint) hint.textContent = MODES[currentMode]?.hint || '';
+        // 更新计时器显示
+        updateTimerDisplay();
+        // 重新启动计时
+        startTimer();
     }
 
     // ─── 语音播放 ────────────────────────────────────────────────────────────
@@ -2593,6 +2888,37 @@
                 return;
             }
             startNoise(type);
+        },
+
+        // 测试：立刻触发"时间到"逻辑（不用等倒计时归零）
+        // 注意：必须在陪伴中调用
+        testTimeUp: () => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 请先进入陪伴中（用 testAccept 或自然流程）');
+                return;
+            }
+            console.log('[companion] 触发时间到逻辑');
+            onTimerEnd();
+        },
+
+        // 测试：强制用户先发起延长（不抛骰子）
+        testExtendByUser: () => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 请先进入陪伴中');
+                return;
+            }
+            stopTimer();
+            showExtendPromptByUser();
+        },
+
+        // 测试：强制梦角先发起延长（不抛骰子）
+        testExtendByPartner: () => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 请先进入陪伴中');
+                return;
+            }
+            stopTimer();
+            showExtendPromptByPartner();
         },
 
         // 控制随机邀请定时器
