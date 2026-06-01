@@ -2365,6 +2365,7 @@
         playVoice(v);
     }
 
+    let _isVoicePlaying = false;
     function playVoice(v) {
         if (!v || !v.data) return;
         if (currentAudio) {
@@ -2372,7 +2373,14 @@
             currentAudio = null;
         }
         const audio = new Audio(v.data);
-        audio.play().catch(e => console.warn('[companion] 播放失败', e));
+        _isVoicePlaying = true;
+        // 播放结束/出错时解锁
+        audio.addEventListener('ended', () => { _isVoicePlaying = false; });
+        audio.addEventListener('error', () => { _isVoicePlaying = false; });
+        audio.play().catch(e => {
+            console.warn('[companion] 播放失败', e);
+            _isVoicePlaying = false;
+        });
         currentAudio = audio;
     }
 
@@ -2380,8 +2388,10 @@
     function handlePageClick(e) {
         // 排除按钮、计时器区域、退出确认弹窗的点击
         if (e.target.closest('button, input, #companion-timer-area, #companion-exit-confirm')) return;
-        // 点击位置显示涟漪特效（视觉反馈）
+        // 点击位置显示涟漪特效（始终响应，给用户视觉反馈）
         createRippleEffect(e.clientX, e.clientY);
+        // 如果当前语音还在播放，不重新触发（避免打断）
+        if (_isVoicePlaying) return;
         const voices = (companionData.voices && companionData.voices[currentMode]) || [];
         if (!voices.length) {
             notify('没有什么想说的', 'info');
