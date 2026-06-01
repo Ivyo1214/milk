@@ -1,4 +1,4 @@
-、/**
+/**
  * companion.js — 陪伴功能模块
  * 依赖：localforage, APP_PREFIX, getStorageKey, showNotification
  */
