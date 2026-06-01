@@ -1203,3 +1203,22 @@ html[data-theme="dark"] .companion-mode-card i {
     0%, 100% { opacity: 0.85; }
     50%      { opacity: 1; }
 }
+
+/* ────────────────────────────────────────────────────────────────
+   陪伴页点击特效：涟漪扩散（双层）
+   ──────────────────────────────────────────────────────────────── */
+.companion-ripple {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    animation: companionRippleExpand 0.9s ease-out forwards;
+}
+@keyframes companionRippleExpand {
+    0%   { width: 20px;  height: 20px;  opacity: 1;   border-width: 2px; }
+    100% { width: 180px; height: 180px; opacity: 0;   border-width: 0.5px; }
+}
