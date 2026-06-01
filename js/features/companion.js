@@ -895,9 +895,10 @@
         injectKeyframes();
         document.documentElement.appendChild(overlay);
 
-        // 写入聊天记录（带时长）
+        // 写入聊天记录（带时长，用场景图标，睡觉场景就是月亮）
         const elapsed = formatElapsed(getElapsedSeconds());
-        sendChatEvent('fa-moon', `${partnerName}说了再见`, elapsed);
+        const sceneIcon = MODES[currentMode]?.icon || 'fa-moon';
+        sendChatEvent(sceneIcon, `${partnerName}说了再见`, elapsed);
 
         // "再见" 按钮 → 过渡画面 → 关闭陪伴页
         const ackBtn = overlay.querySelector('#companion-goodnight-ack');
@@ -969,9 +970,10 @@
         injectKeyframes();
         document.documentElement.appendChild(overlay);
 
-        // 写入聊天记录（带时长）
+        // 写入聊天记录（带时长，用场景图标）
         const elapsed = formatElapsed(getElapsedSeconds());
-        sendChatEvent('fa-hand', `${partnerName}提前离开了陪伴`, elapsed);
+        const sceneIcon = MODES[currentMode]?.icon || 'fa-hand';
+        sendChatEvent(sceneIcon, `${partnerName}提前离开了陪伴`, elapsed);
 
         // "知道了" 按钮点击 → 过渡画面 → 关闭陪伴页
         const ackBtn = overlay.querySelector('#companion-farewell-ack');
@@ -1471,7 +1473,9 @@
             const label = sceneName
                 ? `${sceneName}陪伴已结束`
                 : `陪伴已结束`;
-            sendChatEvent('fa-moon', label, elapsed);
+            // 用场景对应的图标
+            const sceneIcon = MODES[currentMode]?.icon || 'fa-moon';
+            sendChatEvent(sceneIcon, label, elapsed);
         }
 
         // 停止语音
