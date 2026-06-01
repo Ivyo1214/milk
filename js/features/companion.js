@@ -1,4 +1,4 @@
-/**
+、/**
  * companion.js — 陪伴功能模块
  * 依赖：localforage, APP_PREFIX, getStorageKey, showNotification
  */
@@ -709,6 +709,117 @@
         _earlyLeaveTimer = null;
     }
 
+    // ─── 梦角主动告别（仅正计时·睡觉好好休息）────────────────────────────
+    // 计时开始后 4~7 小时随机一个时间点，50% 概率触发
+    // 触发：弹梦角头像 + 道别文案 + "再见"按钮，用户必须点才能关
+
+    const PARTNER_GOODNIGHT_LINES = [
+        '天亮了，该起床啦～',
+        '时间不早了，要好好生活哦',
+        '我先离开一会儿，你也起来活动活动吧',
+        '陪了你这么久，该回归现实啦',
+        '该开始新的一天了，加油哦'
+    ];
+
+    let _partnerGoodnightTimer = null;
+    // 强制结果（用于测试）：null=正常随机，true=强制下次检查时告别
+    let _forcePartnerGoodnight = false;
+
+    function schedulePartnerGoodnight() {
+        clearTimeout(_partnerGoodnightTimer);
+        // 4~7 小时随机一个时间点
+        const minMs = 4 * 60 * 60 * 1000;
+        const maxMs = 7 * 60 * 60 * 1000;
+        const delayMs = minMs + Math.random() * (maxMs - minMs);
+        _partnerGoodnightTimer = setTimeout(() => {
+            // 必须仍在陪伴中且仍在正计时模式
+            if (!document.getElementById('companion-page')?.classList.contains('active')) return;
+            if (currentMode !== 'sleep' || isCountdown) return;
+            // 50% 概率（或测试模式强制触发）
+            if (_forcePartnerGoodnight || Math.random() < 0.5) {
+                _forcePartnerGoodnight = false;
+                triggerPartnerGoodnight();
+            }
+            // 注意：只检查这一次，不像 earlyLeave 那样递归（因为是 4~7 小时已经够长，
+            //       而且如果没触发，用户睡到自然醒就行，不需要再来一次）
+        }, delayMs);
+    }
+
+    function stopPartnerGoodnightCheck() {
+        clearTimeout(_partnerGoodnightTimer);
+        _partnerGoodnightTimer = null;
+    }
+
+    function triggerPartnerGoodnight() {
+        const partnerName = getPartnerName();
+        const line = pickRandom(PARTNER_GOODNIGHT_LINES);
+        const avSrc = getPartnerAvatarSrc();
+
+        // 弹出告别提示（等待用户点"再见"才关闭）
+        const overlay = document.createElement('div');
+        overlay.id = 'companion-goodnight-overlay';
+        overlay.setAttribute('style', [
+            'position:fixed', 'inset:0', 'z-index:99999',
+            'background:rgba(15,15,20,0.92)',
+            'display:flex', 'align-items:center', 'justify-content:center',
+            'animation:companionFadeIn 1.8s ease',
+        ].join(';'));
+
+        const avatarHtml = avSrc
+            ? `<img src="${avSrc}" style="width:100%;height:100%;object-fit:cover;">`
+            : `<i class="fas fa-user" style="font-size:30px;color:rgba(255,255,255,.85);"></i>`;
+
+        overlay.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:20px;color:#fff;max-width:300px;padding:0 20px;animation:companionPopIn 2s ease;">
+                <div style="
+                    width:80px;height:80px;border-radius:50%;overflow:hidden;
+                    background:rgba(255,255,255,0.1);
+                    display:flex;align-items:center;justify-content:center;
+                    border:2px solid rgba(255,255,255,0.15);
+                ">${avatarHtml}</div>
+                <div style="font-size:18px;font-weight:600;letter-spacing:1px;">${partnerName}</div>
+                <div style="
+                    background:rgba(255,255,255,0.08);border-radius:14px;padding:14px 22px;
+                    display:flex;align-items:center;gap:10px;text-align:center;
+                ">
+                    <i class="fas fa-sun" style="color:var(--accent-color,#c5a47e);font-size:16px;"></i>
+                    <span style="font-size:14px;">${line}</span>
+                </div>
+                <button id="companion-goodnight-ack" style="
+                    margin-top:14px;
+                    padding:10px 32px;
+                    border-radius:22px;
+                    border:1px solid rgba(255,255,255,0.25);
+                    background:rgba(255,255,255,0.1);
+                    color:#fff;font-size:14px;letter-spacing:1.5px;
+                    cursor:pointer;
+                    transition:all 0.2s ease;
+                ">再见</button>
+            </div>
+        `;
+
+        injectKeyframes();
+        document.documentElement.appendChild(overlay);
+
+        // 写入聊天记录
+        sendChatEvent('fa-moon', `${partnerName}说了再见`, null);
+
+        // "再见" 按钮 → 关闭告别画面 + 关闭陪伴页
+        const ackBtn = overlay.querySelector('#companion-goodnight-ack');
+        if (ackBtn) {
+            ackBtn.addEventListener('click', () => {
+                if (overlay.isConnected) overlay.remove();
+                closeCompanionPage({ skipLogEvent: true });
+            });
+            ackBtn.addEventListener('mouseenter', () => {
+                ackBtn.style.background = 'rgba(255,255,255,0.18)';
+            });
+            ackBtn.addEventListener('mouseleave', () => {
+                ackBtn.style.background = 'rgba(255,255,255,0.1)';
+            });
+        }
+    }
+
     function triggerEarlyLeave() {
         const partnerName = getPartnerName();
         const line = pickRandom(FAREWELL_LINES);
@@ -1245,11 +1356,15 @@
         opts = opts || {};
         stopTimer();
         stopEarlyLeaveCheck();
+        stopPartnerGoodnightCheck();
         recordHistory();
 
-        // 默认留痕"结束了一次陪伴"，除非显式 skipLogEvent
+        // 默认留痕，除非显式 skipLogEvent
         if (!opts.skipLogEvent) {
-            sendChatEvent('fa-moon', '结束了一次陪伴', null);
+            // 文案带场景名：结束了一次 XX 陪伴
+            const sceneName = MODES[currentMode]?.label?.slice(2) || '';  // "一起学习" → "学习"
+            const label = sceneName ? `结束了一次${sceneName}陪伴` : '结束了一次陪伴';
+            sendChatEvent('fa-moon', label, null);
         }
 
         // 停止语音
@@ -1743,8 +1858,14 @@
 
     function startTimer() {
         clearInterval(timerInterval);
-        // 同时启动梦角提前离开的检查
-        scheduleEarlyLeaveCheck();
+        // 启动场景对应的事件检查
+        if (currentMode === 'sleep' && !isCountdown) {
+            // 正计时（好好休息）→ 启动梦角主动告别检查
+            schedulePartnerGoodnight();
+        } else {
+            // 倒计时 → 启动梦角提前离开检查
+            scheduleEarlyLeaveCheck();
+        }
         timerInterval = setInterval(() => {
             if (isCountdown) {
                 timerSeconds--;
@@ -1949,8 +2070,8 @@
             window._extendInvitingSession = null;
             clearTimeout(window._extendInvitingTimer);
             overlay.remove();
-            sendChatEvent('fa-xmark', '取消了继续陪伴的邀请', null);
-            closeCompanionPage({ skipLogEvent: true });
+            // 不再单独发"取消了继续陪伴"，统一让 closeCompanionPage 留"结束了一次XX陪伴"
+            closeCompanionPage();
         });
 
         // 1~3 秒后梦角回应 — 35% 拒绝 / 65% 同意
@@ -1963,9 +2084,8 @@
             overlay.remove();
 
             if (willReject) {
-                const rejectLine = pickRandom(REJECT_LINES);
-                sendChatEvent('fa-heart-broken', `${partnerName}：${rejectLine}`, null);
-                closeCompanionPage({ skipLogEvent: true });
+                // 不再发拒绝台词，统一让 closeCompanionPage 留"结束了一次XX陪伴"
+                closeCompanionPage();
             } else {
                 sendChatEvent('fa-heart', `${partnerName}同意了继续陪伴`, null);
                 // 继续陪伴：重新启动计时器（timerSeconds/totalSeconds 已经在 openTimeModal 阶段设置）
@@ -2074,8 +2194,8 @@
 
         overlay.querySelector('#extend-partner-no').addEventListener('click', () => {
             overlay.remove();
-            sendChatEvent('fa-heart-broken', `拒绝了${partnerName}继续陪伴的邀请`, null);
-            closeCompanionPage({ skipLogEvent: true });
+            // 不再单独发"拒绝了xx的邀请"，统一让 closeCompanionPage 留"结束了一次XX陪伴"
+            closeCompanionPage();
         });
     }
 
@@ -2919,6 +3039,59 @@
             }
             stopTimer();
             showExtendPromptByPartner();
+        },
+
+        // 测试：快进倒计时（让倒计时只剩 N 秒，N 秒后自然触发"时间到"）
+        // 用法：companionModule.skipTo(5)  — 5 秒后倒计时归零
+        skipTo: (secondsLeft = 3) => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 请先进入陪伴中');
+                return;
+            }
+            if (!isCountdown) {
+                console.warn('[companion] 正计时模式无法快进');
+                return;
+            }
+            timerSeconds = secondsLeft;
+            updateTimerDisplay();
+            console.log(`[companion] 已快进，剩余 ${secondsLeft} 秒后归零`);
+        },
+
+        // 测试：让时间瞬间归零并触发 onTimerEnd（最快测试方式）
+        skipToEnd: () => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 请先进入陪伴中');
+                return;
+            }
+            if (!isCountdown) {
+                console.warn('[companion] 正计时模式无法快进');
+                return;
+            }
+            timerSeconds = 0;
+            updateTimerDisplay();
+            stopTimer();
+            onTimerEnd();
+            console.log('[companion] 已强制触发"时间到"');
+        },
+
+        // 测试：立刻触发梦角主动告别（正计时·睡觉好好休息专用）
+        // 用法：先 testEnter('sleep', 'rest') 进入好好休息模式，再 testPartnerGoodnight()
+        testPartnerGoodnight: () => {
+            if (!document.getElementById('companion-page')?.classList.contains('active')) {
+                console.warn('[companion] 请先进入陪伴中');
+                return;
+            }
+            if (currentMode !== 'sleep' || isCountdown) {
+                console.warn('[companion] 此功能只在睡觉的"好好休息"模式（正计时）下生效');
+                return;
+            }
+            triggerPartnerGoodnight();
+        },
+
+        // 测试：让下一次 4~7 小时检查时强制告别（不用等概率）
+        forceNextPartnerGoodnight: () => {
+            _forcePartnerGoodnight = true;
+            console.log('[companion] 下次 4~7 小时检查时将强制告别');
         },
 
         // 控制随机邀请定时器
