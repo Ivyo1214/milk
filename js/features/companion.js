@@ -334,7 +334,10 @@
 
     // ─── 过渡画面工具：显示一段 3.5s 的过渡，回调在结束时触发 ──────────────
     let _transitionTimers = []; // 存当前所有 timer，新过渡触发时清除旧的
-    function showCompanionTransition(text, onComplete) {
+    // text:      显示的文字
+    // onComplete: 过渡完全消失后的回调
+    // onShown:    过渡画面完全盖住屏幕后立刻触发的回调（用于"悄悄关闭陪伴页"）
+    function showCompanionTransition(text, onComplete, onShown) {
         // 清理之前的过渡和它的所有 timer
         _transitionTimers.forEach(t => clearTimeout(t));
         _transitionTimers = [];
@@ -353,6 +356,12 @@
         requestAnimationFrame(() => {
             requestAnimationFrame(() => el.classList.add('active'));
         });
+
+        // 过渡画面完全盖住屏幕后（渐入约 1s 完成）触发 onShown
+        if (typeof onShown === 'function') {
+            const tShown = setTimeout(onShown, 1000);
+            _transitionTimers.push(tShown);
+        }
 
         // 3.5 秒后渐出 + 移除 + 回调
         const t1 = setTimeout(() => {
@@ -900,14 +909,16 @@
         const sceneIcon = MODES[currentMode]?.icon || 'fa-moon';
         sendChatEvent(sceneIcon, `${partnerName}说了再见`, elapsed);
 
-        // "再见" 按钮 → 立刻关闭陪伴页 → 过渡画面盖在首页上
+        // "再见" 按钮 → 显示过渡画面（覆盖后悄悄关闭陪伴页）
         const ackBtn = overlay.querySelector('#companion-goodnight-ack');
         if (ackBtn) {
             ackBtn.addEventListener('click', () => {
                 if (overlay.isConnected) overlay.remove();
-                // 先关闭陪伴页（已留痕），再显示过渡盖在首页上
-                closeCompanionPage({ skipLogEvent: true });
-                showCompanionTransition(pickRandom(TRANSITION_LINES.partnerGoodbye));
+                showCompanionTransition(
+                    pickRandom(TRANSITION_LINES.partnerGoodbye),
+                    null,
+                    () => closeCompanionPage({ skipLogEvent: true })
+                );
             });
             ackBtn.addEventListener('mouseenter', () => {
                 ackBtn.style.background = 'rgba(255,255,255,0.18)';
@@ -974,14 +985,16 @@
         const sceneIcon = MODES[currentMode]?.icon || 'fa-hand';
         sendChatEvent(sceneIcon, `${partnerName}提前离开了陪伴`, elapsed);
 
-        // "知道了" 按钮点击 → 立刻关闭陪伴页 → 过渡画面盖在首页上
+        // "知道了" 按钮点击 → 显示过渡画面（覆盖后悄悄关闭陪伴页）
         const ackBtn = overlay.querySelector('#companion-farewell-ack');
         if (ackBtn) {
             ackBtn.addEventListener('click', () => {
                 if (overlay.isConnected) overlay.remove();
-                // 先关闭陪伴页（已留痕），再显示过渡盖在首页上
-                closeCompanionPage({ skipLogEvent: true });
-                showCompanionTransition(pickRandom(TRANSITION_LINES.partnerEarlyLeave));
+                showCompanionTransition(
+                    pickRandom(TRANSITION_LINES.partnerEarlyLeave),
+                    null,
+                    () => closeCompanionPage({ skipLogEvent: true })
+                );
             });
             ackBtn.addEventListener('mouseenter', () => {
                 ackBtn.style.background = 'rgba(255,255,255,0.18)';
@@ -2096,9 +2109,12 @@
         });
         overlay.querySelector('#extend-prompt-no').addEventListener('click', () => {
             overlay.remove();
-            // 先关闭陪伴页（会留痕"xx陪伴已结束 · MM:SS"），再过渡盖在首页
-            closeCompanionPage();
-            showCompanionTransition(pickRandom(TRANSITION_LINES.userExit));
+            // 显示过渡画面（覆盖后悄悄关闭陪伴页，留痕 xx陪伴已结束）
+            showCompanionTransition(
+                pickRandom(TRANSITION_LINES.userExit),
+                null,
+                () => closeCompanionPage()
+            );
         });
     }
 
@@ -2198,10 +2214,13 @@
             overlay.remove();
 
             if (willReject) {
-                // 先关闭陪伴页（留痕），再过渡盖在首页上（用梦角原话）
+                // 显示过渡画面（用梦角原话，覆盖后悄悄关闭陪伴页）
                 const line = pickRandom(REJECT_LINES);
-                closeCompanionPage();
-                showCompanionTransition(`${line}……`);
+                showCompanionTransition(
+                    `${line}……`,
+                    null,
+                    () => closeCompanionPage()
+                );
             } else {
                 sendChatEvent('fa-heart', `${partnerName}同意了继续陪伴`, null);
                 // 过渡画面：旁白 → 累计时长 → 继续陪伴
@@ -2316,9 +2335,12 @@
 
         overlay.querySelector('#extend-partner-no').addEventListener('click', () => {
             overlay.remove();
-            // 先关闭陪伴页，再过渡盖在首页
-            closeCompanionPage();
-            showCompanionTransition(pickRandom(TRANSITION_LINES.userRejectExtend));
+            // 显示过渡画面（覆盖后悄悄关闭陪伴页）
+            showCompanionTransition(
+                pickRandom(TRANSITION_LINES.userRejectExtend),
+                null,
+                () => closeCompanionPage()
+            );
         });
     }
 
@@ -2923,9 +2945,12 @@
         if (exitConfirmYes) exitConfirmYes.addEventListener('click', () => {
             // 先收起退出确认弹窗
             $('companion-exit-confirm')?.classList.remove('active');
-            // 先关闭陪伴页（会留痕），再显示过渡盖在首页上
-            closeCompanionPage();
-            showCompanionTransition(pickRandom(TRANSITION_LINES.userExit));
+            // 显示过渡画面（覆盖后悄悄关闭陪伴页，留痕 xx陪伴已结束）
+            showCompanionTransition(
+                pickRandom(TRANSITION_LINES.userExit),
+                null,
+                () => closeCompanionPage()
+            );
         });
 
         const exitConfirmNo = $('exit-confirm-no');
