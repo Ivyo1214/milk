@@ -2380,12 +2380,29 @@
     function handlePageClick(e) {
         // 排除按钮、计时器区域、退出确认弹窗的点击
         if (e.target.closest('button, input, #companion-timer-area, #companion-exit-confirm')) return;
+        // 点击位置显示涟漪特效（视觉反馈）
+        createRippleEffect(e.clientX, e.clientY);
         const voices = (companionData.voices && companionData.voices[currentMode]) || [];
         if (!voices.length) {
             notify('没有什么想说的', 'info');
             return;
         }
         playRandomVoice();
+    }
+
+    // ─── 涟漪点击特效 ───────────────────────────────────────────────────────
+    // 在指定坐标创建双层涟漪扩散（每层 0.9s）
+    function createRippleEffect(x, y) {
+        for (let i = 0; i < 2; i++) {
+            setTimeout(() => {
+                const r = document.createElement('div');
+                r.className = 'companion-ripple';
+                r.style.left = x + 'px';
+                r.style.top = y + 'px';
+                document.documentElement.appendChild(r);
+                setTimeout(() => { if (r.isConnected) r.remove(); }, 950);
+            }, i * 150);
+        }
     }
 
     // ─── 设置面板（右侧滑出）────────────────────────────────────────────────
