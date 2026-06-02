@@ -1308,14 +1308,16 @@ html[data-theme="dark"] .companion-mode-card i {
     opacity: 0;
     transform: translateY(8px);
     animation: companionBubbleIn 0.5s ease forwards;
-    transition: opacity 2s linear;
 }
 .companion-bubble.fading {
-    opacity: 0 !important;
-    animation: none;
+    animation: companionBubbleOut 2s linear forwards;
 }
 @keyframes companionBubbleIn {
     to { opacity: 1; transform: translateY(0); }
+}
+@keyframes companionBubbleOut {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(0); }
 }
 .companion-bubble-avatar {
     width: 36px;
