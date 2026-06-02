@@ -2472,7 +2472,7 @@
         if (activeBubbles.length >= 4) {
             const oldest = activeBubbles[0];
             oldest.classList.add('fading');
-            setTimeout(() => { if (oldest.isConnected) oldest.remove(); }, 600);
+            setTimeout(() => { if (oldest.isConnected) oldest.remove(); }, 2000);
         }
 
         const bubble = document.createElement('div');
@@ -2497,10 +2497,10 @@
         `;
         area.appendChild(bubble);
 
-        // 8 秒后渐隐 + 移除
+        // 8 秒显示后启动 2s 渐隐 → 共 10s
         setTimeout(() => {
             bubble.classList.add('fading');
-            setTimeout(() => { if (bubble.isConnected) bubble.remove(); }, 600);
+            setTimeout(() => { if (bubble.isConnected) bubble.remove(); }, 2000);
         }, 8000);
     }
 
