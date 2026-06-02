@@ -1252,6 +1252,12 @@ const addMessage = (message) => {
     });
 
     throttledSaveData();
+
+    // 钩子：通知陪伴模块"梦角刚说了一句话"，让陪伴页可以同步显示气泡
+    // 只对梦角的普通消息触发（不是用户消息、不是 system call-event 等）
+    if (message.sender !== 'user' && message.type === 'normal' && typeof window._onPartnerMessage === 'function') {
+        try { window._onPartnerMessage(message); } catch (e) { console.warn('[onPartnerMessage]', e); }
+    }
 };
 
         window._addCallEvent = (icon, label, detail) => {
