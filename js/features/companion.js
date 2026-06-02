@@ -2448,8 +2448,16 @@
         // 只在陪伴页激活时响应
         const page = document.getElementById('companion-page');
         if (!page || !page.classList.contains('active')) return;
-        // 记录到本次陪伴对话
-        _sessionDialogue.push(message);
+        // 过滤：语音消息不显示（陪伴页只显示文字+sticker）
+        if (message.voice) return;
+        // 过滤：既无文本也无图片的空消息
+        if (!message.text && !message.image) return;
+        // 记录到本次陪伴对话（存快照避免被后续语音改造影响）
+        _sessionDialogue.push({
+            text: message.text || '',
+            image: message.image || null,
+            sender: message.sender,
+        });
         // 显示气泡 + 隐藏 typing
         hideCompanionTyping();
         showCompanionBubble(message);
@@ -2571,7 +2579,9 @@
         modal.innerHTML = `
             <div class="companion-history-box">
                 <div class="companion-history-header">
-                    <button class="companion-history-close" title="关闭">退出</button>
+                    <button class="companion-history-close" title="关闭">
+                        <i class="fas fa-xmark"></i>
+                    </button>
                 </div>
                 <div class="companion-history-list">${listHtml}</div>
             </div>
