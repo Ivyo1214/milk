@@ -64,9 +64,15 @@
             if (msg._fakeVoiceConsidered) return;
             msg._fakeVoiceConsidered = true;
 
+            // 陪伴页激活时，不改造为伪语音（陪伴中梦角的回复永远是文字）
+            const companionPage = document.getElementById('companion-page');
+            if (companionPage && companionPage.classList.contains('active')) return;
+
             if (Math.random() >= FAKE_VOICE_PROBABILITY) return;
 
-            const duration = 3 + Math.floor(Math.random() * 58);
+            // 时长根据字数算 = 字数/3 + 随机 0-3 秒（最少 1 秒）
+            const textLen = msg.text.trim().length;
+            const duration = Math.max(1, Math.floor(textLen / 3) + Math.floor(Math.random() * 4));
             msg.voice = {
                 url: '',
                 duration: duration,
