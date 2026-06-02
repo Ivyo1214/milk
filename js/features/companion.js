@@ -1797,9 +1797,9 @@
                 <div class="companion-noise-list-empty">
                     <i class="fas fa-folder-open"></i>
                     还没有添加音乐
-                    <div style="margin-top:8px;">
+                    <div style="margin-top:8px;text-align:center;">
                         <button class="companion-noise-list-card-add">
-                            <i class="fas fa-plus"></i> 添加音乐
+                            <i class="fas fa-music"></i> 添加音乐
                         </button>
                     </div>
                 </div>
@@ -2561,7 +2561,7 @@
 
         let listHtml = '';
         if (_sessionDialogue.length === 0) {
-            listHtml = `<div class="companion-history-empty">还没有对话<br>点击屏幕和${partnerName}聊聊吧</div>`;
+            listHtml = `<div class="companion-history-empty">暂无对话<br>点击屏幕和${partnerName}聊聊吧</div>`;
         } else {
             listHtml = _sessionDialogue.map(m => {
                 const contentHtml = m.image
