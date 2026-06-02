@@ -1797,7 +1797,7 @@
                 <div class="companion-noise-list-empty">
                     <i class="fas fa-music"></i>
                     还没有添加音乐
-                    <div style="margin-top:8px;text-align:center;">
+                    <div style="margin-top:8px;display:flex;justify-content:center;">
                         <button class="companion-noise-list-card-add">
                             <i class="fas fa-music"></i> 添加音乐
                         </button>
@@ -2472,7 +2472,7 @@
         if (activeBubbles.length >= 4) {
             const oldest = activeBubbles[0];
             oldest.classList.add('fading');
-            setTimeout(() => { if (oldest.isConnected) oldest.remove(); }, 2000);
+            setTimeout(() => { if (oldest.isConnected) oldest.remove(); }, 1000);
         }
 
         const bubble = document.createElement('div');
@@ -2500,7 +2500,7 @@
         // 8 秒显示后启动 2s 渐隐 → 共 10s
         setTimeout(() => {
             bubble.classList.add('fading');
-            setTimeout(() => { if (bubble.isConnected) bubble.remove(); }, 2000);
+            setTimeout(() => { if (bubble.isConnected) bubble.remove(); }, 1000);
         }, 8000);
     }
 
