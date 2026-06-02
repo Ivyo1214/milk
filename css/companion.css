@@ -1024,12 +1024,12 @@ html[data-theme="dark"] .companion-mode-card i {
 /* "添加音乐" 按钮（空列表用）— 紧凑居中 */
 .companion-noise-list-card-add {
     margin: 10px auto 0;
-    padding: 8px 22px;
+    padding: 6px 16px;
     background: var(--accent-color, #c5a47e);
     color: #fff;
     border: none;
-    border-radius: 18px;
-    font-size: 13px;
+    border-radius: 14px;
+    font-size: 12px;
     cursor: pointer;
     display: flex;
     width: fit-content;
