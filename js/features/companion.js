@@ -1797,9 +1797,9 @@
                 <div class="companion-noise-list-empty">
                     <i class="fas fa-music"></i>
                     还没有添加音乐
-                    <div style="margin-top:8px;display:flex;justify-content:center;">
-                        <button class="companion-noise-list-card-add">
-                            <i class="fas fa-music"></i> 添加音乐
+                    <div style="margin-top:8px;display:flex;justify-content:center;align-items:center;">
+                        <button class="companion-noise-list-card-add" style="margin:0;width:auto;">
+                            添加音乐
                         </button>
                     </div>
                 </div>
