@@ -1021,8 +1021,27 @@ html[data-theme="dark"] .companion-mode-card i {
     min-width: 0;
 }
 
-/* "添加白噪音" 按钮（空列表用）和 "添加更多" 按钮（非空底部用）*/
-.companion-noise-list-card-add,
+/* "添加音乐" 按钮（空列表用）— 紧凑居中 */
+.companion-noise-list-card-add {
+    margin: 10px auto 0;
+    padding: 8px 22px;
+    background: var(--accent-color, #c5a47e);
+    color: #fff;
+    border: none;
+    border-radius: 18px;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+.companion-noise-list-card-add:hover {
+    transform: translateY(-1px);
+    opacity: 0.92;
+}
+/* "添加更多" 按钮（非空底部用）— 保持原样满宽 */
 .companion-noise-list-card-add-more {
     margin-top: 10px;
     padding: 10px 20px;
@@ -1032,20 +1051,13 @@ html[data-theme="dark"] .companion-mode-card i {
     border-radius: 10px;
     font-size: 13px;
     cursor: pointer;
-    display: inline-flex;
+    display: flex;
+    width: 100%;
+    justify-content: center;
     align-items: center;
     gap: 6px;
     transition: all 0.2s ease;
 }
-.companion-noise-list-card-add-more {
-    display: flex;
-    width: 100%;
-    justify-content: center;
-    background: var(--primary-bg, #fafafa);
-    color: var(--accent-color, #c5a47e);
-    border: 1.5px dashed var(--accent-color, #c5a47e);
-}
-.companion-noise-list-card-add:hover,
 .companion-noise-list-card-add-more:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(var(--accent-color-rgb, 197,164,126), 0.25);
@@ -1256,30 +1268,18 @@ html[data-theme="dark"] .companion-mode-card i {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   陪伴页：历史按钮（右下角，音符按钮上方）
+   陪伴页：历史按钮（右下角，音符按钮上方，样式跟音乐按钮一致）
    ──────────────────────────────────────────────────────────────── */
 .companion-history-corner {
     position: absolute;
     right: 20px;
-    bottom: 100px;  /* 音符按钮上方 */
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.7);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    z-index: 50;
-    transition: all 0.2s;
-}
-.companion-history-corner:hover {
-    color: #fff;
-    background: rgba(255,255,255,0.15);
+    bottom: calc(max(30px, env(safe-area-inset-bottom, 30px)) + 52px);  /* 音乐按钮上方 */
+    z-index: 5;
+    background: rgba(0,0,0,0.35) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    color: rgba(255,255,255,0.92) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -1308,15 +1308,14 @@ html[data-theme="dark"] .companion-mode-card i {
     opacity: 0;
     transform: translateY(8px);
     animation: companionBubbleIn 0.5s ease forwards;
+    transition: opacity 2s linear;
 }
 .companion-bubble.fading {
-    animation: companionBubbleOut 2s linear forwards;
+    opacity: 0 !important;
+    animation: none;
 }
 @keyframes companionBubbleIn {
     to { opacity: 1; transform: translateY(0); }
-}
-@keyframes companionBubbleOut {
-    to { opacity: 0; }
 }
 .companion-bubble-avatar {
     width: 36px;
