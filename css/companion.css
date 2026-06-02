@@ -1311,7 +1311,7 @@ html[data-theme="dark"] .companion-mode-card i {
     animation: companionBubbleIn 0.5s ease forwards;
 }
 .companion-bubble.fading {
-    animation: companionBubbleOut 2s linear forwards;
+    animation: companionBubbleOut 1s linear forwards;
 }
 @keyframes companionBubbleIn {
     to { opacity: 1; transform: translateY(0); }
