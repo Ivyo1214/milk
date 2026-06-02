@@ -1031,7 +1031,8 @@ html[data-theme="dark"] .companion-mode-card i {
     border-radius: 18px;
     font-size: 13px;
     cursor: pointer;
-    display: inline-flex;
+    display: flex;
+    width: fit-content;
     align-items: center;
     justify-content: center;
     gap: 6px;
