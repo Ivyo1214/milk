@@ -1712,7 +1712,7 @@
                         <i class="fas fa-fire"></i><span>篝火</span>
                     </div>
                     <div class="companion-noise-option ${activeType === 'custom' ? 'active' : ''}" data-type="custom">
-                        <i class="fas fa-folder-open"></i><span>我的音乐</span>
+                        <i class="fas fa-music"></i><span>我的音乐</span>
                     </div>
                     <div class="companion-noise-option ${activeType === 'silent' ? 'active' : ''}" data-type="silent">
                         <i class="fas fa-volume-mute"></i><span>无声</span>
@@ -1795,7 +1795,7 @@
         if (list.length === 0) {
             bodyHtml = `
                 <div class="companion-noise-list-empty">
-                    <i class="fas fa-folder-open"></i>
+                    <i class="fas fa-music"></i>
                     还没有添加音乐
                     <div style="margin-top:8px;text-align:center;">
                         <button class="companion-noise-list-card-add">
@@ -1837,7 +1837,7 @@
         card.innerHTML = `
             <div class="companion-noise-card-inner companion-noise-list-card">
                 <div class="companion-noise-card-title">
-                    <i class="fas fa-folder-open"></i>
+                    <i class="fas fa-music"></i>
                     <span>我的音乐</span>
                 </div>
                 ${bodyHtml}
@@ -2561,7 +2561,7 @@
 
         let listHtml = '';
         if (_sessionDialogue.length === 0) {
-            listHtml = `<div class="companion-history-empty">暂无对话<br>点击屏幕和${partnerName}聊聊吧</div>`;
+            listHtml = `<div class="companion-history-empty">暂无对话</div>`;
         } else {
             listHtml = _sessionDialogue.map(m => {
                 const contentHtml = m.image
