@@ -1418,6 +1418,9 @@
         // 启动会话时钟（统计陪伴时长用）
         startSessionClock();
 
+        // 清空本次陪伴的对话记录
+        _sessionDialogue = [];
+
         // 启动计时器
         startTimer();
 
@@ -1505,6 +1508,12 @@
         // 清空会话时钟
         _sessionStartTime = null;
         _accumulatedExtendTime = 0;
+
+        // 清空本次对话 + 气泡 + typing
+        _sessionDialogue = [];
+        const bubbleArea = document.getElementById('companion-bubble-area');
+        if (bubbleArea) bubbleArea.innerHTML = '';
+        hideCompanionTyping();
     }
 
     // ─── 白噪音 ──────────────────────────────────────────────────────────────
@@ -2384,20 +2393,16 @@
         currentAudio = audio;
     }
 
-    // 点击空白区域播放
+    // 点击空白区域 → 触发梦角字卡回复（复用首页 simulateReply）+ 显示涟漪
     function handlePageClick(e) {
         // 排除按钮、计时器区域、退出确认弹窗的点击
         if (e.target.closest('button, input, #companion-timer-area, #companion-exit-confirm')) return;
-        // 点击位置显示涟漪特效（始终响应，给用户视觉反馈）
+        // 涟漪特效（始终响应）
         createRippleEffect(e.clientX, e.clientY);
-        // 如果当前语音还在播放，不重新触发（避免打断）
-        if (_isVoicePlaying) return;
-        const voices = (companionData.voices && companionData.voices[currentMode]) || [];
-        if (!voices.length) {
-            notify('没有什么想说的', 'info');
-            return;
+        // 复用首页字卡触发逻辑（自动处理 typing/字卡选择/写入 messages/sticker/通知）
+        if (typeof window.simulateReply === 'function') {
+            window.simulateReply();
         }
-        playRandomVoice();
     }
 
     // ─── 涟漪点击特效 ───────────────────────────────────────────────────────
@@ -2414,6 +2419,168 @@
             }, i * 150);
         }
     }
+
+    // ─── 陪伴对话气泡 ──────────────────────────────────────────────────────
+    // 本次陪伴中梦角说过的所有话（退出时清空）
+    let _sessionDialogue = [];
+
+    // 钩子：每次 addMessage 写入梦角消息时被调用（在 core.js 里设置）
+    function onPartnerMessage(message) {
+        // 只在陪伴页激活时响应
+        const page = document.getElementById('companion-page');
+        if (!page || !page.classList.contains('active')) return;
+        // 记录到本次陪伴对话
+        _sessionDialogue.push(message);
+        // 显示气泡 + 隐藏 typing
+        hideCompanionTyping();
+        showCompanionBubble(message);
+    }
+
+    function showCompanionBubble(message) {
+        const area = document.getElementById('companion-bubble-area');
+        if (!area) return;
+
+        // 太多气泡时让最老的提前渐隐（最多保留 4 条）
+        const activeBubbles = Array.from(area.querySelectorAll('.companion-bubble:not(.fading)'));
+        if (activeBubbles.length >= 4) {
+            const oldest = activeBubbles[0];
+            oldest.classList.add('fading');
+            setTimeout(() => { if (oldest.isConnected) oldest.remove(); }, 600);
+        }
+
+        const bubble = document.createElement('div');
+        bubble.className = 'companion-bubble';
+
+        const avSrc = getPartnerAvatarSrc();
+        const avatarHtml = avSrc
+            ? `<img src="${avSrc}">`
+            : `<i class="fas fa-user"></i>`;
+
+        // 文字 or 图片（sticker）
+        let contentHtml = '';
+        if (message.image) {
+            contentHtml = `<img src="${message.image}">`;
+        } else {
+            contentHtml = escapeHtml(message.text || '');
+        }
+
+        bubble.innerHTML = `
+            <div class="companion-bubble-avatar">${avatarHtml}</div>
+            <div class="companion-bubble-content">${contentHtml}</div>
+        `;
+        area.appendChild(bubble);
+
+        // 8 秒后渐隐 + 移除
+        setTimeout(() => {
+            bubble.classList.add('fading');
+            setTimeout(() => { if (bubble.isConnected) bubble.remove(); }, 600);
+        }, 8000);
+    }
+
+    function showCompanionTyping() {
+        const el = document.getElementById('companion-typing-indicator');
+        if (!el) return;
+        const partnerName = getPartnerName();
+        const nameEl = el.querySelector('.companion-typing-name');
+        if (nameEl) nameEl.textContent = `${partnerName} 正在输入`;
+        const avEl = el.querySelector('.companion-typing-avatar');
+        const avSrc = getPartnerAvatarSrc();
+        if (avEl) {
+            avEl.innerHTML = avSrc ? `<img src="${avSrc}">` : `<i class="fas fa-user"></i>`;
+        }
+        el.classList.add('active');
+    }
+
+    function hideCompanionTyping() {
+        const el = document.getElementById('companion-typing-indicator');
+        if (el) el.classList.remove('active');
+    }
+
+    // 监听首页 typing-indicator 显示/隐藏，同步到陪伴页
+    function watchTypingIndicator() {
+        const ti = document.getElementById('typing-indicator-wrapper');
+        if (!ti) {
+            // 元素还没出现，500ms 后重试（最多 10 次）
+            if ((watchTypingIndicator._retries = (watchTypingIndicator._retries || 0) + 1) < 10) {
+                setTimeout(watchTypingIndicator, 500);
+            }
+            return;
+        }
+        const observer = new MutationObserver(() => {
+            const page = document.getElementById('companion-page');
+            if (!page || !page.classList.contains('active')) return;
+            const isShown = ti.style.display !== 'none' && ti.style.display !== '';
+            if (isShown) {
+                showCompanionTyping();
+            } else {
+                hideCompanionTyping();
+            }
+        });
+        observer.observe(ti, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    // ─── 陪伴对话历史弹窗 ──────────────────────────────────────────────────
+    function openCompanionHistory() {
+        // 移除残留
+        document.querySelectorAll('#companion-history-modal').forEach(el => el.remove());
+
+        const modal = document.createElement('div');
+        modal.id = 'companion-history-modal';
+        modal.className = 'companion-history-modal active';
+
+        const partnerName = getPartnerName();
+        const avSrc = getPartnerAvatarSrc();
+        const avatarHtml = avSrc ? `<img src="${avSrc}">` : `<i class="fas fa-user"></i>`;
+
+        let listHtml = '';
+        if (_sessionDialogue.length === 0) {
+            listHtml = `<div class="companion-history-empty">还没有对话<br>点击屏幕和${partnerName}聊聊吧</div>`;
+        } else {
+            listHtml = _sessionDialogue.map(m => {
+                const contentHtml = m.image
+                    ? `<img src="${m.image}">`
+                    : escapeHtml(m.text || '');
+                return `
+                    <div class="companion-history-item">
+                        <div class="companion-bubble-avatar">${avatarHtml}</div>
+                        <div class="companion-bubble-content">${contentHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        modal.innerHTML = `
+            <div class="companion-history-box">
+                <div class="companion-history-header">
+                    <span class="companion-history-title">本次对话</span>
+                    <button class="companion-history-close" title="关闭">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="companion-history-list">${listHtml}</div>
+            </div>
+        `;
+
+        document.documentElement.appendChild(modal);
+
+        // 关闭按钮
+        modal.querySelector('.companion-history-close').addEventListener('click', () => {
+            modal.classList.remove('active');
+            setTimeout(() => { if (modal.isConnected) modal.remove(); }, 300);
+        });
+        // 点背景关闭
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                setTimeout(() => { if (modal.isConnected) modal.remove(); }, 300);
+            }
+        });
+
+        // 滚到底（最新对话）
+        const list = modal.querySelector('.companion-history-list');
+        if (list) list.scrollTop = list.scrollHeight;
+    }
+
 
     // ─── 设置面板（右侧滑出）────────────────────────────────────────────────
 
@@ -2991,6 +3158,21 @@
                 openNoiseCard();
             });
         }
+
+        // 对话历史按钮（右下角悬浮，音符按钮上方）
+        const historyBtn = $('companion-history-btn');
+        if (historyBtn) {
+            historyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();  // 阻止冒泡
+                openCompanionHistory();
+            });
+        }
+
+        // 注册"梦角说话"钩子 — core.js addMessage 末尾会调用
+        window._onPartnerMessage = onPartnerMessage;
+
+        // 监听首页 typing-indicator 的显示/隐藏，同步到陪伴页
+        watchTypingIndicator();
 
         // 设置面板入口和相关元素已移除（统一去外观设置 → 背景&字体 管理）
     }
