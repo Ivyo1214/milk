@@ -1712,7 +1712,7 @@
                         <i class="fas fa-fire"></i><span>篝火</span>
                     </div>
                     <div class="companion-noise-option ${activeType === 'custom' ? 'active' : ''}" data-type="custom">
-                        <i class="fas fa-folder-open"></i><span>我的列表</span>
+                        <i class="fas fa-folder-open"></i><span>我的音乐</span>
                     </div>
                     <div class="companion-noise-option ${activeType === 'silent' ? 'active' : ''}" data-type="silent">
                         <i class="fas fa-volume-mute"></i><span>无声</span>
