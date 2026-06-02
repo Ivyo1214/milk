@@ -343,12 +343,20 @@
         _transitionTimers = [];
         document.querySelectorAll('.companion-transition').forEach(el => el.remove());
 
+        const avSrc = getPartnerAvatarSrc();
+        const avatarHtml = avSrc
+            ? `<img src="${avSrc}">`
+            : `<i class="fas fa-user"></i>`;
+
         const el = document.createElement('div');
         el.className = 'companion-transition';
         el.innerHTML = `
             <div class="stars"></div>
             <div class="glow"></div>
-            <div class="text">${escapeHtml(text)}</div>
+            <div class="companion-transition-message">
+                <div class="companion-transition-avatar">${avatarHtml}</div>
+                <div class="companion-transition-bubble">${escapeHtml(text)}</div>
+            </div>
         `;
         document.documentElement.appendChild(el);
 
@@ -2399,8 +2407,9 @@
         if (e.target.closest('button, input, #companion-timer-area, #companion-exit-confirm')) return;
         // 涟漪特效（始终响应）
         createRippleEffect(e.clientX, e.clientY);
-        // 检查字卡是否为空
-        if (!window.customReplies || window.customReplies.length === 0) {
+        // 检查字卡是否为空（变量在 window._customReplies 或全局 customReplies）
+        const cReplies = (typeof customReplies !== 'undefined') ? customReplies : (window._customReplies || []);
+        if (!cReplies || cReplies.length === 0) {
             if (typeof window.showNotification === 'function') {
                 window.showNotification('回复库为空，请先到「自定义回复」中添加内容', 'info', 3500);
             }
