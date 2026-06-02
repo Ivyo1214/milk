@@ -2393,15 +2393,25 @@
         currentAudio = audio;
     }
 
-    // 点击空白区域 → 触发梦角字卡回复（复用首页 simulateReply）+ 显示涟漪
+    // 点击空白区域 → 触发梦角字卡回复（模拟用户碰了一下梦角，但不写入用户消息）
     function handlePageClick(e) {
         // 排除按钮、计时器区域、退出确认弹窗的点击
         if (e.target.closest('button, input, #companion-timer-area, #companion-exit-confirm')) return;
         // 涟漪特效（始终响应）
         createRippleEffect(e.clientX, e.clientY);
-        // 复用首页字卡触发逻辑（自动处理 typing/字卡选择/写入 messages/sticker/通知）
-        if (typeof window.simulateReply === 'function') {
-            window.simulateReply();
+        // 检查字卡是否为空
+        if (!window.customReplies || window.customReplies.length === 0) {
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('回复库为空，请先到「自定义回复」中添加内容', 'info', 3500);
+            }
+            return;
+        }
+        // 触发延迟回复（不引用用户消息）
+        if (typeof window._triggerDelayedReply === 'function') {
+            window._companionSilentTrigger = true;
+            window._triggerDelayedReply(false);  // isUserMessage = false
+            // 标志保留到 simulateReply 执行完(因为延迟回复 setTimeout 几秒后才触发)
+            // 在 simulateReply 执行完后会自动清除（看下面）
         }
     }
 
@@ -2552,10 +2562,7 @@
         modal.innerHTML = `
             <div class="companion-history-box">
                 <div class="companion-history-header">
-                    <span class="companion-history-title">本次对话</span>
-                    <button class="companion-history-close" title="关闭">
-                        <i class="fas fa-xmark"></i>
-                    </button>
+                    <button class="companion-history-close" title="关闭">退出</button>
                 </div>
                 <div class="companion-history-list">${listHtml}</div>
             </div>
