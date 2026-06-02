@@ -1436,48 +1436,8 @@ const addMessage = (message) => {
                 updateReplyPreview();
 
 if (!isBatchMode && type === 'normal') {
-    const delayRange = settings.replyDelayMax - settings.replyDelayMin;
-    const randomDelay = settings.replyDelayMin + Math.random() * delayRange;
-
-    const chance = Math.max(0, Math.min(1, Number(settings.readNoReplyChance) || 0));
-    const shouldIgnore = settings.allowReadNoReply && (Math.random() < chance);
-
-    const readDelay = 1500 + Math.random() * 2500;
-                setTimeout(() => {
-        let changed = false;
-        messages.forEach(msg => {
-            if (msg.sender === 'user' && msg.status !== 'read') {
-                msg.status = 'read';
-                changed = true;
-            }
-        });
-        if (changed) { _updateReadReceiptsDOM(); throttledSaveData(); }
-    }, readDelay);
-
-    if (window._pendingReplyTimer) clearTimeout(window._pendingReplyTimer);
-    window._pendingReplyTimer = null;
-
-            if (!shouldIgnore) {
-        if (settings.typingIndicatorEnabled) {
-            const tiWrapper = document.getElementById('typing-indicator-wrapper');
-            const tiLabel = document.getElementById('typing-indicator-label');
-            const tiAvatar = document.getElementById('typing-indicator-avatar');
-            if (tiLabel) tiLabel.textContent = (settings.partnerName || '对方') + ' 正在输入';
-            if (tiWrapper) { 
-                positionTypingIndicator(); 
-                tiWrapper.style.display = 'block'; 
-            }
-            if (tiAvatar) {
-                const partnerImg = DOMElements.partner.avatar.querySelector('img');
-                tiAvatar.innerHTML = partnerImg ? `<img src="${partnerImg.src}">` : '<i class="fas fa-user"></i>';
-            }
-            if (DOMElements.chatContainer) DOMElements.chatContainer.scrollTop = DOMElements.chatContainer.scrollHeight;
-        }
-        window._pendingReplyTimer = setTimeout(() => {
-            window._pendingReplyTimer = null;
-            simulateReply();
-        }, randomDelay);
-    }
+    // 触发延迟回复（真实用户消息 → isUserMessage = true）
+    window._triggerDelayedReply(true);
 }
 };
 
@@ -1597,6 +1557,69 @@ if (!isBatchMode && type === 'normal') {
             ro.observe(inputArea);
         })();
 
+        // 通用：触发"模拟用户发了消息后的延迟回复"机制
+        //   isUserMessage: true 表示真实有用户消息（默认），false 表示陪伴页点击触发（不存在的虚拟消息）
+        //   返回 true 表示已排队等待回复，false 表示被"已读不回"概率拦截
+        window._triggerDelayedReply = function(isUserMessage) {
+            if (isBatchMode) return false;
+            // 真实用户消息一定要清除陪伴静默标志（避免陪伴中点了一下，回首页发消息时还跳过引用）
+            if (isUserMessage) {
+                window._companionSilentTrigger = false;
+            }
+            const delayRange = settings.replyDelayMax - settings.replyDelayMin;
+            const randomDelay = settings.replyDelayMin + Math.random() * delayRange;
+
+            const chance = Math.max(0, Math.min(1, Number(settings.readNoReplyChance) || 0));
+            const shouldIgnore = settings.allowReadNoReply && (Math.random() < chance);
+
+            // 只在有真实用户消息时才更新已读状态
+            if (isUserMessage) {
+                const readDelay = 1500 + Math.random() * 2500;
+                setTimeout(() => {
+                    let changed = false;
+                    messages.forEach(msg => {
+                        if (msg.sender === 'user' && msg.status !== 'read') {
+                            msg.status = 'read';
+                            changed = true;
+                        }
+                    });
+                    if (changed) { _updateReadReceiptsDOM(); throttledSaveData(); }
+                }, readDelay);
+            }
+
+            // 取消之前排队的回复（连续触发时只保留最后一次）
+            if (window._pendingReplyTimer) clearTimeout(window._pendingReplyTimer);
+            window._pendingReplyTimer = null;
+
+            if (shouldIgnore) return false;
+
+            // 显示 typing
+            if (settings.typingIndicatorEnabled) {
+                const tiWrapper = document.getElementById('typing-indicator-wrapper');
+                const tiLabel = document.getElementById('typing-indicator-label');
+                const tiAvatar = document.getElementById('typing-indicator-avatar');
+                if (tiLabel) tiLabel.textContent = (settings.partnerName || '对方') + ' 正在输入';
+                if (tiWrapper) {
+                    positionTypingIndicator();
+                    tiWrapper.style.display = 'block';
+                }
+                if (tiAvatar) {
+                    const partnerImg = DOMElements.partner.avatar.querySelector('img');
+                    tiAvatar.innerHTML = partnerImg ? `<img src="${partnerImg.src}">` : '<i class="fas fa-user"></i>';
+                }
+                if (DOMElements.chatContainer) DOMElements.chatContainer.scrollTop = DOMElements.chatContainer.scrollHeight;
+            }
+
+            // 排队回复
+            window._pendingReplyTimer = setTimeout(() => {
+                window._pendingReplyTimer = null;
+                simulateReply();
+                // 清除陪伴静默标志（如果是陪伴页触发的）
+                window._companionSilentTrigger = false;
+            }, randomDelay);
+            return true;
+        };
+
         window.simulateReply = function() {
             function showTypingIndicator() {
                 if (!settings.typingIndicatorEnabled) return;
@@ -1675,7 +1698,8 @@ if (partnerPersonas && partnerPersonas.length > 0 && Math.random() < 0.3) {
             // 确认有可用回复后再展示“正在输入中”，避免空转
             showTypingIndicator();
             let delay = 0;
-            const recentUserMsgs = settings.replyEnabled
+            // 陪伴页静默触发时不引用用户消息（陪伴中的触发不是用户发了某条具体消息）
+            const recentUserMsgs = (settings.replyEnabled && !window._companionSilentTrigger)
                 ? messages.filter(m => m.sender === 'user' && m.text).slice(-10)
                 : [];
             for (let i = 0; i < replyCount; i++) {
