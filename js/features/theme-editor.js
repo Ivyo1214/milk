@@ -622,7 +622,6 @@ function populateThemeSelector() {
             updateUI();
             throttledSaveData();
             renderThemeSchemesList();
-            if (typeof enforceHiddenElements === 'function') enforceHiddenElements();
         }
 
         function getSchemePreviewColors(scheme) {
