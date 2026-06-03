@@ -8,6 +8,26 @@
     'use strict';
 
     const FAKE_VOICE_PROBABILITY = 0.20;
+    const FAKE_VOICE_KEY = 'fakeVoiceEnabled';
+
+    function _isFakeVoiceOn() {
+        const stored = localStorage.getItem(FAKE_VOICE_KEY);
+        return stored === null ? true : stored === 'true';
+    }
+
+    function _syncFakeVoiceUI() {
+        const sw = document.getElementById('fake-voice-switch');
+        if (sw) sw.classList.toggle('active', _isFakeVoiceOn());
+    }
+
+    window._toggleFakeVoice = function() {
+        localStorage.setItem(FAKE_VOICE_KEY, String(!_isFakeVoiceOn()));
+        _syncFakeVoiceUI();
+    };
+
+    // 页面加载后同步开关状态
+    document.addEventListener('DOMContentLoaded', _syncFakeVoiceUI);
+    setTimeout(_syncFakeVoiceUI, 500);
 
     function ready(fn) {
         if (document.readyState !== 'loading') {
@@ -63,6 +83,9 @@
             if (!msg.text || !msg.text.trim()) return;
             if (msg._fakeVoiceConsidered) return;
             msg._fakeVoiceConsidered = true;
+
+            // 语音消息开关关闭时跳过
+            if (!_isFakeVoiceOn()) return;
 
             // 陪伴页激活时，不改造为伪语音（陪伴中梦角的回复永远是文字）
             const companionPage = document.getElementById('companion-page');
