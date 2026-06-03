@@ -883,6 +883,40 @@
                 </div>
             </div>
         </div>
+
+        <div class="settings-section">
+            <div class="settings-section-title"><i class="fas fa-paint-brush"></i>全局主题 CSS</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">作用于整个页面的 CSS，可覆盖任意元素样式、CSS 变量、布局等。支持完整的 CSS 语法。</div>
+            <textarea id="custom-global-css" class="modal-textarea" style="font-family: monospace; font-size: 12px; height: 160px; white-space: pre;" placeholder=":root {
+  --accent-color: #ff6b9d;
+  --primary-bg: #0d0d14;
+  --border-color: rgba(255,255,255,0.08);
+}
+
+#partner-info {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+}
+
+#message-input {
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+  border-radius: 4px;
+}"></textarea>
+            <div style="display: flex; justify-content: space-between; align-items:center; gap: 10px; margin-top:8px;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer;">
+                    <input type="checkbox" id="global-css-live-toggle" style="width:14px;height:14px;accent-color:var(--accent-color);">
+                    实时应用
+                </label>
+                <div style="display:flex;gap:8px;">
+                    <button id="reset-global-css-btn" class="modal-btn modal-btn-secondary" style="padding: 6px 12px; font-size: 12px;">清空</button>
+                    <button id="apply-global-css-btn" class="modal-btn modal-btn-primary" style="padding: 6px 12px; font-size: 12px;">应用 CSS</button>
+                </div>
+            </div>
+            <div id="global-css-status" style="display:none;margin-top:8px;font-size:11px;color:var(--text-secondary);padding:6px 10px;background:rgba(var(--accent-color-rgb),0.06);border-radius:8px;"></div>
+        </div>
     </div>
 
     <div id="appearance-panel-font" class="appearance-sub-panel" style="display:none;"></div>
@@ -1171,39 +1205,6 @@
             </div>
         </div>
 
-        <div class="settings-section" style="margin-top:18px;">
-            <div class="settings-section-title"><i class="fas fa-paint-brush"></i>全局主题 CSS</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">作用于整个页面的 CSS，可覆盖任意元素样式、CSS 变量、布局等。支持完整的 CSS 语法。</div>
-            <textarea id="custom-global-css" class="modal-textarea" style="font-family: monospace; font-size: 12px; height: 160px; white-space: pre;" placeholder=":root {
-  --accent-color: #ff6b9d;
-  --primary-bg: #0d0d14;
-  --border-color: rgba(255,255,255,0.08);
-}
-
-#partner-info {
-  background: linear-gradient(135deg, #1a1a2e, #16213e);
-}
-
-#message-input {
-  border-radius: 20px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--accent-color);
-  border-radius: 4px;
-}"></textarea>
-            <div style="display: flex; justify-content: space-between; align-items:center; gap: 10px; margin-top:8px;">
-                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);cursor:pointer;">
-                    <input type="checkbox" id="global-css-live-toggle" style="width:14px;height:14px;accent-color:var(--accent-color);">
-                    实时应用
-                </label>
-                <div style="display:flex;gap:8px;">
-                    <button id="reset-global-css-btn" class="modal-btn modal-btn-secondary" style="padding: 6px 12px; font-size: 12px;">清空</button>
-                    <button id="apply-global-css-btn" class="modal-btn modal-btn-primary" style="padding: 6px 12px; font-size: 12px;">应用 CSS</button>
-                </div>
-            </div>
-            <div id="global-css-status" style="display:none;margin-top:8px;font-size:11px;color:var(--text-secondary);padding:6px 10px;background:rgba(var(--accent-color-rgb),0.06);border-radius:8px;"></div>
-        </div>
     </div>
 </div>
 
