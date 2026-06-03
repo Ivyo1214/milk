@@ -80,12 +80,12 @@ function showEnvelopeReplyPopup(letter) {
 const APPEARANCE_PANEL_TITLES = {
     'theme': '主题配色', 'font': '字体设置', 'background': '聊天背景',
     'bubble': '气泡样式', 'avatar': '聊天头像', 'css': '自定义CSS',
-    'font-bg': '背景 & 字体', 'bubble-css': '气泡 & CSS'
+    'font-bg': '背景 & 陪伴', 'bubble-css': '字体 & 气泡'
 };
 window.showAppearancePanel = function(panel) {
     const panelMap = {
-        'font-bg': ['font', 'background'],
-        'bubble-css': ['bubble', 'css']
+        'font-bg': ['background'],
+        'bubble-css': ['font', 'bubble', 'css']
     };
     document.getElementById('appearance-nav-grid').style.display = 'none';
     var unBtn = document.getElementById('update-notice-btn');
@@ -418,4 +418,3 @@ function handleSendEnvelope() {
     switchEnvTab('outbox');
     showNotification(`信件已寄出，预计 ${Math.floor(randomHours)} 小时后收到回信 ✉️`, 'success');
 }
-
