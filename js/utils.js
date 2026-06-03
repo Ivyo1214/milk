@@ -1,4 +1,4 @@
-        function safeGetItem(key) {
+function safeGetItem(key) {
             try { return localStorage.getItem(key); }
             catch (e) { console.error('Error getting item:', e); return null; }
         }
@@ -374,6 +374,20 @@ function applyGlobalThemeCss(cssCode) {
     if (!cssCode || !cssCode.trim()) { if (styleTag) styleTag.remove(); return; }
     if (!styleTag) { styleTag = document.createElement('style'); styleTag.id = styleId; document.head.appendChild(styleTag); }
     styleTag.textContent = cssCode;
+    enforceHiddenElements();
+}
+
+function enforceHiddenElements() {
+    const hidden = [
+        '#session-manager-btn', '#group-chat-btn',
+        '#continue-btn', '#batch-btn', '#batch-btn-extra', '#send-btn',
+        '#collapse-expand-btn', '#collapsed-call-btn', '#call-toolbar-btn'
+    ];
+    hidden.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+            el.style.setProperty('display', 'none', 'important');
+        });
+    });
 }
 
 async function exportAllData() {
