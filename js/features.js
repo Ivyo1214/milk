@@ -214,7 +214,7 @@
             dot.className = 'keepalive-dot' + (playing ? ' alive' : '');
         }
         if (desc) {
-            if (!_get())      desc.textContent = '静音循环音频，防止页面被系统挂起';
+            if (!_get())      desc.textContent = '保持后台运行，不错过ta的消息';
             else if (playing) desc.textContent = '运行中 · 页面已保活';
             else              desc.textContent = '等待交互后启动…';
         }
@@ -1612,4 +1612,3 @@ window.tryShowDailyGreeting = function() {
         if (modal) modal.classList.remove('hidden');
     } catch(e) { console.warn('Daily greeting show error:', e); }
 };
-
