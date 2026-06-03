@@ -1353,7 +1353,15 @@
 
                     <p class="cs-group-label" style="margin-top:4px;">后台运行</p>
                     <div class="cs-card">
-                        <div class="setting-pill-row" id="keepalive-audio-toggle" onclick="window._toggleKeepaliveAudio && window._toggleKeepaliveAudio()">
+                        <div class="setting-pill-row" id="notif-toggle-row">
+                            <span class="setting-pill-icon"><i class="fas fa-bell"></i></span>
+                            <span class="setting-pill-label">后台消息推送 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;" id="notif-status-text">收到新消息时弹出提醒</span></span>
+                            <label class="notif-toggle-switch" style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;">
+                                <input type="checkbox" id="notif-permission-toggle" onchange="handleNotifToggle(this)" style="opacity:0;width:0;height:0;">
+                                <span class="notif-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-pill-row" id="keepalive-audio-toggle" onclick="window._toggleKeepaliveAudio && window._toggleKeepaliveAudio()" style="border-top:1px solid var(--border-color);">
                             <span class="setting-pill-icon" style="position:relative;">
                                 <i class="fas fa-broadcast-tower"></i>
                                 <span id="keepalive-dot" class="keepalive-dot"></span>
