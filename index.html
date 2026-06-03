@@ -825,10 +825,10 @@
         <i class="fas fa-paint-roller"></i><span>主题配色</span>
     </div>
     <div class="settings-card" onclick="showAppearancePanel('font-bg')" style="cursor:pointer;">
-        <i class="fas fa-font"></i><span>背景 & 字体</span>
+        <i class="fas fa-image"></i><span>背景 & 陪伴</span>
     </div>
     <div class="settings-card" onclick="showAppearancePanel('bubble-css')" style="cursor:pointer;">
-        <i class="fas fa-comment"></i><span>气泡 & CSS</span>
+        <i class="fas fa-font"></i><span>字体 & 气泡</span>
     </div>
     <div class="settings-card" onclick="showAppearancePanel('avatar')" style="cursor:pointer;">
         <i class="fas fa-user-circle"></i><span>聊天头像</span>
@@ -885,27 +885,7 @@
         </div>
     </div>
 
-    <div id="appearance-panel-font" class="appearance-sub-panel" style="display:none;">
-        <div class="settings-section">
-            <div class="settings-section-title"><i class="fas fa-font"></i>字体设置</div>
-            <div class="font-size-control">
-                <span class="font-size-label">大小:</span>
-                <input type="range" min="12" max="24" value="16" class="font-size-slider" id="font-size-slider">
-                <span class="font-size-value" id="font-size-value">16px</span>
-            </div>
-            <div style="margin-top: 10px;">
-                <label style="font-size: 12px; color: var(--text-secondary); display:block; margin-bottom:5px;">字体链接 (CSS/TTF):</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="custom-font-url" class="modal-input" style="margin-bottom:0; font-size:12px;" placeholder="https://example.com/font.woff2">
-                    <button id="apply-font-btn" class="modal-btn modal-btn-primary" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;">应用</button>
-                    <button id="follow-system-font-btn" class="modal-btn modal-btn-secondary" style="padding: 5px 10px; font-size: 12px; white-space: nowrap; margin-left: 5px;">跟随系统</button>
-                </div>
-                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; opacity: 0.7;">
-                    提示: 应用后将覆盖默认字体。留空并应用可恢复默认。
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="appearance-panel-font" class="appearance-sub-panel" style="display:none;"></div>
 
     <div id="appearance-panel-background" class="appearance-sub-panel" style="display:none;">
         <div class="settings-section">
@@ -942,24 +922,6 @@
             <div class="companion-mgr-list" id="companion-bg-list"></div>
         </div>
 
-        <!-- 陪伴语音管理 -->
-        <div class="settings-section" id="companion-voice-section">
-            <div class="settings-section-title">
-                <i class="fas fa-music"></i>陪伴语音
-                <input type="file" id="companion-voice-upload-input" accept="*/*" multiple style="display:none;">
-            </div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;opacity:0.75;line-height:1.5;">
-                每个场景独立设置语音，陪伴中点击屏幕时随机播放。点击 <i class="fas fa-plus" style="font-size:10px;"></i> 添加。
-            </div>
-            <div class="companion-mgr-tabs" id="companion-voice-tabs" data-mgr="voice">
-                <button class="companion-mgr-tab active" data-mode="study"><i class="fas fa-book-open"></i><span>学习</span></button>
-                <button class="companion-mgr-tab" data-mode="work"><i class="fas fa-laptop-code"></i><span>工作</span></button>
-                <button class="companion-mgr-tab" data-mode="exercise"><i class="fas fa-person-running"></i><span>运动</span></button>
-                <button class="companion-mgr-tab" data-mode="sleep"><i class="fas fa-moon"></i><span>睡觉</span></button>
-            </div>
-            <div class="companion-mgr-list" id="companion-voice-list"></div>
-        </div>
-
         <!-- 陪伴音乐管理 -->
         <div class="settings-section" id="companion-noise-section">
             <div class="settings-section-title">
@@ -981,9 +943,27 @@
 
     <div id="appearance-panel-bubble" class="appearance-sub-panel" style="display:none;">
         <div class="settings-section">
-            <div class="settings-section-title">
-                <i class="fas fa-comment"></i>气泡样式
+            <div class="settings-section-title"><i class="fas fa-font"></i>字体设置</div>
+            <div class="font-size-control">
+                <span class="font-size-label">大小:</span>
+                <input type="range" min="12" max="24" value="16" class="font-size-slider" id="font-size-slider">
+                <span class="font-size-value" id="font-size-value">16px</span>
             </div>
+            <div style="margin-top: 10px;">
+                <label style="font-size: 12px; color: var(--text-secondary); display:block; margin-bottom:5px;">字体链接 (CSS/TTF):</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="custom-font-url" class="modal-input" style="margin-bottom:0; font-size:12px;" placeholder="https://example.com/font.woff2">
+                    <button id="apply-font-btn" class="modal-btn modal-btn-primary" style="padding: 5px 10px; font-size: 12px; white-space: nowrap;">应用</button>
+                    <button id="follow-system-font-btn" class="modal-btn modal-btn-secondary" style="padding: 5px 10px; font-size: 12px; white-space: nowrap; margin-left: 5px;">跟随系统</button>
+                </div>
+                <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; opacity: 0.7;">
+                    提示: 应用后将覆盖默认字体。留空并应用可恢复默认。
+                </div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <div class="settings-section-title">
+                <i class="fas fa-comment"></i>气泡样式</div>
             <div class="settings-item-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div class="settings-item" data-bubble-style="standard" style="justify-content:center;">
                     <i class="fas fa-comment"></i><span>标准尖角</span>
@@ -1031,18 +1011,6 @@
                 </div>
             </div>
 
-            <div id="partner-name-chat-toggle" style="display:flex;align-items:center;gap:12px;background:var(--primary-bg);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all 0.2s;margin-bottom:10px;">
-                <div style="width:36px;height:36px;border-radius:50%;background:rgba(var(--accent-color-rgb),0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <i class="fas fa-tag" style="font-size:16px;color:var(--accent-color);"></i>
-                </div>
-                <div style="flex:1;">
-                    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">单人模式显示对方名字</div>
-                    <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;" id="partner-name-chat-status">已关闭</div>
-                </div>
-                <div id="partner-name-chat-pill" style="width:44px;height:24px;border-radius:24px;background:var(--border-color);position:relative;transition:background 0.3s;flex-shrink:0;">
-                    <div id="partner-name-chat-knob" style="position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;right:23px;transition:right 0.25s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>
-                </div>
-            </div>
             <div class="font-size-control" id="in-chat-avatar-size-control-2">
                 <span class="font-size-label">头像尺寸:</span>
                 <input type="range" min="24" max="48" value="36" class="font-size-slider" id="in-chat-avatar-size-slider-2">
