@@ -1342,15 +1342,33 @@
                         </div>
                     </div>
 
-                    <p class="cs-group-label" style="margin-top:4px;">通话功能</p>
-                    <div class="cs-card">
+                    <div style="display:none;">
                         <div class="setting-pill-row" id="call-feature-toggle-row">
-                            <span class="setting-pill-icon"><i class="fas fa-video"></i></span>
-                            <span class="setting-pill-label">模拟视频通话 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;">关闭后隐藏主界面通话按键</span></span>
                             <label class="notif-toggle-switch" style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;">
                                 <input type="checkbox" id="call-enabled-toggle" style="opacity:0;width:0;height:0;">
                                 <span class="notif-toggle-slider"></span>
                             </label>
+                        </div>
+                    </div>
+
+                    <p class="cs-group-label" style="margin-top:4px;">后台运行</p>
+                    <div class="cs-card">
+                        <div class="setting-pill-row" id="keepalive-audio-toggle" onclick="window._toggleKeepaliveAudio && window._toggleKeepaliveAudio()">
+                            <span class="setting-pill-icon" style="position:relative;">
+                                <i class="fas fa-broadcast-tower"></i>
+                                <span id="keepalive-dot" class="keepalive-dot"></span>
+                            </span>
+                            <span class="setting-pill-label">后台保活 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;" id="keepalive-audio-desc">保持后台运行，不错过ta的消息</span></span>
+                            <div class="setting-pill-switch" id="keepalive-audio-switch"><div class="setting-pill-knob"></div></div>
+                        </div>
+                        <div id="keepalive-bar-row" style="display:none;align-items:center;gap:3px;padding:8px 14px 10px;border-top:1px solid var(--border-color);">
+                            <span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">音频状态</span>
+                            <div class="keepalive-wave-bar" style="animation-delay:0s;"></div>
+                            <div class="keepalive-wave-bar" style="animation-delay:0.1s;"></div>
+                            <div class="keepalive-wave-bar" style="animation-delay:0.2s;"></div>
+                            <div class="keepalive-wave-bar" style="animation-delay:0.15s;"></div>
+                            <div class="keepalive-wave-bar" style="animation-delay:0.05s;"></div>
+                            <span style="font-size:11px;color:var(--accent-color);margin-left:6px;font-weight:600;">LIVE</span>
                         </div>
                     </div>
                 </div>
@@ -1458,26 +1476,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <p class="cs-group-label" style="margin-top:16px;">挂机保活音频</p>
-                    <div class="cs-card">
-                        <div class="setting-pill-row" id="keepalive-audio-toggle" onclick="window._toggleKeepaliveAudio && window._toggleKeepaliveAudio()">
-                            <span class="setting-pill-icon" style="position:relative;">
-                                <i class="fas fa-broadcast-tower"></i>
-                                <span id="keepalive-dot" class="keepalive-dot"></span>
-                            </span>
-                            <span class="setting-pill-label">后台保活 <span style="font-size:11px;color:var(--text-secondary);font-weight:400;" id="keepalive-audio-desc">静音循环音频，防止页面被系统挂起</span></span>
-                            <div class="setting-pill-switch" id="keepalive-audio-switch"><div class="setting-pill-knob"></div></div>
-                        </div>
-                        <div id="keepalive-bar-row" style="display:none;align-items:center;gap:3px;padding:8px 14px 10px;border-top:1px solid var(--border-color);">
-                            <span style="font-size:11px;color:var(--text-secondary);margin-right:4px;">音频状态</span>
-                            <div class="keepalive-wave-bar" style="animation-delay:0s;"></div>
-                            <div class="keepalive-wave-bar" style="animation-delay:0.1s;"></div>
-                            <div class="keepalive-wave-bar" style="animation-delay:0.2s;"></div>
-                            <div class="keepalive-wave-bar" style="animation-delay:0.15s;"></div>
-                            <div class="keepalive-wave-bar" style="animation-delay:0.05s;"></div>
-                            <span style="font-size:11px;color:var(--accent-color);margin-left:6px;font-weight:600;">LIVE</span>
                         </div>
                     </div>
                 </div>
