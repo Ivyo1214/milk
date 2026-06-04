@@ -9779,6 +9779,7 @@
         .cs-footer {
             flex-shrink: 0;
             display: flex;
+            justify-content: space-between;
             gap: 8px;
             padding: 12px 20px;
             padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
@@ -9796,8 +9797,9 @@
             display: flex !important;
             flex-direction: column !important;
             max-height: 88dvh !important;
-            min-height: 200px !important;
+            min-height: 300px !important;
             border-radius: 20px !important;
+            width: 92% !important;
         }
 
         #data-modal .modal-title {
