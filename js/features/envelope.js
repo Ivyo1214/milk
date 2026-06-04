@@ -304,7 +304,22 @@ window.viewEnvLetter = function(section, id) {
     editingEnvId = id;
     editingEnvSection = section;
 
-    document.getElementById('env-view-title').textContent = section === 'outbox' ? '寄出的信' : '收到的回信';
+    // 标题和戳文字根据状态决定
+    const isInbox = section === 'inbox';
+    let titleText, stampLabel, stampSub;
+    if (isInbox) {
+        titleText = letter.fromPartner ? '梦角的来信' : '收到的回信';
+        stampLabel = '已收到'; stampSub = 'RECEIVED';
+    } else {
+        if (letter.status === 'replied') { titleText = '已收到回信'; stampLabel = '已回信'; stampSub = 'REPLIED'; }
+        else if (letter.status === 'received') { titleText = '已送达'; stampLabel = '已送达'; stampSub = 'DELIVERED'; }
+        else { titleText = '已寄出'; stampLabel = '已寄出'; stampSub = 'SENT'; }
+    }
+    document.getElementById('env-view-title').textContent = titleText;
+    const stampLabelEl = document.getElementById('env-view-stamp-label');
+    const stampSubEl = document.getElementById('env-view-stamp-sub');
+    if (stampLabelEl) stampLabelEl.textContent = stampLabel;
+    if (stampSubEl) stampSubEl.textContent = stampSub;
 
     const dateObj = letter.timestamp ? new Date(letter.timestamp) : new Date();
     const y = dateObj.getFullYear();
@@ -350,8 +365,8 @@ window.viewEnvLetter = function(section, id) {
     document.getElementById('env-view-content').style.display = 'block';
     document.getElementById('env-view-edit').style.display = 'none';
 
-    const isInbox = section === 'inbox';
-    document.getElementById('env-view-reply-btn').style.display = isInbox ? 'inline-flex' : 'none';
+    // 回复按钮只在梦角主动写的信显示；编辑只在发件箱显示
+    document.getElementById('env-view-reply-btn').style.display = (isInbox && letter.fromPartner) ? 'inline-flex' : 'none';
     document.getElementById('env-view-edit-btn').style.display = isInbox ? 'none' : 'inline-flex';
     document.getElementById('env-view-save-btn').style.display = 'none';
     const origCtx = document.getElementById('env-view-original-ctx');
@@ -423,6 +438,10 @@ window.replyToEnvLetter = function() {
         document.getElementById('envelope-input').value = '';
         document.getElementById('env-send-to-chat').checked = false;
         document.getElementById('env-compose-form').style.display = 'block';
+        // 标记为回复模式，提示文案用"传递你的心意吧"，梦角10%概率回复
+        document.getElementById('env-compose-form').dataset.replyMode = 'true';
+        const hint = document.getElementById('env-reply-time-info');
+        if (hint) hint.textContent = '传递你的心意吧';
     }, 150);
 };
 
@@ -446,6 +465,9 @@ window.openNewEnvelopeForm = function() {
     document.getElementById('env-compose-title').textContent = '写一封信';
     document.getElementById('envelope-input').value = '';
     document.getElementById('env-send-to-chat').checked = false;
+    document.getElementById('env-compose-form').dataset.replyMode = '';
+    const hint = document.getElementById('env-reply-time-info');
+    if (hint) hint.textContent = '对方将在 10-24 小时内回信（8-12 句话）';
     document.getElementById('env-compose-form').style.display = 'block';
 };
 
@@ -468,7 +490,8 @@ function handleSendEnvelope() {
         addMessage({ id: Date.now(), sender: 'user', text: `【寄出的信】\n${text}`, timestamp: new Date(), status: 'sent', type: 'normal' });
     }
 
-    const willReply = Math.random() < 0.10;
+    const isReplyMode = document.getElementById('env-compose-form').dataset.replyMode === 'true';
+    const willReply = isReplyMode ? Math.random() < 0.10 : true;
     const minHours = 10, maxHours = 24;
     const randomHours = Math.random() * (maxHours - minHours) + minHours;
     const deliveredDelay = (30 + Math.random() * 30) * 60 * 1000; // 30–60 分钟
