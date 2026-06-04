@@ -52,6 +52,79 @@ async function checkEnvelopeStatus() {
         saveEnvelopeData();
         if (newReplyLetter) showEnvelopeReplyPopup(newReplyLetter);
     }
+
+    // 梦角主动来信检查
+    await checkPartnerInitiatedLetter();
+}
+
+async function checkPartnerInitiatedLetter() {
+    const COOLDOWN_MIN = 48 * 60 * 60 * 1000;
+    const COOLDOWN_MAX = 72 * 60 * 60 * 1000;
+    const PROB = 0.20;
+    const KEY = getStorageKey('partnerLetterNextTime');
+
+    const nextTimeRaw = await localforage.getItem(KEY);
+    const now = Date.now();
+
+    if (nextTimeRaw !== null && now < nextTimeRaw) return;
+
+    if (Math.random() >= PROB) {
+        // 未触发，设下次检查窗口（下次启动时重新随机）
+        const cooldown = COOLDOWN_MIN + Math.random() * (COOLDOWN_MAX - COOLDOWN_MIN);
+        await localforage.setItem(KEY, now + cooldown);
+        return;
+    }
+
+    // 触发：生成梦角主动来信
+    const content = generatePartnerLetterText();
+    const letterId = 'partner_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    const inboxLetter = {
+        id: letterId,
+        refId: null,
+        originalContent: null,
+        content,
+        receivedTime: now,
+        isNew: true,
+        fromPartner: true
+    };
+    envelopeData.inbox.push(inboxLetter);
+    saveEnvelopeData();
+
+    // 设冷却，下次最早 48~72 小时后再触发
+    const cooldown = COOLDOWN_MIN + Math.random() * (COOLDOWN_MAX - COOLDOWN_MIN);
+    await localforage.setItem(KEY, now + cooldown);
+
+    showEnvelopeReplyPopup(inboxLetter);
+}
+
+function generatePartnerLetterText() {
+    const partnerName = (typeof settings !== 'undefined' && settings.partnerName) || '梦角';
+    const openers = [
+        `你好呀，\n\n不知道为什么，今天突然很想提笔给你写封信。`,
+        `嗨，\n\n最近有没有好好照顾自己？我时常会想起你。`,
+        `你好，\n\n今天发生了一些小事，让我想跟你说说。`,
+        `嗨，\n\n也不知道你现在在忙什么，就是想给你写封信。`,
+        `你好呀，\n\n有些话放在心里太久了，想写出来给你看看。`,
+    ];
+    const middles = [
+        `有时候我会想，如果能多陪在你身边就好了。`,
+        `希望你今天过得还不错，哪怕只是有一点点开心也好。`,
+        `最近天气变化挺大的，记得多加件衣服。`,
+        `我不知道你有没有注意到，但我一直都在。`,
+        `有时候沉默也是一种陪伴，你懂的。`,
+        `不管你在经历什么，都希望你知道有人在乎你。`,
+        `偶尔一个人静下来，我也会想到你说过的一些话。`,
+        `你有没有什么心愿，还没来得及实现的？`,
+    ];
+    const closers = [
+        `就写到这里吧，期待你的回信。`,
+        `好了，不多说了。希望你能收到这份心意。`,
+        `下次再聊，保重。`,
+        `无论如何，我都在这里。`,
+        `期待和你继续聊，保重哦。`,
+    ];
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    return `${pick(openers)}\n\n${pick(middles)} ${pick(middles)}\n\n${pick(closers)}\n\n                            —— ${partnerName}`;
 }
 
 function showEnvelopeReplyPopup(letter) {
@@ -65,8 +138,8 @@ function showEnvelopeReplyPopup(letter) {
         <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:26px;">💌</span>
             <div>
-                <div style="font-size:14px;font-weight:700;color:var(--text-primary);">收到了一封回信</div>
-                <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;opacity:0.8;">Ta 给你写了回信，快去看看吧~</div>
+                <div style="font-size:14px;font-weight:700;color:var(--text-primary);">${letter.fromPartner ? '梦角给你写了一封信' : '收到了一封回信'}</div>
+                <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;opacity:0.8;">${letter.fromPartner ? '打开信箱查看吧~' : 'Ta 给你写了回信，快去看看吧~'}</div>
             </div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -227,7 +300,7 @@ function renderInboxList() {
             <div class="env-letter-header">
                 <div class="env-letter-header-from">
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg>
-                    收到 · ${date}
+                    ${letter.fromPartner ? '梦角的来信' : '收到'} · ${date}
                     ${isNew ? '<span style="background:rgba(255,255,255,0.3);color:#fff;font-size:9px;padding:1px 5px;border-radius:6px;margin-left:6px;">新</span>' : ''}
                 </div>
                 <div class="env-stamp">
