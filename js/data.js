@@ -159,15 +159,14 @@
 
     function writeHTML(mc) {
         mc.innerHTML = INNER_HTML;
-        mc.dataset.dm6Built = 'v9'; 
+        mc.dataset.dm6Built = 'v10'; 
         ensureDrawersOnBody();
         bindAll(mc);
     }
 
     function ensureHTML(mc) {
         if (!mc) return;
-        mc.dataset.dm6Built = 'v9'; 
-        if (!isCorrect(mc)) writeHTML(mc);
+        if (mc.dataset.dm6Built !== 'v10' || !isCorrect(mc)) writeHTML(mc);
         else ensureDrawersOnBody(); 
     }
 
