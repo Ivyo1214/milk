@@ -9793,10 +9793,10 @@
 
         #data-modal .modal-content {
             padding: 0 !important;
-            overflow: hidden !important;
+            overflow: visible !important;
             display: flex !important;
             flex-direction: column !important;
-            max-height: 88dvh !important;
+            max-height: 92dvh !important;
             min-height: 300px !important;
             border-radius: 20px !important;
             width: 92% !important;
@@ -9821,16 +9821,13 @@
         }
 
         .dm-body {
-            flex: 1 1 0 !important;
-            min-height: 0 !important;
-            overflow-y: auto !important;
+            flex: 1 1 auto !important;
+            overflow-y: visible !important;
             overflow-x: hidden;
-            overscroll-behavior: contain;
-            padding: 12px 14px max(32px, calc(env(safe-area-inset-bottom, 0px) + 20px));
+            padding: 12px 14px 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
-            -webkit-overflow-scrolling: touch;
         }
         .dm-body::-webkit-scrollbar { width: 0; }
 
