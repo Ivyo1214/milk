@@ -97,6 +97,8 @@ async function checkPartnerInitiatedLetter() {
     showEnvelopeReplyPopup(inboxLetter);
 }
 
+function showEnvelopeReplyPopup(letter) {
+    const existing = document.getElementById('envelope-reply-popup');
     if (existing) existing.remove();
     const popup = document.createElement('div');
     popup.id = 'envelope-reply-popup';
