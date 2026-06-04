@@ -1697,7 +1697,7 @@
         }
         .modal-buttons {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             gap: 12px;
             margin-top: 16px;
             flex-shrink: 0;
@@ -9788,8 +9788,6 @@
 
         
         #data-modal {
-            align-items: flex-end !important;
-            padding: 0 !important;
         }
 
         #data-modal .modal-content {
@@ -9797,72 +9795,28 @@
             overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
-            height: 93dvh !important;
-            max-height: 93dvh !important;
+            max-height: 88dvh !important;
             min-height: 200px !important;
-            border-radius: 28px 28px 0 0 !important;
-            width: 100% !important;
-            max-width: 520px !important;
-            margin: 0 auto !important;
-            box-shadow: 0 -8px 40px rgba(0,0,0,0.18) !important;
-            background: var(--primary-bg) !important;
-            will-change: transform, opacity;
-            animation: dmSheetIn 0.38s cubic-bezier(0.32,0.72,0,1) both !important;
-            transform: translateY(0) !important;
-            opacity: 1 !important;
+            border-radius: 20px !important;
+        }
+
+        #data-modal .modal-title {
+            padding: 18px 20px 14px;
+            margin-bottom: 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        #data-modal .modal-buttons {
+            padding: 12px 20px;
+            margin-top: 0;
+            border-top: 1px solid var(--border-color);
+            background: var(--secondary-bg);
         }
 
         @keyframes dmSheetIn {
-            from { transform: translateY(60px); opacity: 0; }
-            to   { transform: translateY(0);    opacity: 1; }
+            from { opacity: 0; transform: scale(0.96); }
+            to   { opacity: 1; transform: scale(1); }
         }
-
-        .dm-topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 18px 12px;
-            flex-shrink: 0;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--secondary-bg);
-        }
-        .dm-topbar-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .dm-topbar-back {
-            width: 34px; height: 34px;
-            border-radius: 10px;
-            border: 1.5px solid var(--border-color);
-            background: transparent;
-            color: var(--text-secondary);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.18s;
-            flex-shrink: 0;
-        }
-        .dm-topbar-back:hover { border-color: var(--accent-color); color: var(--accent-color); }
-        .dm-topbar-title {
-            font-size: 17px;
-            font-weight: 700;
-            color: var(--text-primary);
-            font-family: var(--font-family);
-        }
-        .dm-topbar-close {
-            width: 34px; height: 34px;
-            border-radius: 10px;
-            border: none;
-            background: rgba(var(--accent-color-rgb), 0.12);
-            color: var(--accent-color);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.18s;
-            flex-shrink: 0;
-        }
-        .dm-topbar-close:hover { background: rgba(var(--accent-color-rgb), 0.22); }
 
         .dm-body {
             flex: 1 1 0 !important;
@@ -10310,7 +10264,7 @@
         .dm-action-card { display: none !important; }
 
         @media (max-width: 480px) {
-            #data-modal .modal-content { max-height: 96dvh; border-radius: 24px 24px 0 0; }
+            #data-modal .modal-content { max-height: 88dvh; }
 
             .dm-stats-grid {
                 grid-template-columns: repeat(3, 1fr);
