@@ -30,6 +30,10 @@ async function checkEnvelopeStatus() {
     let changed = false;
     let newReplyLetter = null;
     envelopeData.outbox.forEach(letter => {
+        if (letter.status === 'sent' && letter.deliveredTime && now >= letter.deliveredTime) {
+            letter.status = 'received';
+            changed = true;
+        }
         if (letter.willReply && letter.status === 'received' && letter.replyTime && now >= letter.replyTime) {
             letter.status = 'replied';
             const replyContent = generateEnvelopeReplyText();
@@ -220,13 +224,12 @@ function renderOutboxList() {
     }
     list.innerHTML = envelopeData.outbox.slice().reverse().map(letter => {
         const date = new Date(letter.sentTime).toLocaleDateString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
-        const isPending = letter.status === 'pending' || letter.status === 'received';
-        const statusIcon = isPending
-            ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
-            : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/><polyline points="20 6 9 17 4 12" transform="translate(4,0)"/></svg>`;
+        const checkIcon = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
         const statusText = letter.status === 'replied'
-            ? `${statusIcon} 已收到回信`
-            : `${statusIcon} 已收到`;
+            ? `${checkIcon} 已收到回信`
+            : letter.status === 'received'
+            ? `${checkIcon} 已送达`
+            : `${checkIcon} 已寄出`;
         const preview = letter.content.length > 38 ? letter.content.substring(0, 38) + '…' : letter.content;
         return `
         <div class="env-letter-item" onclick="viewEnvLetter('outbox','${letter.id}')">
@@ -468,12 +471,14 @@ function handleSendEnvelope() {
     const willReply = Math.random() < 0.10;
     const minHours = 10, maxHours = 24;
     const randomHours = Math.random() * (maxHours - minHours) + minHours;
+    const deliveredDelay = (30 + Math.random() * 30) * 60 * 1000; // 30–60 分钟
     const newId = 'env_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
     envelopeData.outbox.push({
         id: newId, content: text,
         sentTime: Date.now(),
+        deliveredTime: Date.now() + deliveredDelay,
         replyTime: willReply ? Date.now() + randomHours * 60 * 60 * 1000 : null,
-        status: 'received',
+        status: 'sent',
         willReply
     });
     saveEnvelopeData();
