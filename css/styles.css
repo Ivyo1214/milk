@@ -9793,7 +9793,7 @@
 
         #data-modal .modal-content {
             padding: 0 !important;
-            overflow: visible !important;
+            overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
             max-height: 92dvh !important;
