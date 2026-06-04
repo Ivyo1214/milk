@@ -82,7 +82,10 @@
         +   '</div>'
 
         + '</div>'
-        ;
+        + '<div class="modal-buttons" style="display:flex;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border-color);background:var(--secondary-bg);flex-shrink:0;">'
+        +   '<button class="modal-btn modal-btn-secondary" id="back-data"><i class="fas fa-arrow-left"></i> 返回</button>'
+        +   '<button class="modal-btn modal-btn-secondary" id="close-data">关闭</button>'
+        + '</div>';
 
     var DRAWER_FULL_HTML =
         '<div class="dm-action-drawer" id="dm-drawer-full">'
@@ -129,10 +132,6 @@
         +     '<button class="dm-drawer-cancel" id="dm-drawer-chat-cancel">取消</button>'
         +   '</div>'
         + '</div>'
-        + '<div class="modal-buttons" style="position:sticky;bottom:0;background:var(--secondary-bg);border-top:1px solid var(--border-color);padding:12px 24px;flex-shrink:0;">'
-        +   '<button class="modal-btn modal-btn-secondary" id="back-data"><i class="fas fa-arrow-left"></i> 返回</button>'
-        +   '<button class="modal-btn modal-btn-secondary" id="close-data">关闭</button>'
-        + '</div>';
 
     function isCorrect(mc) {
         return mc.querySelector('.modal-title') !== null
@@ -159,14 +158,14 @@
 
     function writeHTML(mc) {
         mc.innerHTML = INNER_HTML;
-        mc.dataset.dm6Built = 'v10'; 
+        mc.dataset.dm6Built = 'v11'; 
         ensureDrawersOnBody();
         bindAll(mc);
     }
 
     function ensureHTML(mc) {
         if (!mc) return;
-        if (mc.dataset.dm6Built !== 'v10' || !isCorrect(mc)) writeHTML(mc);
+        if (mc.dataset.dm6Built !== 'v11' || !isCorrect(mc)) writeHTML(mc);
         else ensureDrawersOnBody(); 
     }
 
