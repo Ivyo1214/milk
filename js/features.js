@@ -1517,22 +1517,8 @@ window.updateDynamicNames = function() {
         var continueBtn = document.getElementById('continue-btn');
         if (continueBtn) continueBtn.title = '让' + pName + '继续说';
 
-        var envInfo = document.querySelector('.env-send-info');
-        if (envInfo) {
-            var textNodes = Array.from(envInfo.childNodes).filter(n => n.nodeType === 3);
-            textNodes.forEach(function(n) {
-                if (n.textContent.includes('对方将在') || n.textContent.includes('小时内回信')) {
-                    n.textContent = pName + ' 将在 10-24 小时内回信（8-12 句话）';
-                }
-            });
-        }
-
-        setDgLabel('dg-section-label-partner', pName + ' 今日状态');
-        setDgLabel('dg-weather-label', pName + ' 的天气');
-        setDgLabel('dg-status-label', pName + ' 的状态');
-
         var envInfoSpan = document.getElementById('env-reply-time-info');
-        if (envInfoSpan) envInfoSpan.textContent = pName + ' 将在 10-24 小时内回信（8-12 句话）';
+        if (envInfoSpan) envInfoSpan.textContent = '传递你的心意吧';
 
         var pokeInput = document.getElementById('poke-input');
         if (pokeInput) pokeInput.placeholder = '例如：拍了拍"' + pName + '"的肩膀';
