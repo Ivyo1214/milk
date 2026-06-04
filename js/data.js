@@ -9,12 +9,8 @@
     })();
 
     var INNER_HTML =
-        '<div class="dm-topbar">'
-        +   '<div class="dm-topbar-left">'
-        +     '<button class="dm-topbar-back" id="back-data"><i class="fas fa-arrow-left"></i></button>'
-        +     '<span class="dm-topbar-title">数据管理</span>'
-        +   '</div>'
-        +   '<button class="dm-topbar-close" id="close-data"><i class="fas fa-xmark"></i></button>'
+        '<div class="modal-title" style="flex-shrink:0;">'
+        +   '<i class="fas fa-database"></i><span>数据管理</span>'
         + '</div>'
 
         + '<div class="dm-body">'
@@ -132,10 +128,14 @@
         +     '</div>'
         +     '<button class="dm-drawer-cancel" id="dm-drawer-chat-cancel">取消</button>'
         +   '</div>'
+        + '</div>'
+        + '<div class="modal-buttons" style="position:sticky;bottom:0;background:var(--secondary-bg);border-top:1px solid var(--border-color);padding:12px 24px;flex-shrink:0;">'
+        +   '<button class="modal-btn modal-btn-secondary" id="back-data"><i class="fas fa-arrow-left"></i> 返回</button>'
+        +   '<button class="modal-btn modal-btn-secondary" id="close-data">关闭</button>'
         + '</div>';
 
     function isCorrect(mc) {
-        return mc.querySelector('.dm-topbar') !== null
+        return mc.querySelector('.modal-title') !== null
             && mc.querySelector('.dm-storage-card') !== null
             && mc.querySelector('.dm6') === null
             && mc.querySelector('.dm6-tabs') === null;
