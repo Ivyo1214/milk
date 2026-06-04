@@ -30,7 +30,7 @@ async function checkEnvelopeStatus() {
     let changed = false;
     let newReplyLetter = null;
     envelopeData.outbox.forEach(letter => {
-        if (letter.status === 'pending' && now >= letter.replyTime) {
+        if (letter.willReply && letter.status === 'received' && letter.replyTime && now >= letter.replyTime) {
             letter.status = 'replied';
             const replyContent = generateEnvelopeReplyText();
             const replyId = 'reply_' + Date.now() + '_' + Math.random().toString(36).substr(2,4);
@@ -75,8 +75,8 @@ async function checkPartnerInitiatedLetter() {
         return;
     }
 
-    // 触发：生成梦角主动来信
-    const content = generatePartnerLetterText();
+    // 触发：生成梦角主动来信（与回信逻辑相同，从字卡池随机抽取）
+    const content = generateEnvelopeReplyText();
     const letterId = 'partner_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
     const inboxLetter = {
         id: letterId,
@@ -97,38 +97,6 @@ async function checkPartnerInitiatedLetter() {
     showEnvelopeReplyPopup(inboxLetter);
 }
 
-function generatePartnerLetterText() {
-    const partnerName = (typeof settings !== 'undefined' && settings.partnerName) || '梦角';
-    const openers = [
-        `你好呀，\n\n不知道为什么，今天突然很想提笔给你写封信。`,
-        `嗨，\n\n最近有没有好好照顾自己？我时常会想起你。`,
-        `你好，\n\n今天发生了一些小事，让我想跟你说说。`,
-        `嗨，\n\n也不知道你现在在忙什么，就是想给你写封信。`,
-        `你好呀，\n\n有些话放在心里太久了，想写出来给你看看。`,
-    ];
-    const middles = [
-        `有时候我会想，如果能多陪在你身边就好了。`,
-        `希望你今天过得还不错，哪怕只是有一点点开心也好。`,
-        `最近天气变化挺大的，记得多加件衣服。`,
-        `我不知道你有没有注意到，但我一直都在。`,
-        `有时候沉默也是一种陪伴，你懂的。`,
-        `不管你在经历什么，都希望你知道有人在乎你。`,
-        `偶尔一个人静下来，我也会想到你说过的一些话。`,
-        `你有没有什么心愿，还没来得及实现的？`,
-    ];
-    const closers = [
-        `就写到这里吧，期待你的回信。`,
-        `好了，不多说了。希望你能收到这份心意。`,
-        `下次再聊，保重。`,
-        `无论如何，我都在这里。`,
-        `期待和你继续聊，保重哦。`,
-    ];
-    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-    return `${pick(openers)}\n\n${pick(middles)} ${pick(middles)}\n\n${pick(closers)}\n\n                            —— ${partnerName}`;
-}
-
-function showEnvelopeReplyPopup(letter) {
-    const existing = document.getElementById('envelope-reply-popup');
     if (existing) existing.remove();
     const popup = document.createElement('div');
     popup.id = 'envelope-reply-popup';
@@ -250,12 +218,13 @@ function renderOutboxList() {
     }
     list.innerHTML = envelopeData.outbox.slice().reverse().map(letter => {
         const date = new Date(letter.sentTime).toLocaleDateString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
-        const isPending = letter.status === 'pending';
-        const replyTime = isPending ? new Date(letter.replyTime).toLocaleDateString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+        const isPending = letter.status === 'pending' || letter.status === 'received';
         const statusIcon = isPending
-            ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`
-            : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
-        const statusText = isPending ? `${statusIcon} 预计 ${replyTime} 回信` : `${statusIcon} 已收到回信`;
+            ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+            : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/><polyline points="20 6 9 17 4 12" transform="translate(4,0)"/></svg>`;
+        const statusText = letter.status === 'replied'
+            ? `${statusIcon} 已收到回信`
+            : `${statusIcon} 已收到`;
         const preview = letter.content.length > 38 ? letter.content.substring(0, 38) + '…' : letter.content;
         return `
         <div class="env-letter-item" onclick="viewEnvLetter('outbox','${letter.id}')">
@@ -375,7 +344,10 @@ window.viewEnvLetter = function(section, id) {
     document.getElementById('env-edit-input').value = letter.content;
     document.getElementById('env-view-content').style.display = 'block';
     document.getElementById('env-view-edit').style.display = 'none';
-    document.getElementById('env-view-edit-btn').style.display = 'inline-flex';
+
+    const isInbox = section === 'inbox';
+    document.getElementById('env-view-reply-btn').style.display = isInbox ? 'inline-flex' : 'none';
+    document.getElementById('env-view-edit-btn').style.display = isInbox ? 'none' : 'inline-flex';
     document.getElementById('env-view-save-btn').style.display = 'none';
     const origCtx = document.getElementById('env-view-original-ctx');
     const origText = document.getElementById('env-view-original-text');
@@ -434,6 +406,21 @@ window.closeEnvViewModal = function() {
     hideModal(document.getElementById('envelope-view-modal'));
 };
 
+window.replyToEnvLetter = function() {
+    hideModal(document.getElementById('envelope-view-modal'));
+    const envelopeModal = document.getElementById('envelope-modal');
+    showModal(envelopeModal);
+    setTimeout(() => {
+        document.getElementById('env-outbox-section').style.display = 'none';
+        document.getElementById('env-inbox-section').style.display = 'none';
+        document.getElementById('env-main-close-btn').style.display = 'none';
+        document.getElementById('env-compose-title').textContent = '回复这封信';
+        document.getElementById('envelope-input').value = '';
+        document.getElementById('env-send-to-chat').checked = false;
+        document.getElementById('env-compose-form').style.display = 'block';
+    }, 150);
+};
+
 window.deleteEnvLetter = function(event, section, id) {
     event.stopPropagation();
     if (!confirm('确定要删除这封信吗？')) return;
@@ -476,18 +463,20 @@ function handleSendEnvelope() {
         addMessage({ id: Date.now(), sender: 'user', text: `【寄出的信】\n${text}`, timestamp: new Date(), status: 'sent', type: 'normal' });
     }
 
+    const willReply = Math.random() < 0.10;
     const minHours = 10, maxHours = 24;
     const randomHours = Math.random() * (maxHours - minHours) + minHours;
-    const replyTime = Date.now() + randomHours * 60 * 60 * 1000;
-    const newId = 'env_' + Date.now() + '_' + Math.random().toString(36).substr(2,4);
+    const newId = 'env_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
     envelopeData.outbox.push({
         id: newId, content: text,
-        sentTime: Date.now(), replyTime,
-        status: 'pending'
+        sentTime: Date.now(),
+        replyTime: willReply ? Date.now() + randomHours * 60 * 60 * 1000 : null,
+        status: 'received',
+        willReply
     });
     saveEnvelopeData();
 
     cancelEnvelopeCompose();
     switchEnvTab('outbox');
-    showNotification(`信件已寄出，预计 ${Math.floor(randomHours)} 小时后收到回信 ✉️`, 'success');
+    showNotification('信件已寄出 ✉️', 'success');
 }
