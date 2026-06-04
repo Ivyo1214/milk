@@ -649,8 +649,8 @@
             </div>
 
 
-            <div class="modal-buttons">
-                <button class="modal-btn modal-btn-secondary" id="cancel-settings">关闭</button>
+            <div class="modal-buttons" style="justify-content:flex-end;">
+                <button class="modal-btn modal-btn-secondary" id="cancel-settings" onclick="hideModal(document.getElementById('settings-modal'))">关闭</button>
             </div>
         </div>
     </div>
@@ -837,9 +837,6 @@
 
 <div id="appearance-panel-container" style="display:none;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <button onclick="hideAppearancePanel()" style="background:var(--primary-bg);border:1px solid var(--border-color);border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--text-secondary);">
-            <i class="fas fa-arrow-left"></i> 返回
-        </button>
         <span id="appearance-panel-title" style="font-size:14px;font-weight:600;color:var(--text-primary);"></span>
     </div>
 
@@ -1209,10 +1206,10 @@
 </div>
 
             <div class="modal-buttons" style="position:sticky;bottom:0;background:var(--secondary-bg);border-top:1px solid var(--border-color);padding:12px 0 0;z-index:10;margin-top:8px;margin-left:-24px;margin-right:-24px;padding-left:24px;padding-right:24px;padding-bottom:max(12px, env(safe-area-inset-bottom, 0px));">
-                <button class="modal-btn modal-btn-secondary" id="back-appearance" onclick="(function(){hideModal(document.getElementById('appearance-modal'));showModal(document.getElementById('settings-modal'))})()">
+                <button class="modal-btn modal-btn-secondary" id="back-appearance" onclick="(function(){ const panelContainer = document.getElementById('appearance-panel-container'); if(panelContainer && panelContainer.style.display !== 'none'){ hideAppearancePanel(); } else { hideModal(document.getElementById('appearance-modal')); showModal(document.getElementById('settings-modal')); } })()">
                     <i class="fas fa-arrow-left"></i> 返回
                 </button>
-                <button class="modal-btn modal-btn-secondary" id="close-appearance">关闭</button>
+                <button class="modal-btn modal-btn-secondary" id="close-appearance" onclick="hideModal(document.getElementById('appearance-modal'))">关闭</button>
             </div>
         </div>
     </div>
@@ -1538,7 +1535,7 @@
                 <button class="modal-btn modal-btn-secondary" id="back-chat" onclick="(function(){hideModal(document.getElementById('chat-modal'));showModal(document.getElementById('settings-modal'))})()">
                     <i class="fas fa-arrow-left"></i> 返回
                 </button>
-                <button class="modal-btn modal-btn-secondary" id="close-chat" style="margin-left:auto;">关闭</button>
+                <button class="modal-btn modal-btn-secondary" id="close-chat" onclick="hideModal(document.getElementById('chat-modal'))">关闭</button>
             </div>
         </div>
     </div>
@@ -1586,7 +1583,7 @@
                 <button class="modal-btn modal-btn-secondary" id="back-advanced" onclick="(function(){hideModal(document.getElementById('advanced-modal'));showModal(document.getElementById('settings-modal'))})()">
                     <i class="fas fa-arrow-left"></i> 返回
                 </button>
-                <button class="modal-btn modal-btn-secondary" id="close-advanced">关闭</button>
+                <button class="modal-btn modal-btn-secondary" id="close-advanced" onclick="hideModal(document.getElementById('advanced-modal'))">关闭</button>
             </div>
         </div>
     </div>
