@@ -695,13 +695,10 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
     }
 
     function scheduleRandomCall() {
+        // v2.5: 随机来电已合并到 companion.js 统一调度（50% 陪伴邀请 / 50% 通话）
+        // 这里禁用,避免重复触发
         clearTimeout(S.randomCallTimer);
-        if (!S.enabled) return;
-        const ms = (15 + Math.random() * 45) * 60 * 1000;
-        S.randomCallTimer = setTimeout(() => {
-            if (S.enabled && !S.active && Math.random() < 0.25) showIncomingCall();
-            scheduleRandomCall();
-        }, ms);
+        return;
     }
 
     function minimizeWindow() {
@@ -926,4 +923,12 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
     }
 
     init();
+
+    // v2.5: 暴露给 companion.js 用于统一来电调度
+    window._callModule = {
+        showIncomingCall: () => {
+            if (S.enabled && !S.active) showIncomingCall();
+        },
+        isEnabled: () => S.enabled,
+    };
 })();
