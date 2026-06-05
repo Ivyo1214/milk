@@ -413,6 +413,8 @@ fileInput.addEventListener('change', function(e) {
                     const _mq = window.matchMedia('(prefers-color-scheme: dark)');
                     const _applySystemTheme = () => {
                         try {
+                            if (!settings || !settings.colorTheme) return;
+                            if (settings.isDarkMode === _mq.matches) return;
                             settings.isDarkMode = _mq.matches;
                             if (typeof updateUI === 'function') updateUI();
                         } catch (e) { console.warn('[system-theme] apply failed:', e); }
@@ -422,7 +424,17 @@ fileInput.addEventListener('change', function(e) {
                     } else if (_mq.addListener) {
                         _mq.addListener(_applySystemTheme);
                     }
-                    setTimeout(_applySystemTheme, 0);
+                    let _tries = 0;
+                    const _waitForSettings = setInterval(() => {
+                        _tries++;
+                        if (settings && settings.colorTheme) {
+                            clearInterval(_waitForSettings);
+                            _applySystemTheme();
+                        } else if (_tries > 100) {
+                            clearInterval(_waitForSettings);
+                            console.warn('[system-theme] settings not ready after 10s, giving up initial apply');
+                        }
+                    }, 100);
                 }
             } catch (e) { console.warn('[system-theme] setup failed:', e); }
             DOMElements.settingsModal.settingsBtn.addEventListener('click', () => {
