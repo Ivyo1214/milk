@@ -176,30 +176,38 @@
     }
 
     function applyStats(total, msgs, cfg, media) {
-        var pct = Math.min(100, total / (5 * 1024 * 1024) * 100);
         var g = function (id) { return document.getElementById(id); };
         var bar = g('dm-storage-bar');
-        if (bar) {
-            bar.style.width = pct.toFixed(1) + '%';
+
+        function updateBarWithQuota(quota) {
+            if (!bar) return;
+            var pct = quota > 0 ? Math.min(100, total / quota * 100) : 0;
+            bar.style.width = pct.toFixed(2) + '%';
             bar.style.background = pct > 80
                 ? 'linear-gradient(90deg,#FF3B30,#CC0000)'
                 : pct > 50
                 ? 'linear-gradient(90deg,#FF9F0A,#E07000)'
                 : 'linear-gradient(90deg,var(--accent-color),rgba(var(--accent-color-rgb),0.6))';
         }
-        if (g('dm-storage-total')) {
-            if (navigator.storage && navigator.storage.estimate) {
-                navigator.storage.estimate().then(function(est) {
-                    var quota = est.quota || 0;
-                    var quotaStr = quota >= 1073741824 ? (quota/1073741824).toFixed(2)+' GB'
-                                 : quota >= 1048576    ? (quota/1048576).toFixed(1)+' MB'
-                                 : quota > 0           ? (quota/1024).toFixed(1)+' KB' : '未知';
-                    if (g('dm-storage-total')) g('dm-storage-total').textContent = fmt(total) + ' / ' + quotaStr;
-                }).catch(function(){ if (g('dm-storage-total')) g('dm-storage-total').textContent = fmt(total); });
-            } else {
-                g('dm-storage-total').textContent = fmt(total);
-            }
+
+        if (navigator.storage && navigator.storage.estimate) {
+            navigator.storage.estimate().then(function(est) {
+                var quota = est.quota || 0;
+                updateBarWithQuota(quota);
+                var quotaStr = quota >= 1073741824 ? (quota/1073741824).toFixed(2)+' GB'
+                             : quota >= 1048576    ? (quota/1048576).toFixed(1)+' MB'
+                             : quota > 0           ? (quota/1024).toFixed(1)+' KB' : '未知';
+                var pct = quota > 0 ? (total / quota * 100).toFixed(2) : '0';
+                if (g('dm-storage-total')) g('dm-storage-total').textContent = fmt(total) + ' / ' + quotaStr + ' (' + pct + '%)';
+            }).catch(function() {
+                updateBarWithQuota(0);
+                if (g('dm-storage-total')) g('dm-storage-total').textContent = fmt(total);
+            });
+        } else {
+            updateBarWithQuota(0);
+            if (g('dm-storage-total')) g('dm-storage-total').textContent = fmt(total);
         }
+
         if (g('dm-stat-msgs'))     g('dm-stat-msgs').textContent     = fmt(msgs);
         if (g('dm-stat-settings')) g('dm-stat-settings').textContent = fmt(cfg);
         if (g('dm-stat-media'))    g('dm-stat-media').textContent    = fmt(media);
