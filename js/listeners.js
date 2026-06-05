@@ -408,19 +408,23 @@ fileInput.addEventListener('change', function(e) {
                 });
             }
 
-            if (window.matchMedia) {
-                const _mq = window.matchMedia('(prefers-color-scheme: dark)');
-                const _applySystemTheme = () => {
-                    settings.isDarkMode = _mq.matches;
-                    if (typeof updateUI === 'function') updateUI();
-                };
-                _applySystemTheme();
-                if (_mq.addEventListener) {
-                    _mq.addEventListener('change', _applySystemTheme);
-                } else if (_mq.addListener) {
-                    _mq.addListener(_applySystemTheme);
+            try {
+                if (window.matchMedia) {
+                    const _mq = window.matchMedia('(prefers-color-scheme: dark)');
+                    const _applySystemTheme = () => {
+                        try {
+                            settings.isDarkMode = _mq.matches;
+                            if (typeof updateUI === 'function') updateUI();
+                        } catch (e) { console.warn('[system-theme] apply failed:', e); }
+                    };
+                    if (_mq.addEventListener) {
+                        _mq.addEventListener('change', _applySystemTheme);
+                    } else if (_mq.addListener) {
+                        _mq.addListener(_applySystemTheme);
+                    }
+                    setTimeout(_applySystemTheme, 0);
                 }
-            }
+            } catch (e) { console.warn('[system-theme] setup failed:', e); }
             DOMElements.settingsModal.settingsBtn.addEventListener('click', () => {
                 showModal(DOMElements.settingsModal.modal);
             });
