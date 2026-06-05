@@ -141,7 +141,7 @@ function loadMoreHistory() {
                 myName: "我",
                 myStatus: "在线",
                 partnerStatus: "在线",
-                isDarkMode: false,
+                isDarkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
                 colorTheme: "gold",
                 soundEnabled: true,
                 typingIndicatorEnabled: true,
@@ -824,8 +824,7 @@ function manageAutoSendTimer() {
                 }
             }
 
-            DOMElements.html.setAttribute('data-theme', settings.isDarkMode ? 'dark': 'light');
-            DOMElements.themeToggle.innerHTML = settings.isDarkMode ? '<i class="fas fa-sun"></i>': '<i class="fas fa-moon"></i>';
+            DOMElements.html.setAttribute('data-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
             DOMElements.partner.name.textContent = settings.partnerName;
             DOMElements.me.name.textContent = settings.myName;
             DOMElements.partner.status.textContent = settings.partnerStatus || '在线';
@@ -2334,6 +2333,11 @@ window.initializeSession = async function() {
 
     await localforage.setItem(`${APP_PREFIX}lastSessionId`, SESSION_ID);
 }
+
+// 监听系统昼夜变化，实时更新 data-theme
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     const chatArea = document.querySelector('.main-chat-area');
