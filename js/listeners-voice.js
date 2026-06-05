@@ -16,8 +16,8 @@
     }
 
     function _syncFakeVoiceUI() {
-        const sw = document.getElementById('fake-voice-switch');
-        if (sw) sw.classList.toggle('active', _isFakeVoiceOn());
+        const row = document.getElementById('fake-voice-toggle');
+        if (row) row.classList.toggle('active', _isFakeVoiceOn());
     }
 
     window._toggleFakeVoice = function() {
