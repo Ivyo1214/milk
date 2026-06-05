@@ -48,7 +48,6 @@
             sendBtn: document.getElementById('send-btn'),
             attachmentBtn: document.getElementById('attachment-btn'),
             imageInput: document.getElementById('image-input'),
-            themeToggle: document.getElementById('theme-toggle'),
             batchBtn: document.getElementById('batch-btn'),
             continueBtn: document.getElementById('continue-btn'),
             comboBtn: document.getElementById('combo-btn'),
