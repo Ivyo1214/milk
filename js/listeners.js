@@ -401,42 +401,10 @@ fileInput.addEventListener('change', function(e) {
                 statusContainer.innerHTML = ''; statusContainer.appendChild(input); input.focus();
             });
 
-            if (DOMElements.themeToggle) {
-                DOMElements.themeToggle.addEventListener('click', () => {
-                    settings.isDarkMode = !settings.isDarkMode; throttledSaveData(); updateUI(); showNotification(`已切换到${settings.isDarkMode ? '夜': '昼'}模式`,
-                        'success');
-                });
-            }
-
-            try {
-                if (window.matchMedia) {
-                    const _mq = window.matchMedia('(prefers-color-scheme: dark)');
-                    const _applySystemTheme = () => {
-                        try {
-                            if (!settings || !settings.colorTheme) return;
-                            if (settings.isDarkMode === _mq.matches) return;
-                            settings.isDarkMode = _mq.matches;
-                            if (typeof updateUI === 'function') updateUI();
-                        } catch (e) { console.warn('[system-theme] apply failed:', e); }
-                    };
-                    if (_mq.addEventListener) {
-                        _mq.addEventListener('change', _applySystemTheme);
-                    } else if (_mq.addListener) {
-                        _mq.addListener(_applySystemTheme);
-                    }
-                    let _tries = 0;
-                    const _waitForSettings = setInterval(() => {
-                        _tries++;
-                        if (settings && settings.colorTheme) {
-                            clearInterval(_waitForSettings);
-                            _applySystemTheme();
-                        } else if (_tries > 100) {
-                            clearInterval(_waitForSettings);
-                            console.warn('[system-theme] settings not ready after 10s, giving up initial apply');
-                        }
-                    }, 100);
-                }
-            } catch (e) { console.warn('[system-theme] setup failed:', e); }
+            DOMElements.themeToggle.addEventListener('click', () => {
+                settings.isDarkMode = !settings.isDarkMode; throttledSaveData(); updateUI(); showNotification(`已切换到${settings.isDarkMode ? '夜': '昼'}模式`,
+                    'success');
+            });
             DOMElements.settingsModal.settingsBtn.addEventListener('click', () => {
                 showModal(DOMElements.settingsModal.modal);
             });
@@ -536,37 +504,6 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
             if (_dataSettingsEl) _dataSettingsEl.addEventListener('click', () => {
                 hideModal(DOMElements.settingsModal.modal);
                 showModal(DOMElements.dataModal.modal);
-                (async function calcDmStorage() {
-                    try {
-                        let total = 0, msgsSize = 0, settingsSize = 0, mediaSize = 0;
-                        const keys = await localforage.keys();
-                        for (const k of keys) {
-                            const raw = await localforage.getItem(k);
-                            const str = typeof raw === 'string' ? raw : JSON.stringify(raw);
-                            const bytes = new Blob([str]).size;
-                            total += bytes;
-                            if (/messages|msgs/i.test(k)) msgsSize += bytes;
-                            else if (/avatar|image|photo|bg|background|wallpaper/i.test(k)) mediaSize += bytes;
-                            else settingsSize += bytes;
-                        }
-                        const fmt = b => b > 1048576 ? (b/1048576).toFixed(1)+'MB' : b > 1024 ? (b/1024).toFixed(0)+'KB' : b+'B';
-                        const MAX = 5 * 1024 * 1024;
-                        const pct = Math.min(100, Math.round(total / MAX * 100));
-                        const barEl = document.getElementById('dm-storage-bar');
-                        const totalEl = document.getElementById('dm-storage-total');
-                        if (barEl) barEl.style.width = pct + '%';
-                        if (totalEl) totalEl.textContent = fmt(total);
-                        const msgsEl = document.getElementById('dm-stat-msgs');
-                        const setEl = document.getElementById('dm-stat-settings');
-                        const medEl = document.getElementById('dm-stat-media');
-                        if (msgsEl) msgsEl.textContent = fmt(msgsSize);
-                        if (setEl) setEl.textContent = fmt(settingsSize);
-                        if (medEl) medEl.textContent = fmt(mediaSize);
-                    } catch(e) {
-                        const totalEl = document.getElementById('dm-storage-total');
-                        if (totalEl) totalEl.textContent = '无法读取';
-                    }
-                })();
             });
             const exportChatBtnDm = document.getElementById('export-chat-btn');
             const importChatBtnDm = document.getElementById('import-chat-btn');
