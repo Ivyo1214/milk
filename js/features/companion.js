@@ -766,11 +766,24 @@
         _randomInviteTimer = setTimeout(() => {
             // 25% 概率真正发起
             if (Math.random() < 0.25) {
-                showIncomingCompanion();
+                triggerRandomInteraction();
             }
             scheduleRandomInvite(); // 递归继续下一轮
         }, ms);
-        console.log(`[companion] 下次邀请检查在 ${Math.round(ms/60000)} 分钟后`);
+        console.log(`[companion] 下次互动检查在 ${Math.round(ms/60000)} 分钟后`);
+    }
+
+    // 统一来电调度：50% 触发陪伴邀请 / 50% 触发视频通话
+    function triggerRandomInteraction() {
+        // 如果视频通话模块未启用或已在通话中，强制走陪伴邀请
+        const callAvailable = window._callModule && window._callModule.isEnabled();
+        if (!callAvailable || Math.random() < 0.5) {
+            // 50% (或视频不可用时 100%) → 陪伴邀请
+            showIncomingCompanion();
+        } else {
+            // 50% → 视频通话
+            window._callModule.showIncomingCall();
+        }
     }
 
     function stopRandomInvite() {
