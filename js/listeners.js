@@ -401,10 +401,27 @@ fileInput.addEventListener('change', function(e) {
                 statusContainer.innerHTML = ''; statusContainer.appendChild(input); input.focus();
             });
 
-            DOMElements.themeToggle.addEventListener('click', () => {
-                settings.isDarkMode = !settings.isDarkMode; throttledSaveData(); updateUI(); showNotification(`已切换到${settings.isDarkMode ? '夜': '昼'}模式`,
-                    'success');
-            });
+            if (DOMElements.themeToggle) {
+                DOMElements.themeToggle.addEventListener('click', () => {
+                    settings.isDarkMode = !settings.isDarkMode; throttledSaveData(); updateUI(); showNotification(`已切换到${settings.isDarkMode ? '夜': '昼'}模式`,
+                        'success');
+                });
+            }
+
+            (function setupSystemThemeFollow() {
+                if (!window.matchMedia) return;
+                const mq = window.matchMedia('(prefers-color-scheme: dark)');
+                const applySystemTheme = () => {
+                    settings.isDarkMode = mq.matches;
+                    if (typeof updateUI === 'function') updateUI();
+                };
+                applySystemTheme();
+                if (mq.addEventListener) {
+                    mq.addEventListener('change', applySystemTheme);
+                } else if (mq.addListener) {
+                    mq.addListener(applySystemTheme);
+                }
+            })();
             DOMElements.settingsModal.settingsBtn.addEventListener('click', () => {
                 showModal(DOMElements.settingsModal.modal);
             });
