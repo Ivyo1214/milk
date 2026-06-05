@@ -10793,11 +10793,19 @@
    首页改造 · 第一步：隐藏不需要的功能入口（代码保留）
    ──────────────────────────────────────────────────────────────── */
 
-/* 顶部栏：隐藏会话管理 + 群聊设置（单梦角场景不需要）*/
+/* 顶部栏：隐藏会话管理 + 群聊设置 + 昼夜切换（已改为跟随系统）*/
 #session-manager-btn,
-#group-chat-btn {
+#group-chat-btn,
+#theme-toggle {
     display: none !important;
 }
+
+/* 顶部栏按钮顺序：情侣空间 · 陪伴 · 公告 · 设置 */
+.header-actions { display: flex; }
+#couple-space-btn   { order: 1; }
+#companion-btn      { order: 2; }
+#daily-greeting-btn { order: 3; }
+#settings-btn       { order: 4; }
 
 /* 底部输入区：隐藏让对方继续说、批量发送、发送按钮 */
 #continue-btn,
