@@ -177,10 +177,28 @@
 
     function applyStats(total, msgs, cfg, media) {
         var g = function (id) { return document.getElementById(id); };
-        if (g('dm-stat-msgs'))     g('dm-stat-msgs').textContent     = fmt(msgs);
-        if (g('dm-stat-settings')) g('dm-stat-settings').textContent = fmt(cfg);
-        if (g('dm-stat-media'))    g('dm-stat-media').textContent    = fmt(media);
-        // 顶部总用量和进度条由 updateStorageUsageBar 统一处理（使用浏览器真实 estimate）
+
+        function renderCategories(scaleFactor) {
+            var sMsgs  = msgs  * scaleFactor;
+            var sCfg   = cfg   * scaleFactor;
+            var sMedia = media * scaleFactor;
+            if (g('dm-stat-msgs'))     g('dm-stat-msgs').textContent     = fmt(sMsgs);
+            if (g('dm-stat-settings')) g('dm-stat-settings').textContent = fmt(sCfg);
+            if (g('dm-stat-media'))    g('dm-stat-media').textContent    = fmt(sMedia);
+        }
+
+        if (navigator.storage && navigator.storage.estimate && total > 0) {
+            navigator.storage.estimate().then(function(est) {
+                var realUsed = est.usage || 0;
+                // 用真实占用按比例缩放手动算的分类，让加总等于真实占用
+                var scale = realUsed > 0 ? (realUsed / total) : 1;
+                renderCategories(scale);
+            }).catch(function(){ renderCategories(1); });
+        } else {
+            renderCategories(1);
+        }
+
+        // 顶部总用量和进度条由 updateStorageUsageBar 统一处理
         if (typeof updateStorageUsageBar === 'function') updateStorageUsageBar();
     }
 
