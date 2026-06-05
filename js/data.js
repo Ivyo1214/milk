@@ -170,7 +170,7 @@
     }
 
     function fmt(b) {
-        if (b < 1024) return b + ' B';
+        if (b < 1024) return Math.round(b) + ' B';
         if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
         return (b / 1048576).toFixed(2) + ' MB';
     }
@@ -178,28 +178,40 @@
     function applyStats(total, msgs, cfg, media) {
         var g = function (id) { return document.getElementById(id); };
 
-        function renderCategories(scaleFactor) {
-            var sMsgs  = msgs  * scaleFactor;
-            var sCfg   = cfg   * scaleFactor;
-            var sMedia = media * scaleFactor;
-            if (g('dm-stat-msgs'))     g('dm-stat-msgs').textContent     = fmt(sMsgs);
-            if (g('dm-stat-settings')) g('dm-stat-settings').textContent = fmt(sCfg);
-            if (g('dm-stat-media'))    g('dm-stat-media').textContent    = fmt(sMedia);
-        }
+        // 直接显示手动累加的分类
+        if (g('dm-stat-msgs'))     g('dm-stat-msgs').textContent     = fmt(msgs);
+        if (g('dm-stat-settings')) g('dm-stat-settings').textContent = fmt(cfg);
+        if (g('dm-stat-media'))    g('dm-stat-media').textContent    = fmt(media);
 
-        if (navigator.storage && navigator.storage.estimate && total > 0) {
+        // 顶部总用量 = total（手动累加），进度条 = total / quota
+        var totalEl = g('dm-storage-total');
+        var barEl   = g('dm-storage-bar');
+
+        if (navigator.storage && navigator.storage.estimate) {
             navigator.storage.estimate().then(function(est) {
-                var realUsed = est.usage || 0;
-                // 用真实占用按比例缩放手动算的分类，让加总等于真实占用
-                var scale = realUsed > 0 ? (realUsed / total) : 1;
-                renderCategories(scale);
-            }).catch(function(){ renderCategories(1); });
+                var quota = est.quota || 0;
+                var pct = quota > 0 ? Math.min(100, total / quota * 100) : 0;
+                var pctStr = pct.toFixed(1);
+                var quotaStr = quota >= 1073741824 ? (quota/1073741824).toFixed(2)+' GB'
+                             : quota >= 1048576    ? (quota/1048576).toFixed(1)+' MB'
+                             : quota > 0           ? (quota/1024).toFixed(1)+' KB' : '未知';
+                if (totalEl) totalEl.textContent = fmt(total) + ' / ' + quotaStr + ' (' + pctStr + '%)';
+                if (barEl) {
+                    barEl.style.width = pctStr + '%';
+                    barEl.style.background = pct > 80
+                        ? 'linear-gradient(90deg,#FF3B30,#CC0000)'
+                        : pct > 50
+                        ? 'linear-gradient(90deg,#FF9F0A,#E07000)'
+                        : 'linear-gradient(90deg,var(--accent-color),rgba(var(--accent-color-rgb),0.6))';
+                }
+            }).catch(function() {
+                if (totalEl) totalEl.textContent = fmt(total);
+                if (barEl) barEl.style.width = '0%';
+            });
         } else {
-            renderCategories(1);
+            if (totalEl) totalEl.textContent = fmt(total);
+            if (barEl) barEl.style.width = '0%';
         }
-
-        // 顶部总用量和进度条由 updateStorageUsageBar 统一处理
-        if (typeof updateStorageUsageBar === 'function') updateStorageUsageBar();
     }
 
     function updateStats() {
@@ -460,45 +472,12 @@
         init();
     }
 
+    window.updateStats = updateStats;
+
 })();
 
 function updateStorageUsageBar() {
-    var bar   = document.getElementById('dm-storage-bar')   || document.getElementById('storage-usage-fill');
-    var text  = document.getElementById('dm-storage-total') || document.getElementById('storage-usage-text');
-    if (!bar && !text) return;
-
-    function fmt(bytes) {
-        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-        if (bytes >= 1048576)    return (bytes / 1048576).toFixed(1) + ' MB';
-        if (bytes >= 1024)       return (bytes / 1024).toFixed(1) + ' KB';
-        return bytes + ' B';
-    }
-
-    if (navigator.storage && navigator.storage.estimate) {
-        navigator.storage.estimate().then(function(est) {
-            var used  = est.usage  || 0;
-            var quota = est.quota  || 0;
-            var pct   = quota > 0 ? Math.min(used / quota * 100, 100).toFixed(1) : 0;
-            if (bar) {
-                bar.style.width = pct + '%';
-                if (parseFloat(pct) > 80)
-                    bar.style.background = 'linear-gradient(90deg,#FF3B30,#CC0000)';
-                else if (parseFloat(pct) > 50)
-                    bar.style.background = 'linear-gradient(90deg,#FF9F0A,#E07000)';
-                else
-                    bar.style.background = 'linear-gradient(90deg,var(--accent-color),rgba(var(--accent-color-rgb),0.6))';
-            }
-            if (text) {
-                var quotaStr = quota > 0 ? fmt(quota) : '未知';
-                text.textContent = fmt(used) + ' / ' + quotaStr + ' (' + pct + '%)';
-            }
-        }).catch(function() {
-            if (text) text.textContent = '无法读取存储信息';
-        });
-    } else {
-        if (text) text.textContent = '浏览器不支持存储查询';
-        if (bar)  bar.style.width  = '0%';
-    }
+    if (typeof window.updateStats === 'function') window.updateStats();
 }
 
 (function() {
