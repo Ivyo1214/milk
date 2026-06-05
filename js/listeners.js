@@ -401,10 +401,7 @@ fileInput.addEventListener('change', function(e) {
                 statusContainer.innerHTML = ''; statusContainer.appendChild(input); input.focus();
             });
 
-            DOMElements.themeToggle.addEventListener('click', () => {
-                settings.isDarkMode = !settings.isDarkMode; throttledSaveData(); updateUI(); showNotification(`已切换到${settings.isDarkMode ? '夜': '昼'}模式`,
-                    'success');
-            });
+
             DOMElements.settingsModal.settingsBtn.addEventListener('click', () => {
                 showModal(DOMElements.settingsModal.modal);
             });
