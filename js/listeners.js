@@ -408,20 +408,19 @@ fileInput.addEventListener('change', function(e) {
                 });
             }
 
-            (function setupSystemThemeFollow() {
-                if (!window.matchMedia) return;
-                const mq = window.matchMedia('(prefers-color-scheme: dark)');
-                const applySystemTheme = () => {
-                    settings.isDarkMode = mq.matches;
+            if (window.matchMedia) {
+                const _mq = window.matchMedia('(prefers-color-scheme: dark)');
+                const _applySystemTheme = () => {
+                    settings.isDarkMode = _mq.matches;
                     if (typeof updateUI === 'function') updateUI();
                 };
-                applySystemTheme();
-                if (mq.addEventListener) {
-                    mq.addEventListener('change', applySystemTheme);
-                } else if (mq.addListener) {
-                    mq.addListener(applySystemTheme);
+                _applySystemTheme();
+                if (_mq.addEventListener) {
+                    _mq.addEventListener('change', _applySystemTheme);
+                } else if (_mq.addListener) {
+                    _mq.addListener(_applySystemTheme);
                 }
-            })();
+            }
             DOMElements.settingsModal.settingsBtn.addEventListener('click', () => {
                 showModal(DOMElements.settingsModal.modal);
             });
