@@ -349,7 +349,13 @@ const tourSteps = [
         position: 'bottom'
     },
     {
-        element: '#attachment-btn',
+        element: '#message-input',
+        title: "⌨️ 发送消息",
+        content: "在这里输入你想说的话，按回车键即可发送。<br><br>发送后对方会在几秒内回复你，回复速度可以在「聊天设置」里调整。",
+        position: 'top'
+    },
+    {
+        elements: ['#attachment-btn', '#combo-btn'],
         title: "🖼️ 发图 & 表情包",
         content: "点击这里可以发送图片，也可以打开表情包面板发送表情。<br><br>在「高级功能 → 自定义回复」里还可以上传对方的专属表情，到时候 Ta 也会发给你！",
         position: 'top'
@@ -358,12 +364,6 @@ const tourSteps = [
         title: "👋 拍一拍",
         content: "双击对方的头像，可以拍一拍 Ta！<br><br>拍一拍的文字可以在「聊天设置 → 功能」里自定义；对方回应你的拍一拍文字，则在「高级功能 → 自定义回复」里设置。",
         position: 'center'
-    },
-    {
-        element: '#message-input',
-        title: "⌨️ 发送消息",
-        content: "在这里输入你想说的话，按回车键即可发送。<br><br>发送后对方会在几秒内回复你，回复速度可以在「聊天设置」里调整。",
-        position: 'top'
     },
     {
         element: '#envelope-header-btn',
@@ -400,7 +400,7 @@ const tourSteps = [
     {
         element: '#chat-settings',
         title: "💬 聊天设置",
-        content: "聊天设置里可以调整：<br>• 功能：信息交互设置、拍一拍文字等<br>• 节奏：回复速度 & 频率、后台运行等<br>• 音效：消息提示音<br>• 显示：沉浸模式、底部栏收纳等<br>• 昵称：快速修改双方昵称",
+        content: "聊天设置里可以调整：<br>• <b>功能</b>：信息交互设置、拍一拍文字等<br>• <b>节奏</b>：回复速度 & 频率、后台运行等<br>• <b>音效</b>：消息提示音<br>• <b>显示</b>：沉浸模式、底部栏收纳等<br>• <b>昵称</b>：快速修改双方昵称",
         position: 'bottom'
     },
     {
@@ -471,9 +471,23 @@ function showTourStep(index) {
         } else {
             tourNextBtn.innerHTML = '下一步 <i class="fas fa-arrow-right"></i>';
         }
-        const targetElement = step.element ? document.querySelector(step.element) : null;
-        if (targetElement) {
-            const rect = targetElement.getBoundingClientRect();
+        // 支持单个 element 或多个 elements 合并高亮
+        let combinedRect = null;
+        if (step.elements && step.elements.length > 0) {
+            const rects = step.elements.map(sel => document.querySelector(sel)).filter(Boolean).map(el => el.getBoundingClientRect());
+            if (rects.length > 0) {
+                const minLeft = Math.min(...rects.map(r => r.left));
+                const minTop = Math.min(...rects.map(r => r.top));
+                const maxRight = Math.max(...rects.map(r => r.right));
+                const maxBottom = Math.max(...rects.map(r => r.bottom));
+                combinedRect = { left: minLeft, top: minTop, right: maxRight, bottom: maxBottom, width: maxRight - minLeft, height: maxBottom - minTop };
+            }
+        } else if (step.element) {
+            const el = document.querySelector(step.element);
+            if (el) combinedRect = el.getBoundingClientRect();
+        }
+        if (combinedRect) {
+            const rect = combinedRect;
             tourHighlightBox.style.width = `${rect.width + 10}px`;
             tourHighlightBox.style.height = `${rect.height + 10}px`;
             tourHighlightBox.style.top = `${rect.top - 5}px`;
