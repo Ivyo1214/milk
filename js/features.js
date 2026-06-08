@@ -543,6 +543,9 @@ function showPokeTab() {
     `;
     customBtn.onclick = () => {
         document.getElementById('user-sticker-picker').classList.remove('active');
+        if (DOMElements.pokeModal.input && settings.myPokeText) {
+            DOMElements.pokeModal.input.value = settings.myPokeText;
+        }
         showModal(DOMElements.pokeModal.modal, DOMElements.pokeModal.input);
     };
     area.appendChild(customBtn);
