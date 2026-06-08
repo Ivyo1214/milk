@@ -1613,8 +1613,8 @@ if (!isBatchMode && type === 'normal') {
             window._pendingReplyTimer = setTimeout(() => {
                 window._pendingReplyTimer = null;
                 simulateReply();
-                // 清除陪伴静默标志（如果是陪伴页触发的）
-                window._companionSilentTrigger = false;
+                // 清除陪伴静默标志：延迟清除，确保 simulateReply 内部所有消息都已取到 recentUserMsgs 之后再清
+                setTimeout(() => { window._companionSilentTrigger = false; }, (settings.replyDelayMax || 3000) + 500);
             }, randomDelay);
             return true;
         };
