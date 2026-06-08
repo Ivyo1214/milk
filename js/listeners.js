@@ -482,6 +482,22 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
     if (pokeMyName) pokeMyName.textContent = settings.myName || '我';
     if (pokePartnerName) pokePartnerName.textContent = settings.partnerName || '对方';
     if (pokePreview) pokePreview.textContent = `${settings.myName || '我'} ${settings.myPokeText || '拍了拍'} ${settings.partnerName || '对方'}`;
+    // 实时预览更新
+    if (myPokeTextInput) {
+        myPokeTextInput.oninput = () => {
+            const verb = myPokeTextInput.value.trim() || '拍了拍';
+            if (pokePreview) pokePreview.textContent = `${settings.myName || '我'} ${verb} ${settings.partnerName || '对方'}`;
+        };
+    }
+    // 保存按钮
+    const myPokeSaveBtn = document.getElementById('my-poke-text-save');
+    if (myPokeSaveBtn) {
+        myPokeSaveBtn.onclick = () => {
+            settings.myPokeText = myPokeTextInput ? myPokeTextInput.value.trim() : '';
+            throttledSaveData();
+            if (typeof showNotification === 'function') showNotification('已保存', 'success', 1500);
+        };
+    }
 
     setSelect('sound-partner-poke-preset', settings.partnerPokeSoundPreset || 'tone_low');
     setSoundUrlInput('sound-partner-poke-custom-url', (settings.partnerPokeCustomSoundUrl || '').trim() || legacyCustom);
@@ -1088,24 +1104,6 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
             bindPresetSelect('sound-my-poke-preset', 'myPokeSoundPreset');
             bindPresetSelect('sound-partner-poke-preset', 'partnerPokeSoundPreset');
 
-            // 我拍一拍默认文案
-            const myPokeTextEl = document.getElementById('my-poke-text-input');
-            const myPokePreviewEl = document.getElementById('poke-action-preview');
-            const myPokeSaveBtn = document.getElementById('my-poke-text-save');
-            if (myPokeTextEl) {
-                myPokeTextEl.addEventListener('input', () => {
-                    const verb = myPokeTextEl.value.trim() || '拍了拍';
-                    if (myPokePreviewEl) myPokePreviewEl.textContent = `${settings.myName || '我'} ${verb} ${settings.partnerName || '对方'}`;
-                });
-            }
-            if (myPokeSaveBtn) {
-                myPokeSaveBtn.addEventListener('click', () => {
-                    settings.myPokeText = myPokeTextEl ? myPokeTextEl.value.trim() : '';
-                    throttledSaveData();
-                    if (typeof showNotification === 'function') showNotification('已保存', 'success', 1500);
-                });
-            }
-
             const bindCustomUrlInput = (inputId, settingsKey) => {
                 const el = document.getElementById(inputId);
                 if (!el) return;
@@ -1315,21 +1313,26 @@ autoSendSlider.addEventListener('change', () => {
                 hideModal(document.getElementById('fortune-lenormand-modal'));
             });
     const envelopeEntryBtn = document.getElementById('envelope-function');
+    async function openEnvelopeModal() {
+        hideModal(DOMElements.advancedModal.modal);
+        await loadEnvelopeData();
+        await checkEnvelopeStatus();
+        currentEnvTab = 'outbox';
+        document.getElementById('env-tab-outbox').classList.add('active');
+        document.getElementById('env-tab-inbox').classList.remove('active');
+        document.getElementById('env-outbox-section').style.display = 'block';
+        document.getElementById('env-inbox-section').style.display = 'none';
+        document.getElementById('env-compose-form').style.display = 'none';
+        document.getElementById('env-main-close-btn').style.display = 'flex';
+        renderEnvelopeLists();
+        showModal(document.getElementById('envelope-modal'));
+    }
     if (envelopeEntryBtn) {
-        envelopeEntryBtn.addEventListener('click', async () => {
-            hideModal(DOMElements.advancedModal.modal);
-            await loadEnvelopeData();
-            await checkEnvelopeStatus();
-            currentEnvTab = 'outbox';
-            document.getElementById('env-tab-outbox').classList.add('active');
-            document.getElementById('env-tab-inbox').classList.remove('active');
-            document.getElementById('env-outbox-section').style.display = 'block';
-            document.getElementById('env-inbox-section').style.display = 'none';
-            document.getElementById('env-compose-form').style.display = 'none';
-            document.getElementById('env-main-close-btn').style.display = 'flex';
-            renderEnvelopeLists();
-            showModal(document.getElementById('envelope-modal'));
-        });
+        envelopeEntryBtn.addEventListener('click', openEnvelopeModal);
+    }
+    const envelopeHeaderBtn = document.getElementById('envelope-header-btn');
+    if (envelopeHeaderBtn) {
+        envelopeHeaderBtn.addEventListener('click', openEnvelopeModal);
     }
     const galleryBanner = document.getElementById('gallery-banner-entry');
     if (galleryBanner) {
