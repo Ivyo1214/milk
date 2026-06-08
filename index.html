@@ -411,7 +411,7 @@
             <div class="modal-title">
                 <i class="fas fa-hand-sparkles"></i><span>拍一拍</span>
             </div>
-            <input type="text" class="modal-input" id="poke-input" placeholder="例如：拍了拍对方的肩膀"><div class="modal-buttons">
+            <input type="text" class="modal-input" id="poke-input" placeholder="例如：拍了拍（只填动作部分）"><div class="modal-buttons">
                 <div style="width:100%;display:flex;align-items:center;gap:8px;margin:6px 0 0;">
                     <input type="checkbox" id="poke-save-to-library" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent-color);">
                     <label for="poke-save-to-library" style="font-size:12px;color:var(--text-secondary);cursor:pointer;">保存到拍一拍库</label>
@@ -1287,8 +1287,13 @@
                     <div class="cs-card">
                         <div style="padding:10px 14px;">
                             <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">我拍一拍的默认动作</div>
-                            <input type="text" id="my-poke-text-input" placeholder="例如：拍了拍对方的头（留空则每次手动输入）" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--border-color);border-radius:8px;font-size:12px;background:var(--primary-bg);color:var(--text-primary);outline:none;font-family:var(--font-family);">
-                            <div style="font-size:11px;color:var(--text-secondary);margin-top:5px;">打开拍一拍弹窗时自动预填此文案</div>
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                                <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;" id="poke-preview-myname"></span>
+                                <input type="text" id="my-poke-text-input" placeholder="拍了拍" style="flex:1;padding:7px 10px;border:1px solid var(--border-color);border-radius:8px;font-size:12px;background:var(--primary-bg);color:var(--text-primary);outline:none;font-family:var(--font-family);">
+                                <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;" id="poke-preview-partnername"></span>
+                            </div>
+                            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">预览：<span id="poke-action-preview" style="color:var(--text-primary);"></span></div>
+                            <button id="my-poke-text-save" class="modal-btn modal-btn-primary" style="width:100%;padding:7px;font-size:12px;">保存</button>
                         </div>
                     </div>
 
