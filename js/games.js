@@ -873,6 +873,17 @@ function renderFavorites() {
                 msg.favorited = false;
                 if (typeof throttledSaveData === 'function') throttledSaveData();
                 if (typeof showNotification === 'function') showNotification('已取消收藏', 'success', 1500);
+                // 同步更新聊天里对应消息的星星按钮状态
+                const chatWrapper = document.querySelector(`.message-wrapper[data-msg-id="${id}"], .message-wrapper[data-id="${id}"]`);
+                if (chatWrapper) {
+                    const favBtn = chatWrapper.querySelector('.favorite-action-btn');
+                    if (favBtn) {
+                        favBtn.classList.remove('favorited');
+                        favBtn.title = '收藏';
+                        const icon = favBtn.querySelector('i');
+                        if (icon) { icon.className = 'far fa-star'; }
+                    }
+                }
                 renderFavorites();
             }
         });
