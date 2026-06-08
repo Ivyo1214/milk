@@ -1053,7 +1053,7 @@ function createMessageFragment(msg, prevMsg, nextMsg, lastSenderRef) {
 
     let messageHTML = '';
     if (msg.replyTo) {
-        const repliedText = msg.replyTo.text || (msg.replyTo.image ? '🖼 图片' : '[消息]');
+        const repliedText = msg.replyTo.text || (msg.replyTo.voice ? `语音 ${msg.replyTo.voice.duration || 0}"` : (msg.replyTo.image ? '🖼 图片' : '[消息]'));
         const repliedSender = msg.replyTo.sender === 'user' ? (settings.myName || '我') : (settings.partnerName || '对方');
         messageHTML += `<div class="reply-indicator" data-reply-id="${msg.replyTo.id || ''}" style="cursor:pointer;" onclick="scrollToQuotedMessage(this)"><span class="reply-indicator-sender">${repliedSender}</span><span class="reply-indicator-text">${repliedText}</span></div>`;
     }
@@ -1321,7 +1321,7 @@ const addMessage = (message) => {
                 return;
             }
             const senderName = currentReplyTo.sender === 'user' ? (settings.myName || '我') : (settings.partnerName || '对方');
-            const previewText = currentReplyTo.text ? currentReplyTo.text.slice(0, 40) : '🖼 图片';
+            const previewText = currentReplyTo.text ? currentReplyTo.text.slice(0, 40) : (currentReplyTo.voice ? `语音 ${currentReplyTo.voice.duration || 0}"` : '🖼 图片');
             container.style.display = 'flex';
             container.innerHTML = `
                 <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(var(--accent-color-rgb),0.07);border-left:3px solid var(--accent-color);border-radius:0 8px 8px 0;width:100%;">
