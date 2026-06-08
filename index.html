@@ -198,6 +198,7 @@
             <div class="header-actions">
                 <button id="session-manager-btn" class="action-btn" title="会话管理"><i class="fas fa-comments"></i></button>
                 <button id="group-chat-btn" class="action-btn" title="群聊设置"><i class="fas fa-users"></i></button>
+                <button id="envelope-header-btn" class="action-btn" title="信箱"><i class="fas fa-envelope-open-text"></i></button>
                 <button id="companion-btn" class="action-btn" title="陪伴"><i class="fas fa-hand-holding-heart"></i></button>
                 <button id="daily-greeting-btn" class="action-btn" title="今日公告" onclick="reopenDailyGreeting()"><i class="fas fa-newspaper"></i></button>
                 <button id="settings-btn" class="action-btn" title="设置"><i class="fas fa-cog"></i></button>
@@ -1568,8 +1569,14 @@
                     <div class="settings-item" id="custom-replies-function">
                         <i class="fas fa-comment-dots"></i><span>自定义回复</span>
                     </div>
-                    <div class="settings-item" id="envelope-function">
-                        <i class="fas fa-envelope-open-text"></i><span>信箱</span>
+                    <div class="settings-item" id="stats-function">
+                        <i class="fas fa-chart-bar"></i><span>消息统计</span>
+                    </div>
+                    <div class="settings-item" id="mood-function">
+                        <i class="fas fa-calendar-day"></i><span>心情手账</span>
+                    </div>
+                    <div class="settings-item" id="anniversary-function">
+                        <i class="fas fa-heart"></i><span>重要日</span>
                     </div>
                     <div class="settings-item" id="fortune-lenormand-function" style="position:relative;">
                         <i class="fas fa-star-and-crescent"></i><span>运势 · 占卜</span>
@@ -1578,17 +1585,11 @@
                         <i class="fas fa-balance-scale"></i>
                         <span>抉择</span>
                     </div>
-                    <div class="settings-item" id="music-player-toggle">
+                    <div class="settings-item" id="music-player-toggle" style="display:none;">
                         <i class="fas fa-music"></i><span>悬浮音乐播放器</span>
                     </div>
-                    <div class="settings-item" id="stats-function">
-                        <i class="fas fa-chart-bar"></i><span>消息统计</span>
-                    </div>
-                    <div class="settings-item" id="anniversary-function" style="display:none;">
-                        <i class="fas fa-heart"></i><span>重要日</span>
-                    </div>
-                    <div class="settings-item" id="mood-function" style="display:none;">
-                        <i class="fas fa-calendar-day"></i><span>心晴手账</span>
+                    <div class="settings-item" id="envelope-function" style="display:none;">
+                        <i class="fas fa-envelope-open-text"></i><span>信箱</span>
                     </div>
                 </div>
             </div>
