@@ -250,11 +250,13 @@
         if (next) {
             _start();
             if (typeof showNotification === 'function') showNotification('保活音频已开启 🎵', 'success', 2000);
+            // 立即更新开关颜色，不等待异步 play() 返回
+            _setUI(true);
         } else {
             _stop();
             if (typeof showNotification === 'function') showNotification('保活音频已关闭', 'info', 1500);
+            _setUI(false);
         }
-        _setUI(next && _audio && !_audio.paused);
     };
 
     document.addEventListener('visibilitychange', function(){
