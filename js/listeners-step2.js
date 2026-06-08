@@ -35,7 +35,8 @@
 
             const myName      = (typeof settings !== 'undefined' && settings.myName)      ? settings.myName      : '我';
             const partnerName = (typeof settings !== 'undefined' && settings.partnerName) ? settings.partnerName : '梦角';
-            let pokeText = `${myName} 拍了拍 ${partnerName}`;
+            const verb        = (typeof settings !== 'undefined' && settings.myPokeText)  ? settings.myPokeText  : '拍了拍';
+            let pokeText = `${myName} ${verb} ${partnerName}`;
             if (typeof window._sanitizePokeTextForDisplay === 'function') {
                 pokeText = window._sanitizePokeTextForDisplay(pokeText);
             }
