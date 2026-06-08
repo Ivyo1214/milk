@@ -62,9 +62,9 @@ async function checkEnvelopeStatus() {
 }
 
 async function checkPartnerInitiatedLetter() {
-    const COOLDOWN_MIN = 48 * 60 * 60 * 1000;
-    const COOLDOWN_MAX = 72 * 60 * 60 * 1000;
-    const PROB = 0.20;
+    const COOLDOWN_MIN = 24 * 60 * 60 * 1000;
+    const COOLDOWN_MAX = 48 * 60 * 60 * 1000;
+    const PROB = 0.40;
     const KEY = getStorageKey('partnerLetterNextTime');
 
     const nextTimeRaw = await localforage.getItem(KEY);
