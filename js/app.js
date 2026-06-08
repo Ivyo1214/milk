@@ -229,13 +229,16 @@ if (myStickerQuickUpload) {
         if (!validFiles.length) return;
         showNotification('正在处理 ' + validFiles.length + ' 张...', 'info');
         let ok = 0, fail = 0;
+        const newStickers = [];
         for (const file of validFiles) {
             try {
                 const base64 = await optimizeImage(file, 300, 0.8);
-                myStickerLibrary.push(base64);
+                newStickers.push(base64);
                 ok++;
             } catch(err) { fail++; }
         }
+        // 新表情插到最前面，批量上传时保持原顺序
+        myStickerLibrary.unshift(...newStickers);
         throttledSaveData();
         if (typeof renderComboContent === 'function') renderComboContent('my-sticker');
         showNotification(fail > 0 ? `上传完成：${ok} 成功 ${fail} 失败` : `✓ 已添加 ${ok} 张到我的表情库`, fail > 0 ? 'warning' : 'success');
