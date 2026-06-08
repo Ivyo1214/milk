@@ -1372,6 +1372,9 @@ function initComboMenu() {
         customBtn.onclick = (e) => {
             e.stopPropagation();
             picker.classList.remove('active');
+            if (DOMElements.pokeModal.input) {
+                DOMElements.pokeModal.input.value = settings.myPokeText || '';
+            }
             showModal(DOMElements.pokeModal.modal, DOMElements.pokeModal.input);
         };
         wrapper.appendChild(customBtn);
