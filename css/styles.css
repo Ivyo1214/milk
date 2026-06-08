@@ -10710,7 +10710,6 @@
             background: var(--accent-color);
         }
         #keepalive-audio-switch.active .setting-pill-knob {
-            transform: translateX(20px);
             background: #fff;
         }
 
