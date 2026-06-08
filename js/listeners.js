@@ -94,7 +94,9 @@ if (target.classList.contains('delete-btn')) {
                     currentReplyTo = {
                         id: message.id,
                         sender: message.sender,
-                        text: message.text
+                        text: message.text,
+                        image: message.image || null,
+                        voice: message.voice || null
                     };
                     updateReplyPreview();
                     DOMElements.messageInput.focus();
