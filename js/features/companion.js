@@ -775,6 +775,11 @@
 
     // 统一来电调度：50% 触发陪伴邀请 / 50% 触发视频通话
     function triggerRandomInteraction() {
+        // 只有聊天页在前台时才触发：没有任何 modal 打开，也没有陪伴页
+        const anyModalOpen = !!document.querySelector('.modal[style*="display: flex"], .modal[style*="display:flex"]');
+        const isCompanionActive = document.getElementById('companion-page')?.classList.contains('active');
+        if (anyModalOpen || isCompanionActive) return;
+
         // 如果视频通话模块未启用或已在通话中，强制走陪伴邀请
         const callAvailable = window._callModule && window._callModule.isEnabled();
         if (!callAvailable || Math.random() < 0.5) {
