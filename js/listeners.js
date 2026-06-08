@@ -170,7 +170,8 @@ if (target.classList.contains('delete-btn')) {
                 DOMElements.editModal.save.disabled = !DOMElements.editModal.input.value.trim();
             });
             DOMElements.pokeModal.save.addEventListener('click', () => {
-                let pokeText = DOMElements.pokeModal.input.value.trim() || `${settings.myName} 拍了拍 ${settings.partnerName}`;
+                const verb = DOMElements.pokeModal.input.value.trim() || settings.myPokeText || '拍了拍';
+                let pokeText = `${settings.myName} ${verb} ${settings.partnerName}`;
                 if (typeof window._sanitizePokeTextForDisplay === 'function') {
                     pokeText = window._sanitizePokeTextForDisplay(pokeText);
                 }
@@ -195,7 +196,7 @@ if (target.classList.contains('delete-btn')) {
                     }
                 }
                 hideModal(DOMElements.pokeModal.modal);
-                DOMElements.pokeModal.input.value = '';
+                DOMElements.pokeModal.input.value = settings.myPokeText || '';
                 const delayRange = settings.replyDelayMax - settings.replyDelayMin;
                 const randomDelay = settings.replyDelayMin + Math.random() * delayRange;
                 setTimeout(simulateReply, randomDelay);
@@ -472,6 +473,15 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
 
     setSelect('sound-my-poke-preset', settings.myPokeSoundPreset || 'tone_low');
     setSoundUrlInput('sound-my-poke-custom-url', (settings.myPokeCustomSoundUrl || '').trim() || legacyCustom);
+    const myPokeTextInput = document.getElementById('my-poke-text-input');
+    if (myPokeTextInput) myPokeTextInput.value = settings.myPokeText || '';
+    // 更新预览姓名标签
+    const pokeMyName = document.getElementById('poke-preview-myname');
+    const pokePartnerName = document.getElementById('poke-preview-partnername');
+    const pokePreview = document.getElementById('poke-action-preview');
+    if (pokeMyName) pokeMyName.textContent = settings.myName || '我';
+    if (pokePartnerName) pokePartnerName.textContent = settings.partnerName || '对方';
+    if (pokePreview) pokePreview.textContent = `${settings.myName || '我'} ${settings.myPokeText || '拍了拍'} ${settings.partnerName || '对方'}`;
 
     setSelect('sound-partner-poke-preset', settings.partnerPokeSoundPreset || 'tone_low');
     setSoundUrlInput('sound-partner-poke-custom-url', (settings.partnerPokeCustomSoundUrl || '').trim() || legacyCustom);
@@ -1077,6 +1087,24 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
             bindPresetSelect('sound-partner-message-preset', 'partnerMessageSoundPreset');
             bindPresetSelect('sound-my-poke-preset', 'myPokeSoundPreset');
             bindPresetSelect('sound-partner-poke-preset', 'partnerPokeSoundPreset');
+
+            // 我拍一拍默认文案
+            const myPokeTextEl = document.getElementById('my-poke-text-input');
+            const myPokePreviewEl = document.getElementById('poke-action-preview');
+            const myPokeSaveBtn = document.getElementById('my-poke-text-save');
+            if (myPokeTextEl) {
+                myPokeTextEl.addEventListener('input', () => {
+                    const verb = myPokeTextEl.value.trim() || '拍了拍';
+                    if (myPokePreviewEl) myPokePreviewEl.textContent = `${settings.myName || '我'} ${verb} ${settings.partnerName || '对方'}`;
+                });
+            }
+            if (myPokeSaveBtn) {
+                myPokeSaveBtn.addEventListener('click', () => {
+                    settings.myPokeText = myPokeTextEl ? myPokeTextEl.value.trim() : '';
+                    throttledSaveData();
+                    if (typeof showNotification === 'function') showNotification('已保存', 'success', 1500);
+                });
+            }
 
             const bindCustomUrlInput = (inputId, settingsKey) => {
                 const el = document.getElementById(inputId);
