@@ -162,9 +162,11 @@ function deduplicateContentArray(arr, baseSystemArray = []) {
 
                     const audio = new Audio(url);
                     audio.volume = Math.min(1, Math.max(0, settings.soundVolume || 0.3));
+                    // 邀请音效循环播放，直到用户响应或被 stopCurrentSound 停止
+                    audio.loop = true;
                     _currentAudio = audio;
                     audio.play().catch((e) => { console.warn('[playSound] invite audio play failed:', e); });
-                    audio.addEventListener('ended', () => { _currentAudio = null; });
+                    // 注意：循环音效不在 ended 时清空 _currentAudio，必须靠手动 stop
                 } catch (e) {
                     console.warn('[playSound] invite audio error:', e);
                 }
