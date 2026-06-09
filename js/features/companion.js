@@ -731,9 +731,35 @@
         injectKeyframes();
         document.documentElement.appendChild(overlay);
 
+        // 播放邀请音效（按 mode 选择）
+        try {
+            const soundMap = {
+                study: 'invite_study',
+                work: 'invite_work',
+                exercise: 'invite_exercise',
+                sleep: 'invite_sleep'
+            };
+            const soundType = soundMap[mode];
+            if (soundType && typeof playSound === 'function') {
+                playSound(soundType);
+            }
+        } catch (e) { console.warn('[companion] invite sound error:', e); }
+
+        // 后台推送通知（仅当页面在后台 + 用户开启了通知）
+        try {
+            if (typeof window._sendPartnerNotification === 'function') {
+                const sceneName = MODES[mode]?.label?.replace(/^一起/, '') || '';
+                window._sendPartnerNotification(
+                    partnerName + ' 邀请你陪伴',
+                    `想和你一起${sceneName}，快来看看吧 ✨`
+                );
+            }
+        } catch (e) { console.warn('[companion] invite notification error:', e); }
+
         // 22 秒未接听自动消失 → 错过（不走过渡画面）
         const autoTimer = setTimeout(() => {
             if (!overlay.isConnected) return; // 已被其他操作移除了
+            try { if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound(); } catch(e) {}
             overlay.remove();
             const sceneName = MODES[mode]?.label?.replace(/^一起/, '') || '';
             sendChatEvent('fa-heart-crack', `错过了${partnerName}的${sceneName}邀请`, null);
@@ -742,6 +768,7 @@
         // 拒绝
         overlay.querySelector('#companion-incoming-reject').addEventListener('click', () => {
             clearTimeout(autoTimer);
+            try { if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound(); } catch(e) {}
             if (overlay.isConnected) overlay.remove();
             const sceneName = MODES[mode]?.label?.replace(/^一起/, '') || '';
             sendChatEvent('fa-heart-crack', `我拒绝了这次${sceneName}邀请`, null);
@@ -752,6 +779,7 @@
         // 接受 → 过渡画面 → 进入陪伴页
         overlay.querySelector('#companion-incoming-accept').addEventListener('click', () => {
             clearTimeout(autoTimer);
+            try { if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound(); } catch(e) {}
             if (overlay.isConnected) overlay.remove();
             // 过渡画面：「我在等你……」
             showCompanionTransition(pickRandom(TRANSITION_LINES.partnerInviteAccept), () => {
