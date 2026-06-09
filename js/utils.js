@@ -134,7 +134,7 @@ function deduplicateContentArray(arr, baseSystemArray = []) {
         // 暴露停止音效函数，供邀请等场景手动调用
         window.stopCurrentSound = stopCurrentSound;
 
-        const playSound = (type) => {
+        const playSound = (type, loopOverride) => {
             if (!settings.soundEnabled) return;
             stopCurrentSound();
 
@@ -161,7 +161,7 @@ function deduplicateContentArray(arr, baseSystemArray = []) {
                     const url = customUrl || inviteKey.defaultFile;
 
                     // 邀请音效循环播放，试听只播一次（由调用方传第二个参数 loop 控制，默认循环）
-                    const shouldLoop = (arguments.length < 2) ? true : !!arguments[1];
+                    const shouldLoop = (typeof loopOverride === 'undefined') ? true : !!loopOverride;
 
                     const audio = new Audio(url);
                     audio.volume = Math.min(1, Math.max(0, settings.soundVolume || 0.3));
