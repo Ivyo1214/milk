@@ -131,6 +131,9 @@ function deduplicateContentArray(arr, baseSystemArray = []) {
             } catch(e) {}
         };
 
+        // 暴露停止音效函数，供邀请等场景手动调用
+        window.stopCurrentSound = stopCurrentSound;
+
         const playSound = (type) => {
             if (!settings.soundEnabled) return;
             stopCurrentSound();
