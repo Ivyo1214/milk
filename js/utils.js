@@ -160,13 +160,17 @@ function deduplicateContentArray(arr, baseSystemArray = []) {
                     const customUrl = (settings[inviteKey.custom] || '').trim();
                     const url = customUrl || inviteKey.defaultFile;
 
+                    // 邀请音效循环播放，试听只播一次（由调用方传第二个参数 loop 控制，默认循环）
+                    const shouldLoop = (arguments.length < 2) ? true : !!arguments[1];
+
                     const audio = new Audio(url);
                     audio.volume = Math.min(1, Math.max(0, settings.soundVolume || 0.3));
-                    // 邀请音效循环播放，直到用户响应或被 stopCurrentSound 停止
-                    audio.loop = true;
+                    audio.loop = shouldLoop;
                     _currentAudio = audio;
                     audio.play().catch((e) => { console.warn('[playSound] invite audio play failed:', e); });
-                    // 注意：循环音效不在 ended 时清空 _currentAudio，必须靠手动 stop
+                    if (!shouldLoop) {
+                        audio.addEventListener('ended', () => { _currentAudio = null; });
+                    }
                 } catch (e) {
                     console.warn('[playSound] invite audio error:', e);
                 }
