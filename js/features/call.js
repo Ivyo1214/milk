@@ -667,12 +667,29 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
         ov.classList.add('visible');
         clearTimeout(S.incomingTimer);
 
+        // 播放视频通话邀请音效
+        try {
+            if (typeof playSound === 'function') playSound('invite_videocall');
+        } catch (e) { console.warn('[call] invite sound error:', e); }
+
+        // 后台推送通知（仅当页面在后台 + 用户开启了通知）
+        try {
+            if (typeof window._sendPartnerNotification === 'function') {
+                const partnerName = getName();
+                window._sendPartnerNotification(
+                    partnerName + ' 正在邀请你视频通话',
+                    '快接听吧 📹'
+                );
+            }
+        } catch (e) { console.warn('[call] invite notification error:', e); }
+
         const autoRejectChance = 0.30;
         if (Math.random() < autoRejectChance) {
             const rejectDelay = 4000 + Math.random() * 6000;
             S.incomingTimer = setTimeout(() => {
                 if (!ov.classList.contains('visible')) return;
                 ov.classList.remove('visible');
+                try { if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound(); } catch(e) {}
                 const myName = (typeof settings !== 'undefined' && settings.myName) || '我';
                 const partnerName = getName();
                 const rejectLabels = [
@@ -688,6 +705,7 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
             S.incomingTimer = setTimeout(() => {
                 if (!ov.classList.contains('visible')) return;
                 ov.classList.remove('visible');
+                try { if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound(); } catch(e) {}
                 const myName = (typeof settings !== 'undefined' && settings.myName) || '我';
                 sendCallEvent('fa-phone-slash', `${myName}未接听 ${getName()} 的来电`, null);
             }, 22000);
@@ -827,12 +845,15 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
         document.getElementById('call-inc-reject')?.addEventListener('click', () => {
             document.getElementById('call-incoming-overlay')?.classList.remove('visible');
             clearTimeout(S.incomingTimer);
+            try { if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound(); } catch(e) {}
             const myName = (typeof settings !== 'undefined' && settings.myName) || '我';
             sendCallEvent('fa-phone-slash', `${myName}拒绝了 ${getName()} 的通话`, null);
         });
         document.getElementById('call-inc-accept')?.addEventListener('click', () => {
             document.getElementById('call-incoming-overlay')?.classList.remove('visible');
-            clearTimeout(S.incomingTimer); startCall(true);
+            clearTimeout(S.incomingTimer);
+            try { if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound(); } catch(e) {}
+            startCall(true);
         });
 
         document.getElementById('call-hangup-btn')?.addEventListener('click', endCall);
