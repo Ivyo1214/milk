@@ -134,6 +134,40 @@ function deduplicateContentArray(arr, baseSystemArray = []) {
         const playSound = (type) => {
             if (!settings.soundEnabled) return;
             stopCurrentSound();
+
+            // =============== 邀请类音效（独立路径，播放 mp3 文件） ===============
+            const INVITE_TYPES = ['invite_study', 'invite_work', 'invite_exercise', 'invite_sleep', 'invite_videocall'];
+            if (INVITE_TYPES.indexOf(type) !== -1) {
+                try {
+                    // 配置：每种邀请的预设 / 自定义 URL 设置 key
+                    const inviteKey = {
+                        invite_study:     { preset: 'inviteStudySoundPreset',     custom: 'inviteStudyCustomSoundUrl',     defaultFile: 'assets/audio/invite_study.mp3' },
+                        invite_work:      { preset: 'inviteWorkSoundPreset',      custom: 'inviteWorkCustomSoundUrl',      defaultFile: 'assets/audio/invite_work.mp3' },
+                        invite_exercise:  { preset: 'inviteExerciseSoundPreset',  custom: 'inviteExerciseCustomSoundUrl',  defaultFile: 'assets/audio/invite_exercise.mp3' },
+                        invite_sleep:     { preset: 'inviteSleepSoundPreset',     custom: 'inviteSleepCustomSoundUrl',     defaultFile: 'assets/audio/invite_sleep.mp3' },
+                        invite_videocall: { preset: 'inviteVideocallSoundPreset', custom: 'inviteVideocallCustomSoundUrl', defaultFile: 'assets/audio/invite_videocall.mp3' }
+                    }[type];
+
+                    if (!inviteKey) return;
+
+                    const preset = settings[inviteKey.preset] || 'default';
+                    if (preset === 'mute') return;
+
+                    // URL 解析顺序：自定义 URL > 内置文件
+                    const customUrl = (settings[inviteKey.custom] || '').trim();
+                    const url = customUrl || inviteKey.defaultFile;
+
+                    const audio = new Audio(url);
+                    audio.volume = Math.min(1, Math.max(0, settings.soundVolume || 0.3));
+                    _currentAudio = audio;
+                    audio.play().catch((e) => { console.warn('[playSound] invite audio play failed:', e); });
+                    audio.addEventListener('ended', () => { _currentAudio = null; });
+                } catch (e) {
+                    console.warn('[playSound] invite audio error:', e);
+                }
+                return;
+            }
+
             try {
                 // =============== 两方音效配置 ===============
                 const category = (() => {
