@@ -270,6 +270,13 @@ window.addEventListener('load', function() {
                 localStorage.setItem('dailyGreetingShown', new Date().toDateString());
             }
         } catch(e) { console.warn('Daily greeting timing error:', e); }
+
+        // 启动时检查梦角是否主动来信
+        try {
+            if (typeof checkEnvelopeStatus === 'function') {
+                checkEnvelopeStatus().catch(function(e) { console.warn('envelope launch check error:', e); });
+            }
+        } catch(e) { console.warn('envelope launch check error:', e); }
     }, 4500);
 }, { once: true });
 
