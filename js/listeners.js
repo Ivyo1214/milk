@@ -1193,7 +1193,7 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
             const btnPartnerPoke = document.getElementById('test-sound-partner-poke-btn');
             if (btnPartnerPoke) btnPartnerPoke.addEventListener('click', () => playSound('partner_poke'));
 
-            // 邀请音效试听按钮
+            // 邀请音效试听按钮：再次点击暂停 + 不循环（关闭弹窗也会停止，见下方监听）
             const inviteSoundTests = [
                 ['test-sound-invite-study-btn', 'invite_study'],
                 ['test-sound-invite-work-btn', 'invite_work'],
@@ -1201,10 +1201,32 @@ if (_chatSettingsEl) _chatSettingsEl.addEventListener('click', () => {
                 ['test-sound-invite-sleep-btn', 'invite_sleep'],
                 ['test-sound-invite-videocall-btn', 'invite_videocall']
             ];
+            // 记录当前哪个邀请音效正在试听
+            let _currentInvitePreviewBtnId = null;
             inviteSoundTests.forEach(([btnId, soundType]) => {
                 const btn = document.getElementById(btnId);
-                if (btn) btn.addEventListener('click', () => playSound(soundType));
+                if (!btn) return;
+                btn.addEventListener('click', () => {
+                    // 如果当前按钮正在试听，则停止
+                    if (_currentInvitePreviewBtnId === btnId) {
+                        if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound();
+                        _currentInvitePreviewBtnId = null;
+                        return;
+                    }
+                    // 否则停止其他、开始本按钮（不循环）
+                    if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound();
+                    playSound(soundType, false);
+                    _currentInvitePreviewBtnId = btnId;
+                });
             });
+            // 关闭聊天设置弹窗时停止试听
+            const chatModalCloseBtn = document.getElementById('close-chat');
+            if (chatModalCloseBtn) {
+                chatModalCloseBtn.addEventListener('click', () => {
+                    if (typeof window.stopCurrentSound === 'function') window.stopCurrentSound();
+                    _currentInvitePreviewBtnId = null;
+                });
+            }
 
             document.querySelectorAll('.time-fmt-opt').forEach(opt => {
                 opt.classList.toggle('active', opt.dataset.fmt === (settings.timeFormat || 'HH:mm'));
