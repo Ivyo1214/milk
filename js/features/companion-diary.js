@@ -1,0 +1,599 @@
+/* ============================================
+ * 陪伴日记 (Companion Diary)
+ * 数据结构：
+ * {
+ *   id: 时间戳,
+ *   ts: 开始时间戳（用于排序、日期计算）,
+ *   mode: 'study' | 'work' | 'exercise' | 'sleep',
+ *   duration: 秒数,
+ *   initiator: 'partner' | 'user',
+ *   partnerNote: 字卡内容（梦角自动生成）,
+ *   userNote: 用户手动写的备注
+ * }
+ * ============================================ */
+(function() {
+    'use strict';
+
+    // ─── 全局状态 ──────────────────────────────────
+    let _diaryEntries = [];          // 内存中的所有记录（按 ts 倒序）
+    let _curYear = new Date().getFullYear();
+    let _curMonth = new Date().getMonth() + 1;
+    let _calYear = _curYear;
+    let _filterMode = 'all';
+    let _filterInit = 'all';
+    let _editingEntryId = null;
+
+    // ─── 模式配置（图标、中文名） ────────────────────
+    const MODE_CONFIG = {
+        study:    { name: '陪我学习', shortName: '学习', icon: 'fa-book-open',  sticker: '🌿' },
+        work:     { name: '陪我工作', shortName: '工作', icon: 'fa-briefcase',  sticker: '☕' },
+        exercise: { name: '陪我运动', shortName: '运动', icon: 'fa-running',    sticker: '☀️' },
+        sleep:    { name: '陪我睡觉', shortName: '睡觉', icon: 'fa-moon',       sticker: '🌙' }
+    };
+
+    // ─── 存储 ───────────────────────────────────────
+    function getKey() {
+        const prefix = window.APP_PREFIX || '';
+        return prefix + 'companionDiary';
+    }
+    async function loadDiary() {
+        try {
+            const data = await localforage.getItem(getKey());
+            _diaryEntries = Array.isArray(data) ? data : [];
+        } catch (e) {
+            console.warn('[companion-diary] load failed:', e);
+            _diaryEntries = [];
+        }
+        // 确保按时间倒序
+        _diaryEntries.sort((a, b) => b.ts - a.ts);
+        window._companionDiaryEntries = _diaryEntries; // 暴露给外部（companion.js 写入用）
+    }
+    async function saveDiary() {
+        try {
+            await localforage.setItem(getKey(), _diaryEntries);
+        } catch (e) {
+            console.warn('[companion-diary] save failed:', e);
+        }
+    }
+    // 暴露给 companion.js 调用：添加一条新记录
+    window.addCompanionDiaryEntry = async function(entry) {
+        if (!entry || !entry.mode) return;
+        const rec = {
+            id: entry.id || Date.now(),
+            ts: entry.ts || Date.now(),
+            mode: entry.mode,
+            duration: entry.duration || 0,
+            initiator: entry.initiator || 'user',
+            partnerNote: entry.partnerNote || '',
+            userNote: entry.userNote || ''
+        };
+        _diaryEntries.unshift(rec);
+        await saveDiary();
+        window._companionDiaryEntries = _diaryEntries;
+    };
+
+    // ─── 工具函数 ───────────────────────────────────
+    function getPartnerName() {
+        try {
+            if (window.settings && window.settings.partnerName) return window.settings.partnerName;
+        } catch (e) {}
+        return '梦角';
+    }
+    function getUserName() {
+        try {
+            if (window.settings && window.settings.userName) return window.settings.userName;
+        } catch (e) {}
+        return '我';
+    }
+    function formatDuration(seconds) {
+        seconds = Math.max(0, Math.floor(seconds || 0));
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        if (h > 0 && m > 0) return h + 'h ' + (m < 10 ? '0' + m : m) + 'min';
+        if (h > 0) return h + 'h';
+        if (m > 0) return m + 'min';
+        return '< 1min';
+    }
+    function formatDurationTotal(totalSeconds) {
+        totalSeconds = Math.max(0, Math.floor(totalSeconds || 0));
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        if (h > 0) return h + 'h' + (m > 0 ? ' ' + m + 'min' : '');
+        return m + 'min';
+    }
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+    function formatTime(ts) {
+        const d = new Date(ts);
+        return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    }
+    function getWeekdayCN(ts) {
+        const wd = ['周日','周一','周二','周三','周四','周五','周六'];
+        return wd[new Date(ts).getDay()];
+    }
+
+    // ─── 渲染：列表 ──────────────────────────────────
+    function renderList() {
+        const container = document.getElementById('cd-pages');
+        if (!container) return;
+
+        // 筛选当前月份的条目
+        const monthEntries = _diaryEntries.filter(e => {
+            const d = new Date(e.ts);
+            if (d.getFullYear() !== _curYear) return false;
+            if (d.getMonth() + 1 !== _curMonth) return false;
+            if (_filterMode !== 'all' && e.mode !== _filterMode) return false;
+            if (_filterInit !== 'all' && e.initiator !== _filterInit) return false;
+            return true;
+        });
+
+        if (monthEntries.length === 0) {
+            container.innerHTML =
+                '<div class="cd-month-label">· ' + _curYear + '年' + _curMonth + '月 ·</div>' +
+                '<div class="cd-empty">' +
+                '<i class="fas fa-book-open"></i>' +
+                '<div>这个月还没有陪伴记录</div>' +
+                '</div>';
+            return;
+        }
+
+        const partnerName = getPartnerName();
+        const userName = getUserName();
+        let html = '<div class="cd-month-label">· ' + _curYear + '年' + _curMonth + '月 ·</div>';
+
+        monthEntries.forEach(e => {
+            const cfg = MODE_CONFIG[e.mode] || MODE_CONFIG.study;
+            const d = new Date(e.ts);
+            const day = d.getDate();
+            const weekday = getWeekdayCN(e.ts);
+            const time = formatTime(e.ts);
+            const dur = formatDuration(e.duration);
+
+            const initiatorLabel = e.initiator === 'partner' ? (partnerName + '邀请') : (userName + '邀请');
+            const initiatorClass = e.initiator === 'partner' ? '' : 'cd-init-user';
+
+            const partnerNoteHtml = e.partnerNote
+                ? '<span class="cd-note-text">' + escapeHtml(e.partnerNote) + '</span>'
+                : '<span class="cd-note-empty">（无）</span>';
+            const userNoteHtml = e.userNote
+                ? '<span class="cd-note-text">' + escapeHtml(e.userNote) + '</span>'
+                : '<span class="cd-note-empty">点击此处添加备注…</span>';
+
+            html += '' +
+                '<div class="cd-entry" data-id="' + e.id + '">' +
+                  '<div class="cd-date-col">' +
+                    '<div class="cd-day">' + day + '</div>' +
+                    '<div class="cd-weekday">' + weekday + '</div>' +
+                  '</div>' +
+                  '<div class="cd-entry-content">' +
+                    '<div class="cd-top-row">' +
+                      '<span class="cd-initiator ' + initiatorClass + '">' + escapeHtml(initiatorLabel) + '</span>' +
+                      '<span class="cd-mode-tag"><i class="fas ' + cfg.icon + '"></i>' + cfg.shortName + '</span>' +
+                      '<span class="cd-time-dur">' + time + ' · ' + dur + '</span>' +
+                    '</div>' +
+                    '<div class="cd-notes">' +
+                      '<div class="cd-note-row">' +
+                        '<span class="cd-note-who">' + escapeHtml(partnerName) + '：</span>' +
+                        partnerNoteHtml +
+                      '</div>' +
+                      '<div class="cd-note-row">' +
+                        '<span class="cd-note-who" style="color:var(--text-secondary)">' + escapeHtml(userName) + '：</span>' +
+                        userNoteHtml +
+                      '</div>' +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="cd-sticker">' + cfg.sticker + '</div>' +
+                '</div>';
+        });
+
+        container.innerHTML = html;
+
+        // 绑定每条点击事件 → 弹出备注编辑
+        container.querySelectorAll('.cd-entry').forEach(el => {
+            el.addEventListener('click', () => {
+                const id = el.dataset.id;
+                openNoteEditor(id);
+            });
+        });
+    }
+
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // ─── 月份选择 ───────────────────────────────────
+    function updateMonthDisplay() {
+        const el = document.getElementById('cd-month-text');
+        if (el) el.textContent = _curYear + '年' + _curMonth + '月';
+    }
+    function toggleCalPopup() {
+        const popup = document.getElementById('cd-cal-popup');
+        if (!popup) return;
+        _calYear = _curYear;
+        popup.classList.toggle('open');
+        if (popup.classList.contains('open')) renderCalPopup();
+    }
+    function closeCalPopup() {
+        const popup = document.getElementById('cd-cal-popup');
+        if (popup) popup.classList.remove('open');
+    }
+    function renderCalPopup() {
+        const yearLabel = document.getElementById('cd-cal-year-label');
+        const grid = document.getElementById('cd-cal-months');
+        if (!yearLabel || !grid) return;
+        yearLabel.textContent = _calYear;
+        let html = '';
+        for (let m = 1; m <= 12; m++) {
+            const isActive = (_calYear === _curYear && m === _curMonth);
+            html += '<div class="cd-cal-m ' + (isActive ? 'active' : '') + '" data-m="' + m + '">' + m + '月</div>';
+        }
+        grid.innerHTML = html;
+        grid.querySelectorAll('.cd-cal-m').forEach(el => {
+            el.addEventListener('click', () => {
+                _curYear = _calYear;
+                _curMonth = parseInt(el.dataset.m, 10);
+                updateMonthDisplay();
+                renderList();
+                closeCalPopup();
+            });
+        });
+    }
+
+    // ─── 筛选 chip ──────────────────────────────────
+    function updateChipLabel(type, val) {
+        const labelMap = {
+            all: { mode: '种类', init: '邀请' },
+            study:    '学习',
+            work:     '工作',
+            exercise: '运动',
+            sleep:    '睡觉',
+            partner:  getPartnerName() + '邀请',
+            user:     getUserName() + '邀请'
+        };
+        if (type === 'mode') {
+            const label = document.getElementById('cd-chip-mode-label');
+            const chip = document.getElementById('cd-chip-mode');
+            if (val === 'all') {
+                label.textContent = labelMap.all.mode;
+                chip.classList.remove('active');
+            } else {
+                label.textContent = labelMap[val] || val;
+                chip.classList.add('active');
+            }
+        } else {
+            const label = document.getElementById('cd-chip-init-label');
+            const chip = document.getElementById('cd-chip-init');
+            if (val === 'all') {
+                label.textContent = labelMap.all.init;
+                chip.classList.remove('active');
+            } else {
+                label.textContent = labelMap[val] || val;
+                chip.classList.add('active');
+            }
+        }
+    }
+
+    // ─── 备注编辑弹窗 ─────────────────────────────────
+    function openNoteEditor(entryId) {
+        const id = String(entryId);
+        const entry = _diaryEntries.find(e => String(e.id) === id);
+        if (!entry) return;
+        _editingEntryId = id;
+
+        const cfg = MODE_CONFIG[entry.mode] || MODE_CONFIG.study;
+        const d = new Date(entry.ts);
+        const info = (d.getMonth() + 1) + '月' + d.getDate() + '日 · ' + cfg.shortName + ' · ' + formatDuration(entry.duration);
+        document.getElementById('cd-note-edit-info').textContent = info;
+        document.getElementById('cd-note-edit-textarea').value = entry.userNote || '';
+
+        const modal = document.getElementById('cd-note-edit-modal');
+        if (typeof showModal === 'function') showModal(modal);
+        else modal.style.display = 'flex';
+    }
+    async function saveNoteFromEditor() {
+        if (!_editingEntryId) return;
+        const entry = _diaryEntries.find(e => String(e.id) === _editingEntryId);
+        if (!entry) return;
+        entry.userNote = (document.getElementById('cd-note-edit-textarea').value || '').trim();
+        await saveDiary();
+        const modal = document.getElementById('cd-note-edit-modal');
+        if (typeof hideModal === 'function') hideModal(modal);
+        else modal.style.display = 'none';
+        _editingEntryId = null;
+        renderList();
+    }
+
+    // ─── 统计视图 ───────────────────────────────────
+    function openStatsView() {
+        const view = document.getElementById('cd-stats-view');
+        if (view) view.classList.add('open');
+        renderStats();
+    }
+    function closeStatsView() {
+        const view = document.getElementById('cd-stats-view');
+        if (view) view.classList.remove('open');
+    }
+    function renderStats() {
+        const totalCount = _diaryEntries.length;
+        const totalDur = _diaryEntries.reduce((s, e) => s + (e.duration || 0), 0);
+        document.getElementById('cd-total-count').textContent = totalCount;
+        document.getElementById('cd-total-duration').textContent = totalDur > 0 ? formatDurationTotal(totalDur) : '0min';
+
+        // 邀请来源
+        let partnerCnt = 0, userCnt = 0;
+        _diaryEntries.forEach(e => {
+            if (e.initiator === 'partner') partnerCnt++;
+            else userCnt++;
+        });
+
+        // 种类
+        const modeCnt = { study: 0, work: 0, exercise: 0, sleep: 0 };
+        _diaryEntries.forEach(e => {
+            if (modeCnt.hasOwnProperty(e.mode)) modeCnt[e.mode]++;
+        });
+
+        // 取主题色 RGB（用于派生颜色）
+        const accentRgb = getAccentRgb();
+        const initColors = [
+            'rgb(' + accentRgb + ')',                       // 梦角邀请 = 主题色
+            'rgba(' + accentRgb + ', 0.45)'                 // 用户邀请 = 主题色浅一些
+        ];
+        const modeColors = [
+            'rgb(' + accentRgb + ')',                       // 学习
+            'rgba(' + accentRgb + ', 0.7)',                 // 工作
+            'rgba(' + accentRgb + ', 0.45)',                // 运动
+            'rgba(' + accentRgb + ', 0.25)'                 // 睡觉
+        ];
+
+        // 邀请来源图
+        const initData = [
+            { label: getPartnerName() + '邀请', value: partnerCnt, color: initColors[0] },
+            { label: getUserName() + '邀请',    value: userCnt,    color: initColors[1] }
+        ];
+        drawPie('cd-pie-init', initData, totalCount);
+        renderLegend('cd-legend-init', initData, totalCount);
+
+        // 种类分布图
+        const modeData = [
+            { label: '学习', value: modeCnt.study,    color: modeColors[0] },
+            { label: '工作', value: modeCnt.work,     color: modeColors[1] },
+            { label: '运动', value: modeCnt.exercise, color: modeColors[2] },
+            { label: '睡觉', value: modeCnt.sleep,    color: modeColors[3] }
+        ];
+        drawPie('cd-pie-mode', modeData, totalCount);
+        renderLegend('cd-legend-mode', modeData, totalCount);
+    }
+
+    function getAccentRgb() {
+        try {
+            const v = getComputedStyle(document.documentElement).getPropertyValue('--accent-color-rgb').trim();
+            if (v) return v;
+        } catch (e) {}
+        return '197, 164, 126';
+    }
+
+    function drawPie(canvasId, segments, total) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        const cx = w / 2, cy = h / 2;
+        const outerR = Math.min(w, h) / 2 - 2;
+        const innerR = outerR * 0.6;
+
+        // 空数据时画灰色圈
+        const sum = segments.reduce((s, x) => s + x.value, 0);
+        if (sum === 0) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+            ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
+            ctx.fillStyle = 'rgba(' + getAccentRgb() + ', 0.1)';
+            ctx.fill();
+            return;
+        }
+
+        let startAngle = -Math.PI / 2;
+        segments.forEach(seg => {
+            if (seg.value === 0) return;
+            const angle = (seg.value / sum) * Math.PI * 2;
+            const endAngle = startAngle + angle;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(startAngle) * outerR, cy + Math.sin(startAngle) * outerR);
+            ctx.arc(cx, cy, outerR, startAngle, endAngle);
+            ctx.lineTo(cx + Math.cos(endAngle) * innerR, cy + Math.sin(endAngle) * innerR);
+            ctx.arc(cx, cy, innerR, endAngle, startAngle, true);
+            ctx.closePath();
+            ctx.fillStyle = seg.color;
+            ctx.fill();
+            startAngle = endAngle;
+        });
+    }
+
+    function renderLegend(containerId, segments, total) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const sum = segments.reduce((s, x) => s + x.value, 0);
+        if (sum === 0) {
+            container.innerHTML = '<div style="color:var(--text-secondary);font-size:12px;">暂无数据</div>';
+            return;
+        }
+        let html = '';
+        segments.forEach(seg => {
+            const pct = sum > 0 ? Math.round(seg.value / sum * 100) : 0;
+            html +=
+                '<div class="cd-legend-item">' +
+                '<div class="cd-legend-dot" style="background:' + seg.color + '"></div>' +
+                '<span>' + escapeHtml(seg.label) + '</span>' +
+                '<span class="cd-legend-pct">' + pct + '%</span>' +
+                '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    // ─── 主入口：打开日记 modal ──────────────────────
+    async function openDiaryModal() {
+        await loadDiary();
+
+        // 默认显示当前月份
+        const now = new Date();
+        _curYear = now.getFullYear();
+        _curMonth = now.getMonth() + 1;
+        _filterMode = 'all';
+        _filterInit = 'all';
+        updateMonthDisplay();
+        updateChipLabel('mode', 'all');
+        updateChipLabel('init', 'all');
+        document.getElementById('cd-filter-mode').value = 'all';
+        document.getElementById('cd-filter-init').value = 'all';
+        closeStatsView();
+        renderList();
+
+        const modal = document.getElementById('companion-diary-modal');
+        if (typeof showModal === 'function') showModal(modal);
+        else modal.style.display = 'flex';
+    }
+
+    // ─── 绑定事件 ───────────────────────────────────
+    function bindEvents() {
+        // 入口按钮
+        const entryBtn = document.getElementById('companion-diary-function');
+        if (entryBtn && !entryBtn.dataset.cdBound) {
+            entryBtn.dataset.cdBound = 'true';
+            entryBtn.addEventListener('click', () => {
+                const advModal = document.getElementById('advanced-modal');
+                if (advModal && typeof hideModal === 'function') hideModal(advModal);
+                setTimeout(() => openDiaryModal(), 150);
+            });
+        }
+
+        // 关闭按钮
+        const closeBtn = document.getElementById('close-companion-diary');
+        if (closeBtn && !closeBtn.dataset.cdBound) {
+            closeBtn.dataset.cdBound = 'true';
+            closeBtn.addEventListener('click', () => {
+                const modal = document.getElementById('companion-diary-modal');
+                if (typeof hideModal === 'function') hideModal(modal);
+                else modal.style.display = 'none';
+            });
+        }
+
+        // 月份切换器点击
+        const monthDisplay = document.getElementById('cd-month-display');
+        if (monthDisplay && !monthDisplay.dataset.cdBound) {
+            monthDisplay.dataset.cdBound = 'true';
+            monthDisplay.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleCalPopup();
+            });
+        }
+
+        // 月历年份切换
+        const prevYearBtn = document.getElementById('cd-cal-prev-year');
+        const nextYearBtn = document.getElementById('cd-cal-next-year');
+        if (prevYearBtn && !prevYearBtn.dataset.cdBound) {
+            prevYearBtn.dataset.cdBound = 'true';
+            prevYearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                _calYear--;
+                renderCalPopup();
+            });
+        }
+        if (nextYearBtn && !nextYearBtn.dataset.cdBound) {
+            nextYearBtn.dataset.cdBound = 'true';
+            nextYearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                _calYear++;
+                renderCalPopup();
+            });
+        }
+
+        // 筛选下拉
+        const filterMode = document.getElementById('cd-filter-mode');
+        if (filterMode && !filterMode.dataset.cdBound) {
+            filterMode.dataset.cdBound = 'true';
+            filterMode.addEventListener('change', (e) => {
+                _filterMode = e.target.value;
+                updateChipLabel('mode', _filterMode);
+                renderList();
+            });
+        }
+        const filterInit = document.getElementById('cd-filter-init');
+        if (filterInit && !filterInit.dataset.cdBound) {
+            filterInit.dataset.cdBound = 'true';
+            filterInit.addEventListener('change', (e) => {
+                _filterInit = e.target.value;
+                updateChipLabel('init', _filterInit);
+                renderList();
+            });
+        }
+
+        // 统计按钮
+        const statsBtn = document.getElementById('cd-stats-btn');
+        if (statsBtn && !statsBtn.dataset.cdBound) {
+            statsBtn.dataset.cdBound = 'true';
+            statsBtn.addEventListener('click', openStatsView);
+        }
+        const statsBack = document.getElementById('cd-stats-back');
+        if (statsBack && !statsBack.dataset.cdBound) {
+            statsBack.dataset.cdBound = 'true';
+            statsBack.addEventListener('click', closeStatsView);
+        }
+
+        // 备注编辑保存/取消
+        const noteSave = document.getElementById('cd-note-edit-save');
+        const noteCancel = document.getElementById('cd-note-edit-cancel');
+        if (noteSave && !noteSave.dataset.cdBound) {
+            noteSave.dataset.cdBound = 'true';
+            noteSave.addEventListener('click', saveNoteFromEditor);
+        }
+        if (noteCancel && !noteCancel.dataset.cdBound) {
+            noteCancel.dataset.cdBound = 'true';
+            noteCancel.addEventListener('click', () => {
+                const modal = document.getElementById('cd-note-edit-modal');
+                if (typeof hideModal === 'function') hideModal(modal);
+                else modal.style.display = 'none';
+                _editingEntryId = null;
+            });
+        }
+
+        // 点击空白处关闭月历
+        document.addEventListener('click', (e) => {
+            const popup = document.getElementById('cd-cal-popup');
+            const display = document.getElementById('cd-month-display');
+            if (!popup || !display) return;
+            if (popup.classList.contains('open') &&
+                !popup.contains(e.target) &&
+                !display.contains(e.target)) {
+                closeCalPopup();
+            }
+        });
+    }
+
+    // ─── 初始化 ────────────────────────────────────
+    function init() {
+        bindEvents();
+        // 预先加载一次数据（供 companion.js 写入时使用）
+        loadDiary();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // 暴露给外部刷新（备份导入后调用）
+    window.reloadCompanionDiary = async function() {
+        await loadDiary();
+        const modal = document.getElementById('companion-diary-modal');
+        if (modal && modal.classList.contains('active')) renderList();
+    };
+
+})();
