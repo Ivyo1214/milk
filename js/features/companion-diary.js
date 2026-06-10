@@ -22,13 +22,14 @@
     let _filterMode = 'all';
     let _filterInit = 'all';
     let _editingEntryId = null;
+    let _diaryBgGallery = [];   // 用户上传的日记背景列表
 
     // ─── 模式配置（图标、中文名） ────────────────────
     const MODE_CONFIG = {
-        study:    { name: '陪我学习', shortName: '学习', icon: 'fa-book-open',  sticker: '🌿' },
-        work:     { name: '陪我工作', shortName: '工作', icon: 'fa-briefcase',  sticker: '☕' },
-        exercise: { name: '陪我运动', shortName: '运动', icon: 'fa-running',    sticker: '☀️' },
-        sleep:    { name: '陪我睡觉', shortName: '睡觉', icon: 'fa-moon',       sticker: '🌙' }
+        study:    { name: '学习', shortName: '学习', icon: 'fa-book-open',  sticker: '🌿' },
+        work:     { name: '工作', shortName: '工作', icon: 'fa-briefcase',  sticker: '☕' },
+        exercise: { name: '运动', shortName: '运动', icon: 'fa-running',    sticker: '☀️' },
+        sleep:    { name: '睡觉', shortName: '睡觉', icon: 'fa-moon',       sticker: '🌙' }
     };
 
     // ─── 存储 ───────────────────────────────────────
@@ -70,6 +71,79 @@
         _diaryEntries.unshift(rec);
         await saveDiary();
         window._companionDiaryEntries = _diaryEntries;
+    };
+
+    // ─── 字卡随机抽取（梦角的备注） ──────────────────
+    // 抽 1~2 句，从启用的字卡库里随机；30% 概率返回空（梦角不记录）
+    window.pickCompanionDiaryCards = function() {
+        // 30% 概率不记录
+        if (Math.random() < 0.3) return '';
+
+        try {
+            const replies = window.customReplies || [];
+            if (!Array.isArray(replies) || replies.length === 0) return '';
+
+            // 过滤掉被禁用的字卡（兼容 listeners.js 的 disabledReplyItems）
+            let disabledItems = new Set();
+            try {
+                const raw = localStorage.getItem('disabledReplyItems');
+                if (raw) disabledItems = new Set(JSON.parse(raw));
+            } catch (e) {}
+
+            // 过滤掉被禁用分组里的字卡
+            const disabledGroupItems = new Set();
+            (window.customReplyGroups || []).forEach(g => {
+                if (g.disabled && Array.isArray(g.items)) {
+                    g.items.forEach(item => disabledGroupItems.add(item));
+                }
+            });
+
+            const pool = replies
+                .filter(r => !disabledItems.has(r) && !disabledGroupItems.has(r))
+                .map(r => String(r || '').trim())
+                .filter(Boolean);
+
+            if (pool.length === 0) return '';
+
+            // 抽 1 ~ 2 句
+            const count = pool.length === 1 ? 1 : (Math.random() < 0.5 ? 1 : 2);
+            const picked = [];
+            const used = new Set();
+            for (let i = 0; i < count && picked.length < pool.length; i++) {
+                let idx;
+                let tries = 0;
+                do {
+                    idx = Math.floor(Math.random() * pool.length);
+                    tries++;
+                } while (used.has(idx) && tries < 20);
+                used.add(idx);
+                picked.push(pool[idx]);
+            }
+            return picked.join('；');
+        } catch (e) {
+            console.warn('[companion-diary] pickCards error:', e);
+            return '';
+        }
+    };
+
+    // ─── 日记背景：应用到 modal 的 .cd-pages 上 ────────
+    window.applyCompanionDiaryBg = function(bgValue) {
+        const pages = document.getElementById('cd-pages');
+        if (!pages) return;
+        if (!bgValue) {
+            pages.style.backgroundImage = '';
+            pages.style.backgroundColor = '';
+            return;
+        }
+        if (bgValue.startsWith('linear-gradient') || bgValue.startsWith('#') || bgValue.startsWith('rgb')) {
+            pages.style.backgroundImage = '';
+            pages.style.backgroundColor = bgValue;
+        } else {
+            pages.style.backgroundImage = 'url(' + JSON.stringify(bgValue) + ')';
+            pages.style.backgroundSize = 'cover';
+            pages.style.backgroundPosition = 'center';
+            pages.style.backgroundRepeat = 'no-repeat';
+        }
     };
 
     // ─── 工具函数 ───────────────────────────────────
@@ -472,6 +546,15 @@
         closeStatsView();
         renderList();
 
+        // 应用日记背景（如果用户在外观设置里选择了）
+        try {
+            const prefix = window.APP_PREFIX || '';
+            const bg = await localforage.getItem(prefix + 'companionDiaryBg');
+            window.applyCompanionDiaryBg(bg || '');
+        } catch (e) {
+            window.applyCompanionDiaryBg('');
+        }
+
         const modal = document.getElementById('companion-diary-modal');
         if (typeof showModal === 'function') showModal(modal);
         else modal.style.display = 'flex';
@@ -614,11 +697,132 @@
         });
     }
 
+    // ─── 日记背景管理 ────────────────────────────────
+    function diaryBgKey()   { return (window.APP_PREFIX || '') + 'companionDiaryBg'; }
+    function diaryBgGalKey() { return (window.APP_PREFIX || '') + 'companionDiaryBgGallery'; }
+
+    async function loadDiaryBgGallery() {
+        try {
+            const data = await localforage.getItem(diaryBgGalKey());
+            _diaryBgGallery = Array.isArray(data) ? data : [];
+        } catch (e) {
+            _diaryBgGallery = [];
+        }
+    }
+    async function saveDiaryBgGallery() {
+        try { await localforage.setItem(diaryBgGalKey(), _diaryBgGallery); } catch (e) {}
+    }
+    async function applyDiaryBg(value) {
+        try { await localforage.setItem(diaryBgKey(), value || ''); } catch (e) {}
+        if (typeof window.applyCompanionDiaryBg === 'function') {
+            window.applyCompanionDiaryBg(value || '');
+        }
+    }
+    async function clearDiaryBg() {
+        try { await localforage.removeItem(diaryBgKey()); } catch (e) {}
+        if (typeof window.applyCompanionDiaryBg === 'function') {
+            window.applyCompanionDiaryBg('');
+        }
+    }
+
+    async function renderDiaryBgGallery() {
+        const list = document.getElementById('diary-bg-list');
+        if (!list) return;
+        await loadDiaryBgGallery();
+        const currentBg = await localforage.getItem(diaryBgKey()).catch(() => null);
+        list.innerHTML = '';
+
+        // 添加按钮
+        const addBtn = document.createElement('div');
+        addBtn.className = 'bg-item bg-add-btn';
+        addBtn.innerHTML = '<i class="fas fa-plus"></i><span></span>';
+        addBtn.onclick = () => {
+            const input = document.getElementById('diary-bg-input');
+            if (input) input.click();
+        };
+        list.appendChild(addBtn);
+
+        // 已有的背景项
+        _diaryBgGallery.forEach((bg, index) => {
+            const item = document.createElement('div');
+            const isActive = currentBg && currentBg === bg.value;
+            item.className = 'bg-item ' + (isActive ? 'active' : '');
+            item.innerHTML = '<img src="' + bg.value + '" loading="lazy" alt="bg">';
+
+            item.onclick = (e) => {
+                if (e.target.closest('.bg-delete-btn')) return;
+                applyDiaryBg(bg.value);
+                renderDiaryBgGallery();
+                if (typeof showNotification === 'function') showNotification('日记背景已切换', 'success');
+            };
+
+            const delBtn = document.createElement('div');
+            delBtn.className = 'bg-delete-btn';
+            delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            delBtn.title = '删除此背景';
+            delBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (confirm('确定删除这张日记背景吗？')) {
+                    _diaryBgGallery.splice(index, 1);
+                    await saveDiaryBgGallery();
+                    if (isActive) await clearDiaryBg();
+                    renderDiaryBgGallery();
+                }
+            };
+            item.appendChild(delBtn);
+
+            list.appendChild(item);
+        });
+    }
+
+    function bindDiaryBgEvents() {
+        const input = document.getElementById('diary-bg-input');
+        if (input && !input.dataset.cdBound) {
+            input.dataset.cdBound = 'true';
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (file.size > 10 * 1024 * 1024) {
+                    if (typeof showNotification === 'function') showNotification('日记背景不能超过10MB', 'error');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    const base64 = ev.target.result;
+                    _diaryBgGallery.push({
+                        id: 'user-' + Date.now(),
+                        type: 'image',
+                        value: base64
+                    });
+                    await saveDiaryBgGallery();
+                    await applyDiaryBg(base64);
+                    renderDiaryBgGallery();
+                    if (typeof showNotification === 'function') showNotification('日记背景已添加并应用', 'success');
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+            });
+        }
+        const resetBtn = document.getElementById('diary-bg-reset');
+        if (resetBtn && !resetBtn.dataset.cdBound) {
+            resetBtn.dataset.cdBound = 'true';
+            resetBtn.addEventListener('click', async () => {
+                await clearDiaryBg();
+                renderDiaryBgGallery();
+                if (typeof showNotification === 'function') showNotification('已恢复默认日记背景', 'success');
+            });
+        }
+    }
+    // 暴露给外部：外观设置面板打开时刷新画廊
+    window.renderDiaryBgGallery = renderDiaryBgGallery;
+
     // ─── 初始化 ────────────────────────────────────
     function init() {
         bindEvents();
+        bindDiaryBgEvents();
         // 预先加载一次数据（供 companion.js 写入时使用）
         loadDiary();
+        loadDiaryBgGallery();
     }
 
     if (document.readyState === 'loading') {
