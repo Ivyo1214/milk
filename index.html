@@ -1658,6 +1658,9 @@
                     <div class="settings-item" id="mood-function">
                         <i class="fas fa-calendar-day"></i><span>心情手账</span>
                     </div>
+                    <div class="settings-item" id="companion-diary-function">
+                        <i class="fas fa-book"></i><span>陪伴日记</span>
+                    </div>
                     <div class="settings-item" id="anniversary-function">
                         <i class="fas fa-heart"></i><span>重要日</span>
                     </div>
@@ -2492,6 +2495,136 @@
 </div>
 
 <div id="dg-editor-modal" style="display:none;"></div>
+
+<!-- 陪伴日记 modal -->
+<div class="modal" id="companion-diary-modal">
+    <div class="modal-content cd-modal-content">
+        <!-- 头部 -->
+        <div class="cd-header">
+            <div class="cd-title">
+                <i class="fas fa-book"></i>
+                <span>陪伴日记</span>
+            </div>
+            <div class="cd-header-actions">
+                <button class="cd-stats-btn" id="cd-stats-btn">
+                    <i class="fas fa-chart-pie"></i><span>统计</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 工具栏：月份选择 + 筛选 -->
+        <div class="cd-toolbar">
+            <div class="cd-month-display" id="cd-month-display">
+                <span id="cd-month-text">2025年6月</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="cd-filters">
+                <div class="cd-chip" id="cd-chip-mode">
+                    <span id="cd-chip-mode-label">种类</span>
+                    <i class="fas fa-chevron-down"></i>
+                    <select id="cd-filter-mode">
+                        <option value="all">全部</option>
+                        <option value="study">陪我学习</option>
+                        <option value="work">陪我工作</option>
+                        <option value="exercise">陪我运动</option>
+                        <option value="sleep">陪我睡觉</option>
+                    </select>
+                </div>
+                <div class="cd-chip" id="cd-chip-init">
+                    <span id="cd-chip-init-label">邀请</span>
+                    <i class="fas fa-chevron-down"></i>
+                    <select id="cd-filter-init">
+                        <option value="all">全部</option>
+                        <option value="partner">梦角邀请</option>
+                        <option value="user">我邀请</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 月历弹出层 -->
+        <div class="cd-cal-popup" id="cd-cal-popup">
+            <div class="cd-cal-year">
+                <button class="cd-cal-year-btn" id="cd-cal-prev-year"><i class="fas fa-chevron-left"></i></button>
+                <span class="cd-cal-year-label" id="cd-cal-year-label">2025</span>
+                <button class="cd-cal-year-btn" id="cd-cal-next-year"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <div class="cd-cal-months" id="cd-cal-months"></div>
+        </div>
+
+        <!-- 日记本主体 -->
+        <div class="cd-body">
+            <div class="cd-spine">
+                <div class="cd-ring-wrap"><div class="cd-ring-back"></div><div class="cd-ring-front"></div></div>
+                <div class="cd-ring-wrap"><div class="cd-ring-back"></div><div class="cd-ring-front"></div></div>
+                <div class="cd-ring-wrap"><div class="cd-ring-back"></div><div class="cd-ring-front"></div></div>
+                <div class="cd-ring-wrap"><div class="cd-ring-back"></div><div class="cd-ring-front"></div></div>
+                <div class="cd-ring-wrap"><div class="cd-ring-back"></div><div class="cd-ring-front"></div></div>
+                <div class="cd-ring-wrap"><div class="cd-ring-back"></div><div class="cd-ring-front"></div></div>
+            </div>
+            <div class="cd-pages" id="cd-pages">
+                <!-- JS 渲染日记条目 -->
+            </div>
+        </div>
+
+        <!-- 统计视图（默认隐藏） -->
+        <div class="cd-stats-view" id="cd-stats-view">
+            <div class="cd-stats-back" id="cd-stats-back">
+                <i class="fas fa-arrow-left"></i><span>返回日记</span>
+            </div>
+            <div class="cd-stats-body">
+                <div class="cd-totals">
+                    <div class="cd-total-card">
+                        <div class="cd-total-num" id="cd-total-count">0</div>
+                        <div class="cd-total-label">累计陪伴次数</div>
+                    </div>
+                    <div class="cd-total-card">
+                        <div class="cd-total-num" id="cd-total-duration">0min</div>
+                        <div class="cd-total-label">累计陪伴时长</div>
+                    </div>
+                </div>
+                <div class="cd-chart-section">
+                    <div class="cd-chart-title">邀请来源</div>
+                    <div class="cd-pie-wrap">
+                        <canvas id="cd-pie-init" width="120" height="120"></canvas>
+                        <div class="cd-legend" id="cd-legend-init"></div>
+                    </div>
+                </div>
+                <div class="cd-chart-section">
+                    <div class="cd-chart-title">种类分布</div>
+                    <div class="cd-pie-wrap">
+                        <canvas id="cd-pie-mode" width="120" height="120"></canvas>
+                        <div class="cd-legend" id="cd-legend-mode"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 关闭按钮 -->
+        <div class="modal-buttons" style="position:sticky;bottom:0;background:var(--secondary-bg);border-top:1px solid var(--border-color);padding:12px 0 0;z-index:10;margin-top:8px;margin-left:-24px;margin-right:-24px;padding-left:24px;padding-right:24px;padding-bottom:max(14px, env(safe-area-inset-bottom, 0px));">
+            <button class="modal-btn modal-btn-secondary" id="cd-back-btn" onclick="(function(){hideModal(document.getElementById('companion-diary-modal'));showModal(document.getElementById('advanced-modal'))})()">
+                <i class="fas fa-arrow-left"></i> 返回
+            </button>
+            <button class="modal-btn modal-btn-secondary" id="close-companion-diary">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 备注编辑弹层 -->
+<div class="modal" id="cd-note-edit-modal">
+    <div class="modal-content" style="max-width:340px;">
+        <div class="modal-title">
+            <i class="fas fa-pen"></i><span>编辑备注</span>
+        </div>
+        <div id="cd-note-edit-info" style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;"></div>
+        <textarea class="modal-textarea" id="cd-note-edit-textarea" rows="4" placeholder="今天和梦角的陪伴时光，想记下点什么…" style="margin-bottom:8px;"></textarea>
+        <div class="modal-buttons" style="padding-top:8px;">
+            <button class="modal-btn modal-btn-secondary" id="cd-note-edit-cancel">取消</button>
+            <button class="modal-btn modal-btn-primary" id="cd-note-edit-save">保存</button>
+        </div>
+    </div>
+</div>
+
     <!-- == 核心层 == -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
@@ -2517,6 +2650,7 @@
     <script src="js/listeners-voice.js"></script>
     <script src="js/listeners-sticker.js"></script>
     <script src="js/features/companion.js"></script>
+    <script src="js/features/companion-diary.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
