@@ -954,6 +954,23 @@
             <div class="companion-mgr-list" id="companion-bg-list"></div>
         </div>
 
+        <!-- 陪伴日记背景 -->
+        <div class="settings-section" id="diary-bg-section">
+            <div class="settings-section-title">
+                <i class="fas fa-book"></i>陪伴日记背景
+                <input type="file" id="diary-bg-input" accept="image/*" style="display:none;">
+            </div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;opacity:0.75;line-height:1.5;">
+                日记页面的纸张背景。点击 <i class="fas fa-plus" style="font-size:10px;"></i> 添加，点击项目应用。
+            </div>
+            <div class="bg-gallery" id="diary-bg-list"></div>
+            <div style="text-align: center; margin-top: 10px;">
+                <button class="modal-btn modal-btn-secondary" id="diary-bg-reset" style="font-size: 12px; padding: 6px 12px;">
+                    <i class="fas fa-undo"></i> 恢复默认背景
+                </button>
+            </div>
+        </div>
+
         <!-- 陪伴音乐管理 -->
         <div class="settings-section" id="companion-noise-section">
             <div class="settings-section-title">
@@ -2524,10 +2541,10 @@
                     <i class="fas fa-chevron-down"></i>
                     <div class="cd-dropdown" id="cd-dropdown-mode">
                         <div class="cd-dropdown-item" data-val="all">全部</div>
-                        <div class="cd-dropdown-item" data-val="study">陪我学习</div>
-                        <div class="cd-dropdown-item" data-val="work">陪我工作</div>
-                        <div class="cd-dropdown-item" data-val="exercise">陪我运动</div>
-                        <div class="cd-dropdown-item" data-val="sleep">陪我睡觉</div>
+                        <div class="cd-dropdown-item" data-val="study">学习</div>
+                        <div class="cd-dropdown-item" data-val="work">工作</div>
+                        <div class="cd-dropdown-item" data-val="exercise">运动</div>
+                        <div class="cd-dropdown-item" data-val="sleep">睡觉</div>
                     </div>
                 </div>
                 <div class="cd-chip" id="cd-chip-init">
