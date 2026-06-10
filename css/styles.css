@@ -11477,6 +11477,15 @@ body #user-sticker-picker .empty-sticker-tip {
     margin-bottom: 12px;
     display: block;
 }
+/* 每个月的空状态：紧凑一些（因为多个月份会在同一页里） */
+.cd-empty-month {
+    padding: 24px 24px;
+    font-size: 12px;
+}
+.cd-empty-month i {
+    font-size: 24px;
+    margin-bottom: 6px;
+}
 
 /* 统计视图 */
 .cd-stats-view {
