@@ -1543,6 +1543,9 @@
         stopPartnerGoodnightCheck();
         recordHistory();
 
+        // 清除闪退恢复用的 live session（陪伴正常结束）
+        try { localforage.removeItem(getLiveSessionKey()).catch(() => {}); } catch (e) {}
+
         // 计算本次时长 + 写入陪伴日记（在状态被清空之前）
         const _diaryDurSec = getElapsedSeconds();
         const _diaryMode = currentMode;
@@ -2119,6 +2122,8 @@
 
         timerInterval = setInterval(() => {
             recomputeTimerFromAnchor();
+            // 每秒触发心跳（节流到 10 秒一次写盘）
+            tryHeartbeatLiveSession();
         }, 1000);
 
         // 切回前台时立即重算一次（修复锁屏/后台时倒计时停止的问题）
@@ -2128,6 +2133,9 @@
             };
             document.addEventListener('visibilitychange', _visibilityHandler);
         }
+
+        // 启动时立刻写入一次完整的 live session（用于闪退恢复）
+        writeLiveSession();
     }
 
     function stopTimer() {
@@ -2140,6 +2148,93 @@
             _visibilityHandler = null;
         }
     }
+
+    // ─── 闪退恢复：live session 持久化 ─────────────────
+    function getLiveSessionKey() {
+        return (typeof getStorageKey === 'function')
+            ? getStorageKey('companionLiveSession')
+            : (window.APP_PREFIX || 'CHAT_APP_V3_') + 'companionLiveSession';
+    }
+    let _lastHeartbeatTs = 0;
+    function writeLiveSession() {
+        try {
+            const payload = {
+                startTs: _sessionStartTime || Date.now(),
+                heartbeatTs: Date.now(),
+                mode: currentMode,
+                initiator: window._companionSessionInitiator === 'partner' ? 'partner' : 'user',
+                isCountdown: !!isCountdown,
+                totalSeconds: totalSeconds || 0,
+                accumulatedExtendTime: _accumulatedExtendTime || 0
+            };
+            localforage.setItem(getLiveSessionKey(), payload).catch(() => {});
+            _lastHeartbeatTs = Date.now();
+        } catch (e) {}
+    }
+    function tryHeartbeatLiveSession() {
+        // 节流：距离上次心跳 < 10 秒就跳过
+        if (Date.now() - _lastHeartbeatTs < 10000) return;
+        writeLiveSession();
+    }
+    function clearLiveSession() {
+        try { localforage.removeItem(getLiveSessionKey()).catch(() => {}); } catch (e) {}
+        _lastHeartbeatTs = 0;
+    }
+    // 暴露给外部（启动时检测用）
+    window._companionRecoverModule = {
+        getLiveSessionKey: getLiveSessionKey,
+        clearLiveSession: clearLiveSession,
+        // 用恢复出来的状态继续陪伴
+        resumeFromSession: function(session) {
+            if (!session || !session.mode) return false;
+            try {
+                currentMode = session.mode;
+                window._companionSessionInitiator = session.initiator || 'user';
+                _accumulatedExtendTime = session.accumulatedExtendTime || 0;
+                // 计算实际经过的时间（用心跳时间作为最后已知时间点）
+                const elapsedSinceStart = Math.floor((session.heartbeatTs - session.startTs) / 1000) + _accumulatedExtendTime;
+                if (session.isCountdown) {
+                    isCountdown = true;
+                    totalSeconds = session.totalSeconds;
+                    const remaining = session.totalSeconds - elapsedSinceStart;
+                    if (remaining <= 0) {
+                        // 时间已经过完了 → 直接写日记
+                        return false;
+                    }
+                    timerSeconds = remaining;
+                } else {
+                    // 正计时（睡觉）→ 从已经累计的时间继续
+                    isCountdown = false;
+                    timerSeconds = elapsedSinceStart;
+                    totalSeconds = 0;
+                }
+                // 进入陪伴页（session 起点要追回到原本的起点 + 已累计时间）
+                _sessionStartTime = Date.now() - elapsedSinceStart * 1000 + _accumulatedExtendTime * 1000;
+                _accumulatedExtendTime = 0; // 已经合并到 _sessionStartTime 里了
+                openCompanionPage();
+                return true;
+            } catch (e) {
+                console.warn('[companion] resume failed', e);
+                return false;
+            }
+        },
+        // 把会话作为已完成日记保存
+        saveSessionAsDiary: async function(session) {
+            if (!session || !session.mode) return;
+            const duration = Math.max(0, Math.floor((session.heartbeatTs - session.startTs) / 1000) + (session.accumulatedExtendTime || 0));
+            if (duration < 30) return; // 太短，不记
+            if (typeof window.addCompanionDiaryEntry === 'function') {
+                await window.addCompanionDiaryEntry({
+                    ts: session.startTs,
+                    mode: session.mode,
+                    duration: duration,
+                    initiator: session.initiator || 'user',
+                    partnerNote: '', // 闪退恢复 → 梦角不写字卡
+                    userNote: ''
+                });
+            }
+        }
+    };
 
     function updateTimerDisplay() {
         const el = $('companion-timer-display');
