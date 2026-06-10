@@ -279,22 +279,37 @@ window.addEventListener('load', function() {
         } catch(e) { console.warn('envelope launch check error:', e); }
 
         // 启动时检查闪退未结束的陪伴会话
+        console.log('[companion-recover] 启动检查...');
         try {
-            if (window._companionRecoverModule && window.localforage) {
+            if (!window._companionRecoverModule) {
+                console.warn('[companion-recover] _companionRecoverModule 未加载');
+            } else if (!window.localforage) {
+                console.warn('[companion-recover] localforage 未加载');
+            } else {
                 const key = window._companionRecoverModule.getLiveSessionKey();
+                console.log('[companion-recover] 查询 key:', key);
                 localforage.getItem(key).then(function(session) {
-                    if (!session || !session.mode) return;
+                    console.log('[companion-recover] 查询结果:', session);
+                    if (!session || !session.mode) {
+                        console.log('[companion-recover] 无未结束的会话');
+                        return;
+                    }
                     // 心跳时间距离现在超过 24 小时 → 直接丢弃
                     const elapsedSinceHeartbeat = Date.now() - (session.heartbeatTs || 0);
+                    console.log('[companion-recover] 心跳距今', Math.floor(elapsedSinceHeartbeat / 1000), '秒');
                     if (elapsedSinceHeartbeat > 24 * 60 * 60 * 1000) {
+                        console.log('[companion-recover] 超过 24 小时，丢弃');
                         window._companionRecoverModule.clearLiveSession();
                         return;
                     }
                     // 显示恢复弹窗
+                    console.log('[companion-recover] 显示恢复弹窗');
                     showCompanionRecoverDialog(session);
-                }).catch(function() {});
+                }).catch(function(err) {
+                    console.warn('[companion-recover] getItem 失败:', err);
+                });
             }
-        } catch(e) { console.warn('companion recover check error:', e); }
+        } catch(e) { console.warn('[companion-recover] 检查失败:', e); }
     }, 4500);
 }, { once: true });
 
