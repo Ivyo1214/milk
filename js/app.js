@@ -279,37 +279,48 @@ window.addEventListener('load', function() {
         } catch(e) { console.warn('envelope launch check error:', e); }
 
         // 启动时检查闪退未结束的陪伴会话
-        console.log('[companion-recover] 启动检查...');
+        function _cdRecLog(msg, data) {
+            try {
+                const logs = JSON.parse(localStorage.getItem('_cdRecLogs') || '[]');
+                logs.push({ t: new Date().toLocaleTimeString(), msg: msg, data: data === undefined ? '' : JSON.stringify(data) });
+                // 只保留最近 50 条
+                if (logs.length > 50) logs.splice(0, logs.length - 50);
+                localStorage.setItem('_cdRecLogs', JSON.stringify(logs));
+            } catch (e) {}
+            console.log('[companion-recover]', msg, data !== undefined ? data : '');
+        }
+        _cdRecLog('启动检查开始');
         try {
             if (!window._companionRecoverModule) {
-                console.warn('[companion-recover] _companionRecoverModule 未加载');
+                _cdRecLog('❌ _companionRecoverModule 未加载');
             } else if (!window.localforage) {
-                console.warn('[companion-recover] localforage 未加载');
+                _cdRecLog('❌ localforage 未加载');
             } else {
                 const key = window._companionRecoverModule.getLiveSessionKey();
-                console.log('[companion-recover] 查询 key:', key);
+                _cdRecLog('查询 key', key);
                 localforage.getItem(key).then(function(session) {
-                    console.log('[companion-recover] 查询结果:', session);
+                    _cdRecLog('查询结果', session);
                     if (!session || !session.mode) {
-                        console.log('[companion-recover] 无未结束的会话');
+                        _cdRecLog('无未结束的会话，结束检查');
                         return;
                     }
-                    // 心跳时间距离现在超过 24 小时 → 直接丢弃
                     const elapsedSinceHeartbeat = Date.now() - (session.heartbeatTs || 0);
-                    console.log('[companion-recover] 心跳距今', Math.floor(elapsedSinceHeartbeat / 1000), '秒');
+                    _cdRecLog('心跳距今秒数', Math.floor(elapsedSinceHeartbeat / 1000));
                     if (elapsedSinceHeartbeat > 24 * 60 * 60 * 1000) {
-                        console.log('[companion-recover] 超过 24 小时，丢弃');
+                        _cdRecLog('超过 24 小时，丢弃');
                         window._companionRecoverModule.clearLiveSession();
                         return;
                     }
-                    // 显示恢复弹窗
-                    console.log('[companion-recover] 显示恢复弹窗');
+                    _cdRecLog('✓ 即将显示恢复弹窗');
                     showCompanionRecoverDialog(session);
+                    _cdRecLog('✓ 恢复弹窗函数已调用');
                 }).catch(function(err) {
-                    console.warn('[companion-recover] getItem 失败:', err);
+                    _cdRecLog('❌ getItem 失败', String(err));
                 });
             }
-        } catch(e) { console.warn('[companion-recover] 检查失败:', e); }
+        } catch(e) {
+            _cdRecLog('❌ 检查抛出异常', String(e));
+        }
     }, 4500);
 }, { once: true });
 
