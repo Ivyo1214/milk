@@ -11189,21 +11189,52 @@ body #user-sticker-picker .empty-sticker-tip {
     background: rgba(var(--accent-color-rgb), 0.05);
 }
 .cd-chip i { font-size: 9px; color: var(--text-secondary); }
-.cd-chip select {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-    border: none;
-    font-family: var(--font-family);
-}
 .cd-chip.active {
     background: var(--accent-color);
     border-color: var(--accent-color);
     color: #fff;
 }
 .cd-chip.active i { color: #fff; }
+
+/* 自定义下拉菜单 */
+.cd-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 120px;
+    background: var(--secondary-bg);
+    border: 1px solid rgba(var(--accent-color-rgb), 0.3);
+    border-radius: var(--radius-xs);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    z-index: 25;
+    overflow: hidden;
+    animation: cdDropdownIn 0.18s ease-out;
+}
+.cd-dropdown.open { display: block; }
+@keyframes cdDropdownIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.cd-dropdown-item {
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background 0.12s;
+    white-space: nowrap;
+    text-align: left;
+}
+.cd-dropdown-item:hover {
+    background: rgba(var(--accent-color-rgb), 0.1);
+    color: var(--accent-color);
+}
+.cd-dropdown-item.active {
+    background: rgba(var(--accent-color-rgb), 0.15);
+    color: var(--accent-color);
+    font-weight: 600;
+}
 
 /* 月历弹出 */
 .cd-cal-popup {
