@@ -197,78 +197,123 @@
         return wd[new Date(ts).getDay()];
     }
 
-    // ─── 渲染：列表 ──────────────────────────────────
+    // ─── 渲染：列表（全部月份）──────────────────────
+    // 一次性渲染从最早记录到当前月之间的所有月份
+    // 滚动时同步顶部月份显示；切换月份时滚动到对应位置
+    let _scrollSyncBusy = false;       // 防止"切月→滚动→滚动事件再次切月"循环
+    let _scrollObserver = null;
+
     function renderList() {
         const container = document.getElementById('cd-pages');
         if (!container) return;
 
-        // 筛选当前月份的条目
-        const monthEntries = _diaryEntries.filter(e => {
-            const d = new Date(e.ts);
-            if (d.getFullYear() !== _curYear) return false;
-            if (d.getMonth() + 1 !== _curMonth) return false;
+        const partnerName = getPartnerName();
+        const userName = getUserName();
+
+        // 计算需要展示的月份范围（最早记录月 ~ 当前月，二者取较远者）
+        const now = new Date();
+        const nowY = now.getFullYear();
+        const nowM = now.getMonth() + 1;
+
+        // 找最早的记录
+        let earliestY = nowY, earliestM = nowM;
+        if (_diaryEntries.length > 0) {
+            const minTs = _diaryEntries.reduce((min, e) => Math.min(min, e.ts), Infinity);
+            const minD = new Date(minTs);
+            earliestY = minD.getFullYear();
+            earliestM = minD.getMonth() + 1;
+        }
+        // 同时也要包含用户切到的 _curYear/_curMonth 范围
+        const startKey = earliestY * 100 + earliestM;
+        const endKey = nowY * 100 + nowM;
+        const curKey = _curYear * 100 + _curMonth;
+        const realStart = Math.min(startKey, curKey);
+        const realEnd = Math.max(endKey, curKey);
+
+        // 生成月份列表（从新到旧）
+        const months = [];
+        let y = Math.floor(realEnd / 100), m = realEnd % 100;
+        const sy = Math.floor(realStart / 100), sm = realStart % 100;
+        while (y > sy || (y === sy && m >= sm)) {
+            months.push({ year: y, month: m });
+            m--;
+            if (m < 1) { m = 12; y--; }
+        }
+
+        // 应用筛选后的所有条目
+        const filteredEntries = _diaryEntries.filter(e => {
             if (_filterMode !== 'all' && e.mode !== _filterMode) return false;
             if (_filterInit !== 'all' && e.initiator !== _filterInit) return false;
             return true;
         });
 
-        if (monthEntries.length === 0) {
-            container.innerHTML =
-                '<div class="cd-month-label">· ' + _curYear + '年' + _curMonth + '月 ·</div>' +
-                '<div class="cd-empty">' +
-                '<i class="fas fa-book-open"></i>' +
-                '<div>这个月还没有陪伴记录</div>' +
-                '</div>';
-            return;
-        }
-
-        const partnerName = getPartnerName();
-        const userName = getUserName();
-        let html = '<div class="cd-month-label">· ' + _curYear + '年' + _curMonth + '月 ·</div>';
-
-        monthEntries.forEach(e => {
-            const cfg = MODE_CONFIG[e.mode] || MODE_CONFIG.study;
+        // 按月份分组
+        const byMonth = {};
+        filteredEntries.forEach(e => {
             const d = new Date(e.ts);
-            const day = d.getDate();
-            const weekday = getWeekdayCN(e.ts);
-            const time = formatTime(e.ts);
-            const dur = formatDuration(e.duration);
+            const key = d.getFullYear() + '-' + (d.getMonth() + 1);
+            if (!byMonth[key]) byMonth[key] = [];
+            byMonth[key].push(e);
+        });
 
-            const initiatorLabel = e.initiator === 'partner' ? (partnerName + '邀请') : (userName + '邀请');
-            const initiatorClass = e.initiator === 'partner' ? '' : 'cd-init-user';
+        // 拼接 HTML
+        let html = '';
+        months.forEach(mo => {
+            const key = mo.year + '-' + mo.month;
+            const entries = byMonth[key] || [];
+            html += '<div class="cd-month-section" data-year="' + mo.year + '" data-month="' + mo.month + '">';
+            html += '<div class="cd-month-label" data-year="' + mo.year + '" data-month="' + mo.month + '">· ' + mo.year + '年' + mo.month + '月 ·</div>';
+            if (entries.length === 0) {
+                html += '<div class="cd-empty cd-empty-month"><i class="fas fa-book-open"></i><div>这个月还没有陪伴记录</div></div>';
+            } else {
+                entries.forEach(e => {
+                    const cfg = MODE_CONFIG[e.mode] || MODE_CONFIG.study;
+                    const d = new Date(e.ts);
+                    const day = d.getDate();
+                    const weekday = getWeekdayCN(e.ts);
+                    const time = formatTime(e.ts);
+                    const dur = formatDuration(e.duration);
 
-            const partnerNoteHtml = e.partnerNote
-                ? '<span class="cd-note-text">' + escapeHtml(e.partnerNote) + '</span>'
-                : '<span class="cd-note-empty">' + escapeHtml(partnerName) + '没有记录</span>';
-            const userNoteHtml = e.userNote
-                ? '<span class="cd-note-text">' + escapeHtml(e.userNote) + '</span>'
-                : '<span class="cd-note-empty">点击此处添加备注…</span>';
+                    const initiatorLabel = e.initiator === 'partner' ? (partnerName + '邀请') : (userName + '邀请');
+                    const initiatorClass = e.initiator === 'partner' ? '' : 'cd-init-user';
 
-            html += '' +
-                '<div class="cd-entry" data-id="' + e.id + '">' +
-                  '<div class="cd-date-col">' +
-                    '<div class="cd-day">' + day + '</div>' +
-                    '<div class="cd-weekday">' + weekday + '</div>' +
-                  '</div>' +
-                  '<div class="cd-entry-content">' +
-                    '<div class="cd-top-row">' +
-                      '<span class="cd-initiator ' + initiatorClass + '">' + escapeHtml(initiatorLabel) + '</span>' +
-                      '<span class="cd-mode-tag"><i class="fas ' + cfg.icon + '"></i>' + cfg.shortName + '</span>' +
-                      '<span class="cd-time-dur">' + time + ' · ' + dur + '</span>' +
-                    '</div>' +
-                    '<div class="cd-notes">' +
-                      '<div class="cd-note-row">' +
-                        '<span class="cd-note-who">' + escapeHtml(partnerName) + '：</span>' +
-                        partnerNoteHtml +
-                      '</div>' +
-                      '<div class="cd-note-row">' +
-                        '<span class="cd-note-who" style="color:var(--text-secondary)">' + escapeHtml(userName) + '：</span>' +
-                        userNoteHtml +
-                      '</div>' +
-                    '</div>' +
-                  '</div>' +
-                  '<div class="cd-sticker">' + cfg.sticker + '</div>' +
-                '</div>';
+                    const hasPartnerNote = !!e.partnerNote;
+                    const partnerRowHtml = hasPartnerNote
+                        ? '<div class="cd-note-row">' +
+                            '<span class="cd-note-who">' + escapeHtml(partnerName) + '：</span>' +
+                            '<span class="cd-note-text">' + escapeHtml(e.partnerNote) + '</span>' +
+                          '</div>'
+                        : '<div class="cd-note-row">' +
+                            '<span class="cd-note-empty">' + escapeHtml(partnerName) + '没有记录</span>' +
+                          '</div>';
+                    const userNoteHtml = e.userNote
+                        ? '<span class="cd-note-text">' + escapeHtml(e.userNote) + '</span>'
+                        : '<span class="cd-note-empty">点击此处添加备注…</span>';
+
+                    html += '<div class="cd-entry" data-id="' + e.id + '">' +
+                        '<div class="cd-date-col">' +
+                          '<div class="cd-day">' + day + '</div>' +
+                          '<div class="cd-weekday">' + weekday + '</div>' +
+                        '</div>' +
+                        '<div class="cd-entry-content">' +
+                          '<div class="cd-top-row">' +
+                            '<span class="cd-initiator ' + initiatorClass + '">' + escapeHtml(initiatorLabel) + '</span>' +
+                            '<span class="cd-mode-tag"><i class="fas ' + cfg.icon + '"></i>' + cfg.shortName + '</span>' +
+                            '<span class="cd-time-dur">' + time + ' · ' + dur + '</span>' +
+                          '</div>' +
+                          '<div class="cd-notes">' +
+                            partnerRowHtml +
+                            '<div class="cd-note-row">' +
+                              '<span class="cd-note-who" style="color:var(--text-secondary)">' + escapeHtml(userName) + '：</span>' +
+                              userNoteHtml +
+                            '</div>' +
+                          '</div>' +
+                        '</div>' +
+                        '<div class="cd-sticker">' + cfg.sticker + '</div>' +
+                      '</div>';
+                });
+            }
+            html += '</div>';
         });
 
         container.innerHTML = html;
@@ -280,6 +325,71 @@
                 openNoteEditor(id);
             });
         });
+
+        // 滚动到当前选中月份
+        scrollToMonth(_curYear, _curMonth);
+
+        // 设置滚动监听 → 同步顶部月份显示
+        setupScrollSync();
+    }
+
+    function scrollToMonth(year, month) {
+        const container = document.getElementById('cd-pages');
+        if (!container) return;
+        const target = container.querySelector('.cd-month-section[data-year="' + year + '"][data-month="' + month + '"]');
+        if (!target) return;
+        _scrollSyncBusy = true;
+        // 用 instant 不闪屏；滚动位置 = target.offsetTop（相对 container）
+        const top = target.offsetTop - container.offsetTop;
+        container.scrollTop = top;
+        // 防抖：滚动平稳后再开启监听
+        setTimeout(() => { _scrollSyncBusy = false; }, 300);
+    }
+
+    function setupScrollSync() {
+        const container = document.getElementById('cd-pages');
+        if (!container) return;
+        // 清理旧 observer
+        if (_scrollObserver) {
+            try { _scrollObserver.disconnect(); } catch (e) {}
+            _scrollObserver = null;
+        }
+
+        // 用 IntersectionObserver 监听月份标签，第一个进入视口顶部的就是当前月
+        const labels = container.querySelectorAll('.cd-month-label');
+        if (!labels.length) return;
+
+        _scrollObserver = new IntersectionObserver((entries) => {
+            if (_scrollSyncBusy) return;
+            // 找到最靠近顶部的可见月份
+            let topMost = null;
+            let topMostY = Infinity;
+            entries.forEach(entry => {
+                const rect = entry.target.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                const relY = rect.top - containerRect.top;
+                // 只关心进入视口、且位置在容器上半部分的标签
+                if (entry.isIntersecting && relY < containerRect.height * 0.5 && relY < topMostY) {
+                    topMost = entry.target;
+                    topMostY = relY;
+                }
+            });
+            if (topMost) {
+                const year = parseInt(topMost.dataset.year, 10);
+                const month = parseInt(topMost.dataset.month, 10);
+                if (year && month && (year !== _curYear || month !== _curMonth)) {
+                    _curYear = year;
+                    _curMonth = month;
+                    updateMonthDisplay();
+                }
+            }
+        }, {
+            root: container,
+            rootMargin: '0px 0px -70% 0px',  // 只关注顶部 30% 区域
+            threshold: [0, 0.5, 1]
+        });
+
+        labels.forEach(label => _scrollObserver.observe(label));
     }
 
     function escapeHtml(s) {
@@ -324,7 +434,14 @@
                 _curYear = _calYear;
                 _curMonth = parseInt(el.dataset.m, 10);
                 updateMonthDisplay();
-                renderList();
+                // 如果该月份已在已渲染的列表里，直接滚动；否则重新渲染（重新计算范围）
+                const container = document.getElementById('cd-pages');
+                const exists = container && container.querySelector('.cd-month-section[data-year="' + _curYear + '"][data-month="' + _curMonth + '"]');
+                if (exists) {
+                    scrollToMonth(_curYear, _curMonth);
+                } else {
+                    renderList();
+                }
                 closeCalPopup();
             });
         });
