@@ -136,6 +136,7 @@
         if (!bgValue) {
             pages.style.backgroundImage = '';
             pages.style.backgroundColor = '';
+            pages.classList.remove('cd-has-bg');
             return;
         }
         if (bgValue.startsWith('linear-gradient') || bgValue.startsWith('#') || bgValue.startsWith('rgb')) {
@@ -147,6 +148,7 @@
             pages.style.backgroundPosition = 'center';
             pages.style.backgroundRepeat = 'no-repeat';
         }
+        pages.classList.add('cd-has-bg');
     };
 
     // ─── 工具函数 ───────────────────────────────────
@@ -175,10 +177,15 @@
     }
     function formatDurationTotal(totalSeconds) {
         totalSeconds = Math.max(0, Math.floor(totalSeconds || 0));
-        const h = Math.floor(totalSeconds / 3600);
-        const m = Math.floor((totalSeconds % 3600) / 60);
-        if (h > 0) return h + 'h' + (m > 0 ? ' ' + m + 'min' : '');
-        return m + 'min';
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        if (totalMinutes >= 60) {
+            // 大于等于 1 小时 → 用十进制小时显示（保留 1 位小数，去掉末尾 .0）
+            const hours = totalMinutes / 60;
+            let str = hours.toFixed(1);
+            if (str.endsWith('.0')) str = str.slice(0, -2);
+            return str + 'h';
+        }
+        return totalMinutes + 'min';
     }
     function pad2(n) { return n < 10 ? '0' + n : '' + n; }
     function formatTime(ts) {
@@ -232,7 +239,7 @@
 
             const partnerNoteHtml = e.partnerNote
                 ? '<span class="cd-note-text">' + escapeHtml(e.partnerNote) + '</span>'
-                : '<span class="cd-note-empty">（无）</span>';
+                : '<span class="cd-note-empty">' + escapeHtml(partnerName) + '没有记录</span>';
             const userNoteHtml = e.userNote
                 ? '<span class="cd-note-text">' + escapeHtml(e.userNote) + '</span>'
                 : '<span class="cd-note-empty">点击此处添加备注…</span>';
@@ -416,18 +423,19 @@
             if (modeCnt.hasOwnProperty(e.mode)) modeCnt[e.mode]++;
         });
 
-        // 取主题色 RGB（用于派生颜色）
+        // 取主题色 RGB（用于邀请来源派生颜色）
         const accentRgb = getAccentRgb();
         const initColors = [
             'rgb(' + accentRgb + ')',                       // 梦角邀请 = 主题色
             'rgba(' + accentRgb + ', 0.45)'                 // 用户邀请 = 主题色浅一些
         ];
-        const modeColors = [
-            'rgb(' + accentRgb + ')',                       // 学习
-            'rgba(' + accentRgb + ', 0.7)',                 // 工作
-            'rgba(' + accentRgb + ', 0.45)',                // 运动
-            'rgba(' + accentRgb + ', 0.25)'                 // 睡觉
-        ];
+        // 种类用固定的柔和马卡龙色
+        const modeColors = {
+            study:    '#C3EB8E',   // 学习 - 嫩绿
+            work:     '#FFF891',   // 工作 - 鹅黄
+            exercise: '#FFBB9B',   // 运动 - 蜜桃橙
+            sleep:    '#A4D6FF'    // 睡觉 - 浅蓝
+        };
 
         // 邀请来源图
         const initData = [
@@ -439,10 +447,10 @@
 
         // 种类分布图
         const modeData = [
-            { label: '学习', value: modeCnt.study,    color: modeColors[0] },
-            { label: '工作', value: modeCnt.work,     color: modeColors[1] },
-            { label: '运动', value: modeCnt.exercise, color: modeColors[2] },
-            { label: '睡觉', value: modeCnt.sleep,    color: modeColors[3] }
+            { label: '学习', value: modeCnt.study,    color: modeColors.study },
+            { label: '工作', value: modeCnt.work,     color: modeColors.work },
+            { label: '运动', value: modeCnt.exercise, color: modeColors.exercise },
+            { label: '睡觉', value: modeCnt.sleep,    color: modeColors.sleep }
         ];
         drawPie('cd-pie-mode', modeData, totalCount);
         renderLegend('cd-legend-mode', modeData, totalCount);
