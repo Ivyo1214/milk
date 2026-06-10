@@ -80,7 +80,10 @@
         if (Math.random() < 0.3) return '';
 
         try {
-            const replies = window.customReplies || [];
+            // 字卡库变量是模块作用域的 customReplies，全局暴露在 window._customReplies
+            const replies = (typeof customReplies !== 'undefined' && Array.isArray(customReplies))
+                ? customReplies
+                : (window._customReplies || []);
             if (!Array.isArray(replies) || replies.length === 0) return '';
 
             // 过滤掉被禁用的字卡（兼容 listeners.js 的 disabledReplyItems）
@@ -149,13 +152,15 @@
     // ─── 工具函数 ───────────────────────────────────
     function getPartnerName() {
         try {
-            if (window.settings && window.settings.partnerName) return window.settings.partnerName;
+            const s = (typeof settings !== 'undefined') ? settings : window.settings;
+            if (s && s.partnerName) return s.partnerName;
         } catch (e) {}
         return '梦角';
     }
     function getUserName() {
         try {
-            if (window.settings && window.settings.myName) return window.settings.myName;
+            const s = (typeof settings !== 'undefined') ? settings : window.settings;
+            if (s && s.myName) return s.myName;
         } catch (e) {}
         return '我';
     }
