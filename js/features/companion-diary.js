@@ -81,7 +81,7 @@
     }
     function getUserName() {
         try {
-            if (window.settings && window.settings.userName) return window.settings.userName;
+            if (window.settings && window.settings.myName) return window.settings.myName;
         } catch (e) {}
         return '我';
     }
@@ -437,6 +437,16 @@
         container.innerHTML = html;
     }
 
+    // 刷新下拉项里的动态昵称（梦角邀请 / 我邀请）
+    function refreshDropdownNames() {
+        const partnerName = getPartnerName();
+        const userName = getUserName();
+        const partnerItem = document.querySelector('.cd-dropdown-item[data-name-partner]');
+        const userItem = document.querySelector('.cd-dropdown-item[data-name-me]');
+        if (partnerItem) partnerItem.textContent = partnerName + '邀请';
+        if (userItem) userItem.textContent = userName + '邀请';
+    }
+
     // ─── 主入口：打开日记 modal ──────────────────────
     async function openDiaryModal() {
         await loadDiary();
@@ -448,10 +458,17 @@
         _filterMode = 'all';
         _filterInit = 'all';
         updateMonthDisplay();
+        refreshDropdownNames();
         updateChipLabel('mode', 'all');
         updateChipLabel('init', 'all');
-        document.getElementById('cd-filter-mode').value = 'all';
-        document.getElementById('cd-filter-init').value = 'all';
+
+        // 重置下拉项高亮
+        document.querySelectorAll('.cd-dropdown-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.cd-dropdown-item[data-val="all"]').forEach(i => i.classList.add('active'));
+
+        // 关闭所有下拉
+        document.querySelectorAll('.cd-dropdown.open').forEach(d => d.classList.remove('open'));
+
         closeStatsView();
         renderList();
 
@@ -514,25 +531,42 @@
             });
         }
 
-        // 筛选下拉
-        const filterMode = document.getElementById('cd-filter-mode');
-        if (filterMode && !filterMode.dataset.cdBound) {
-            filterMode.dataset.cdBound = 'true';
-            filterMode.addEventListener('change', (e) => {
-                _filterMode = e.target.value;
-                updateChipLabel('mode', _filterMode);
-                renderList();
+        // 筛选下拉 - 自定义实现
+        document.querySelectorAll('.cd-chip').forEach(chip => {
+            if (chip.dataset.cdBound) return;
+            chip.dataset.cdBound = 'true';
+            const dropdown = chip.querySelector('.cd-dropdown');
+            if (!dropdown) return;
+
+            // 点击 chip 切换下拉
+            chip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // 关闭其他下拉
+                document.querySelectorAll('.cd-dropdown.open').forEach(d => {
+                    if (d !== dropdown) d.classList.remove('open');
+                });
+                dropdown.classList.toggle('open');
             });
-        }
-        const filterInit = document.getElementById('cd-filter-init');
-        if (filterInit && !filterInit.dataset.cdBound) {
-            filterInit.dataset.cdBound = 'true';
-            filterInit.addEventListener('change', (e) => {
-                _filterInit = e.target.value;
-                updateChipLabel('init', _filterInit);
-                renderList();
+
+            // 点击下拉项
+            dropdown.querySelectorAll('.cd-dropdown-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const val = item.dataset.val;
+                    const type = chip.id === 'cd-chip-mode' ? 'mode' : 'init';
+                    if (type === 'mode') _filterMode = val;
+                    else _filterInit = val;
+
+                    // 高亮选中项
+                    dropdown.querySelectorAll('.cd-dropdown-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+
+                    updateChipLabel(type, val);
+                    dropdown.classList.remove('open');
+                    renderList();
+                });
             });
-        }
+        });
 
         // 统计按钮
         const statsBtn = document.getElementById('cd-stats-btn');
@@ -563,16 +597,20 @@
             });
         }
 
-        // 点击空白处关闭月历
+        // 点击空白处关闭月历和下拉菜单
         document.addEventListener('click', (e) => {
+            // 关闭月历
             const popup = document.getElementById('cd-cal-popup');
             const display = document.getElementById('cd-month-display');
-            if (!popup || !display) return;
-            if (popup.classList.contains('open') &&
-                !popup.contains(e.target) &&
-                !display.contains(e.target)) {
+            if (popup && display && popup.classList.contains('open') &&
+                !popup.contains(e.target) && !display.contains(e.target)) {
                 closeCalPopup();
             }
+            // 关闭筛选下拉
+            document.querySelectorAll('.cd-dropdown.open').forEach(d => {
+                const chip = d.closest('.cd-chip');
+                if (chip && !chip.contains(e.target)) d.classList.remove('open');
+            });
         });
     }
 
