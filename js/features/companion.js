@@ -429,6 +429,7 @@
     // 用户点场景卡 → 先让用户选时间 → 选完后再发起邀请
     async function selectMode(mode) {
         currentMode = mode;
+        window._companionSessionInitiator = 'user'; // 用户主动发起
         closeCompanionModal();
         // 打开时间选择，用户选完后再走邀请等待流程
         openTimeModal(mode, (selectedTime) => {
@@ -447,6 +448,7 @@
     // 梦角发起接受 → 直接进入陪伴页（用梦角说的那个时间）
     function enterWithInviteTime(mode, time) {
         currentMode = mode;
+        window._companionSessionInitiator = 'partner'; // 梦角主动发起
         // 设置时间状态（和 openTimeModal 里点按钮后的逻辑一致）
         if (time === 'rest') {
             isCountdown = false;
@@ -1541,6 +1543,11 @@
         stopPartnerGoodnightCheck();
         recordHistory();
 
+        // 计算本次时长 + 写入陪伴日记（在状态被清空之前）
+        const _diaryDurSec = getElapsedSeconds();
+        const _diaryMode = currentMode;
+        const _diaryInitiator = window._companionSessionInitiator === 'partner' ? 'partner' : 'user';
+
         // 默认留痕，除非显式 skipLogEvent
         if (!opts.skipLogEvent) {
             const sceneName = getSceneName();
@@ -1551,6 +1558,25 @@
             // 用场景对应的图标
             const sceneIcon = MODES[currentMode]?.icon || 'fa-moon';
             sendChatEvent(sceneIcon, label, elapsed);
+        }
+
+        // 写入陪伴日记（只有真正陪伴过、且时长 ≥ 30 秒才记录，避免误触）
+        try {
+            if (_diaryMode && _diaryDurSec >= 30 && typeof window.addCompanionDiaryEntry === 'function') {
+                const partnerNote = (typeof window.pickCompanionDiaryCards === 'function')
+                    ? window.pickCompanionDiaryCards()
+                    : '';
+                window.addCompanionDiaryEntry({
+                    ts: Date.now() - _diaryDurSec * 1000, // 用开始时间作为时间戳
+                    mode: _diaryMode,
+                    duration: _diaryDurSec,
+                    initiator: _diaryInitiator,
+                    partnerNote: partnerNote,
+                    userNote: ''
+                });
+            }
+        } catch (e) {
+            console.warn('[companion] write diary error:', e);
         }
 
         // 停止语音
@@ -1569,6 +1595,7 @@
         // 清空会话时钟
         _sessionStartTime = null;
         _accumulatedExtendTime = 0;
+        window._companionSessionInitiator = null;
 
         // 清空本次对话 + 气泡 + typing
         _sessionDialogue = [];
