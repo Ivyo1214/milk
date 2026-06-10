@@ -277,8 +277,114 @@ window.addEventListener('load', function() {
                 checkEnvelopeStatus().catch(function(e) { console.warn('envelope launch check error:', e); });
             }
         } catch(e) { console.warn('envelope launch check error:', e); }
+
+        // 启动时检查闪退未结束的陪伴会话
+        try {
+            if (window._companionRecoverModule && window.localforage) {
+                const key = window._companionRecoverModule.getLiveSessionKey();
+                localforage.getItem(key).then(function(session) {
+                    if (!session || !session.mode) return;
+                    // 心跳时间距离现在超过 24 小时 → 直接丢弃
+                    const elapsedSinceHeartbeat = Date.now() - (session.heartbeatTs || 0);
+                    if (elapsedSinceHeartbeat > 24 * 60 * 60 * 1000) {
+                        window._companionRecoverModule.clearLiveSession();
+                        return;
+                    }
+                    // 显示恢复弹窗
+                    showCompanionRecoverDialog(session);
+                }).catch(function() {});
+            }
+        } catch(e) { console.warn('companion recover check error:', e); }
     }, 4500);
 }, { once: true });
+
+// 陪伴闪退恢复弹窗
+function showCompanionRecoverDialog(session) {
+    const modeNames = { study: '学习', work: '工作', exercise: '运动', sleep: '睡觉' };
+    const modeName = modeNames[session.mode] || '陪伴';
+    const startTime = new Date(session.startTs);
+    const startTimeStr = ('0' + startTime.getHours()).slice(-2) + ':' + ('0' + startTime.getMinutes()).slice(-2);
+
+    // 估算已用时间
+    const elapsedSec = Math.max(0, Math.floor((session.heartbeatTs - session.startTs) / 1000) + (session.accumulatedExtendTime || 0));
+    const elapsedMin = Math.floor(elapsedSec / 60);
+    const elapsedStr = elapsedMin >= 60
+        ? Math.floor(elapsedMin / 60) + 'h ' + (elapsedMin % 60) + 'min'
+        : elapsedMin + 'min';
+
+    // 倒计时模式下计算剩余时间
+    let remainingStr = '';
+    let canContinue = true;
+    if (session.isCountdown) {
+        const remainingSec = session.totalSeconds - elapsedSec;
+        if (remainingSec <= 0) {
+            canContinue = false;
+        } else {
+            const remainingMin = Math.floor(remainingSec / 60);
+            remainingStr = remainingMin >= 60
+                ? Math.floor(remainingMin / 60) + 'h ' + (remainingMin % 60) + 'min'
+                : remainingMin + 'min';
+        }
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'companion-recover-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.25s ease;padding:20px;';
+
+    overlay.innerHTML = `
+        <div style="background:var(--secondary-bg);border-radius:20px;padding:24px 22px 20px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.4);font-family:var(--font-family);">
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-hourglass-half" style="color:var(--accent-color);"></i>
+                上次陪伴还没结束
+            </div>
+            <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+                检测到一次未结束的「${modeName}」陪伴<br>
+                · 开始时间：${startTimeStr}<br>
+                · 已陪伴：${elapsedStr}
+                ${session.isCountdown && canContinue ? '<br>· 剩余时间：约 ' + remainingStr : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                ${canContinue ? `
+                <button id="_cmp_rec_continue" style="padding:11px;border:none;border-radius:12px;background:var(--accent-color);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-family);">
+                    <i class="fas fa-play" style="margin-right:6px;"></i>继续陪伴
+                </button>` : ''}
+                <button id="_cmp_rec_save" style="padding:11px;border:1px solid var(--border-color);border-radius:12px;background:var(--primary-bg);color:var(--text-primary);font-size:13px;cursor:pointer;font-family:var(--font-family);">
+                    <i class="fas fa-save" style="margin-right:6px;color:var(--accent-color);"></i>结束并保存到日记
+                </button>
+                <button id="_cmp_rec_discard" style="padding:11px;border:1px solid var(--border-color);border-radius:12px;background:none;color:var(--text-secondary);font-size:12px;cursor:pointer;font-family:var(--font-family);">
+                    丢弃这次陪伴
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    function closeDialog() { overlay.remove(); }
+
+    const continueBtn = document.getElementById('_cmp_rec_continue');
+    if (continueBtn) {
+        continueBtn.onclick = function() {
+            const ok = window._companionRecoverModule.resumeFromSession(session);
+            if (!ok) {
+                // 恢复失败 → 写日记
+                window._companionRecoverModule.saveSessionAsDiary(session);
+                window._companionRecoverModule.clearLiveSession();
+            }
+            closeDialog();
+        };
+    }
+    document.getElementById('_cmp_rec_save').onclick = async function() {
+        await window._companionRecoverModule.saveSessionAsDiary(session);
+        window._companionRecoverModule.clearLiveSession();
+        if (typeof showNotification === 'function') showNotification('已保存到陪伴日记', 'success');
+        closeDialog();
+    };
+    document.getElementById('_cmp_rec_discard').onclick = function() {
+        if (!confirm('确定丢弃这次陪伴记录吗？')) return;
+        window._companionRecoverModule.clearLiveSession();
+        closeDialog();
+    };
+}
 
 // ============================================
 // 陪伴模式 (Companion Mode) - 新增功能
