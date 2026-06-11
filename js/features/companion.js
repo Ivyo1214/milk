@@ -2191,26 +2191,26 @@
                 currentMode = session.mode;
                 window._companionSessionInitiator = session.initiator || 'user';
                 _accumulatedExtendTime = session.accumulatedExtendTime || 0;
-                // 计算实际经过的时间（用心跳时间作为最后已知时间点）
-                const elapsedSinceStart = Math.floor((session.heartbeatTs - session.startTs) / 1000) + _accumulatedExtendTime;
+                // 用真实墙上时间算（不暂停）
+                const elapsedSinceStart = Math.floor((Date.now() - session.startTs) / 1000) + _accumulatedExtendTime;
                 if (session.isCountdown) {
                     isCountdown = true;
                     totalSeconds = session.totalSeconds;
                     const remaining = session.totalSeconds - elapsedSinceStart;
                     if (remaining <= 0) {
-                        // 时间已经过完了 → 直接写日记
+                        // 时间已经过完了 → 让外层去写日记
                         return false;
                     }
                     timerSeconds = remaining;
                 } else {
-                    // 正计时（睡觉）→ 从已经累计的时间继续
+                    // 正计时（睡觉）→ 从真实累计时间继续
                     isCountdown = false;
                     timerSeconds = elapsedSinceStart;
                     totalSeconds = 0;
                 }
-                // 进入陪伴页（session 起点要追回到原本的起点 + 已累计时间）
-                _sessionStartTime = Date.now() - elapsedSinceStart * 1000 + _accumulatedExtendTime * 1000;
-                _accumulatedExtendTime = 0; // 已经合并到 _sessionStartTime 里了
+                // 把 session 起点追回到原本的起点
+                _sessionStartTime = session.startTs;
+                _accumulatedExtendTime = 0;
                 openCompanionPage();
                 return true;
             } catch (e) {
@@ -2221,7 +2221,12 @@
         // 把会话作为已完成日记保存
         saveSessionAsDiary: async function(session) {
             if (!session || !session.mode) return;
-            const duration = Math.max(0, Math.floor((session.heartbeatTs - session.startTs) / 1000) + (session.accumulatedExtendTime || 0));
+            // 按真实墙上时间算
+            let duration = Math.max(0, Math.floor((Date.now() - session.startTs) / 1000) + (session.accumulatedExtendTime || 0));
+            // 倒计时模式：时长不能超过总时长（时间到了就是到了）
+            if (session.isCountdown && session.totalSeconds && duration > session.totalSeconds) {
+                duration = session.totalSeconds;
+            }
             if (duration < 30) return; // 太短，不记
             if (typeof window.addCompanionDiaryEntry === 'function') {
                 await window.addCompanionDiaryEntry({
@@ -2456,7 +2461,7 @@
 
     // ─── 倒计时归零后：梦角先发起延长 ──────────────────────────────────────
     const EXTEND_INVITE_LINES = [
-        '时间过得好看，再陪我一会儿？',
+        '时间过得好快，再陪我一会儿？',
         '舍不得你走，再来一会儿？',
         '刚刚状态正好，可以继续？',
         '我还想你陪着我，再一会儿可以吗？'
