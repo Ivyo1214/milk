@@ -316,9 +316,49 @@ if (myStickerQuickUpload) {
                 return;
             }
 
+            // 新逻辑：按真实墙上时间计算
+            // 不再"暂停时间"，而是"时间一直在跑"
+            const realElapsedSec = Math.floor((Date.now() - bestSession.startTs) / 1000)
+                                 + (bestSession.accumulatedExtendTime || 0);
+            _cdRecLog('从开始时间到现在的真实秒数', realElapsedSec);
+
             // 把找到的真实 key 存起来，方便弹窗按钮使用
             window.__cdRecoverFoundKey = bestKey;
             window.__cdRecoverFoundSession = bestSession;
+            bestSession._realElapsedSec = realElapsedSec;
+
+            // 如果是倒计时模式 + 时间已经到了 → 自动写入日记 + 弹"已结束"提示
+            if (bestSession.isCountdown && realElapsedSec >= bestSession.totalSeconds) {
+                _cdRecLog('✓ 倒计时已到，自动写入日记 + 弹结束提示');
+                // 用正常的字卡逻辑（30% 概率不写、70% 抽 1-2 句）
+                const partnerNote = (typeof window.pickCompanionDiaryCards === 'function')
+                    ? window.pickCompanionDiaryCards()
+                    : '';
+                if (typeof window.addCompanionDiaryEntry === 'function') {
+                    await window.addCompanionDiaryEntry({
+                        ts: bestSession.startTs,
+                        mode: bestSession.mode,
+                        duration: bestSession.totalSeconds, // 完整时长
+                        initiator: bestSession.initiator || 'user',
+                        partnerNote: partnerNote,
+                        userNote: ''
+                    });
+                    _cdRecLog('✓ 日记已写入');
+                }
+                await localforage.removeItem(bestKey).catch(() => {});
+                // 弹"已结束"提示窗
+                if (typeof showCompanionCompletedDialog === 'function') {
+                    showCompanionCompletedDialog(bestSession);
+                    _cdRecLog('✓ 已结束提示已显示');
+                } else {
+                    setTimeout(() => {
+                        if (typeof showCompanionCompletedDialog === 'function') {
+                            showCompanionCompletedDialog(bestSession);
+                        }
+                    }, 2000);
+                }
+                return;
+            }
 
             _cdRecLog('✓ 准备显示恢复弹窗');
             if (typeof showCompanionRecoverDialog === 'function') {
@@ -385,14 +425,16 @@ function showCompanionRecoverDialog(session) {
     const startTime = new Date(session.startTs);
     const startTimeStr = ('0' + startTime.getHours()).slice(-2) + ':' + ('0' + startTime.getMinutes()).slice(-2);
 
-    // 估算已用时间
-    const elapsedSec = Math.max(0, Math.floor((session.heartbeatTs - session.startTs) / 1000) + (session.accumulatedExtendTime || 0));
+    // 用真实墙上时间算已用时间（不再用心跳暂停的时间）
+    const elapsedSec = (typeof session._realElapsedSec === 'number')
+        ? session._realElapsedSec
+        : Math.max(0, Math.floor((Date.now() - session.startTs) / 1000) + (session.accumulatedExtendTime || 0));
     const elapsedMin = Math.floor(elapsedSec / 60);
     const elapsedStr = elapsedMin >= 60
         ? Math.floor(elapsedMin / 60) + 'h ' + (elapsedMin % 60) + 'min'
         : elapsedMin + 'min';
 
-    // 倒计时模式下计算剩余时间
+    // 倒计时模式下计算剩余时间（按真实墙上时间）
     let remainingStr = '';
     let canContinue = true;
     if (session.isCountdown) {
@@ -463,6 +505,48 @@ function showCompanionRecoverDialog(session) {
         if (!confirm('确定丢弃这次陪伴记录吗？')) return;
         window._companionRecoverModule.clearLiveSession();
         closeDialog();
+    };
+}
+
+// 陪伴已结束提示弹窗（倒计时模式：闪退后过太久，时间已经到了）
+function showCompanionCompletedDialog(session) {
+    const modeNames = { study: '学习', work: '工作', exercise: '运动', sleep: '睡觉' };
+    const modeName = modeNames[session.mode] || '陪伴';
+    const startTime = new Date(session.startTs);
+    const startTimeStr = ('0' + startTime.getHours()).slice(-2) + ':' + ('0' + startTime.getMinutes()).slice(-2);
+
+    const totalMin = Math.floor(session.totalSeconds / 60);
+    const totalStr = totalMin >= 60
+        ? Math.floor(totalMin / 60) + 'h' + (totalMin % 60 > 0 ? ' ' + (totalMin % 60) + 'min' : '')
+        : totalMin + 'min';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'companion-completed-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.25s ease;padding:20px;';
+
+    overlay.innerHTML = `
+        <div style="background:var(--secondary-bg);border-radius:20px;padding:24px 22px 20px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.4);font-family:var(--font-family);">
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-check-circle" style="color:var(--accent-color);"></i>
+                上次陪伴已结束
+            </div>
+            <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+                这次「${modeName}」陪伴已经完整结束<br>
+                · 开始时间：${startTimeStr}<br>
+                · 陪伴时长：${totalStr}<br>
+                <span style="color:var(--accent-color);">已自动保存到陪伴日记 📔</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <button id="_cmp_completed_ok" style="padding:11px;border:none;border-radius:12px;background:var(--accent-color);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-family);">
+                    好的
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById('_cmp_completed_ok').onclick = function() {
+        overlay.remove();
     };
 }
 
