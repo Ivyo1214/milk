@@ -246,6 +246,104 @@ if (myStickerQuickUpload) {
     });
 }
 
+// 启动时检查闪退未结束的陪伴会话（独立于 load 事件，确保一定执行）
+(function() {
+    function _cdRecLog(msg, data) {
+        try {
+            const logs = JSON.parse(localStorage.getItem('_cdRecLogs') || '[]');
+            logs.push({ t: new Date().toLocaleTimeString(), msg: msg, data: data === undefined ? '' : JSON.stringify(data) });
+            if (logs.length > 50) logs.splice(0, logs.length - 50);
+            localStorage.setItem('_cdRecLogs', JSON.stringify(logs));
+        } catch (e) {}
+        try { console.log('[cdRec]', msg, data !== undefined ? data : ''); } catch (e) {}
+    }
+
+    _cdRecLog('script 已加载，准备启动检查');
+
+    async function doRecoverCheck(attempt) {
+        attempt = attempt || 1;
+        _cdRecLog('开始恢复检查，第 ' + attempt + ' 次');
+        try {
+            if (!window.localforage) {
+                _cdRecLog('❌ localforage 未加载');
+                if (attempt < 5) setTimeout(() => doRecoverCheck(attempt + 1), 2000);
+                return;
+            }
+
+            // 直接扫描所有 key，找含 companionLiveSession 的那个
+            // 这样不依赖 SESSION_ID 是否初始化
+            const allKeys = await localforage.keys();
+            _cdRecLog('localforage key 总数', allKeys.length);
+
+            const sessionKeys = allKeys.filter(k => k.indexOf('companionLiveSession') !== -1);
+            _cdRecLog('匹配的 session key', sessionKeys);
+
+            if (sessionKeys.length === 0) {
+                _cdRecLog('无未结束的会话');
+                return;
+            }
+
+            // 取最近一条（按心跳时间排序，最新的优先）
+            let bestSession = null;
+            let bestKey = null;
+            for (const k of sessionKeys) {
+                const s = await localforage.getItem(k);
+                if (s && s.mode && s.heartbeatTs) {
+                    if (!bestSession || s.heartbeatTs > bestSession.heartbeatTs) {
+                        bestSession = s;
+                        bestKey = k;
+                    }
+                }
+            }
+
+            _cdRecLog('最近的会话 key', bestKey);
+            _cdRecLog('会话数据', bestSession);
+
+            if (!bestSession) {
+                _cdRecLog('所有 key 都是空数据，清理');
+                for (const k of sessionKeys) {
+                    await localforage.removeItem(k).catch(() => {});
+                }
+                return;
+            }
+
+            const elapsedSinceHeartbeat = Date.now() - bestSession.heartbeatTs;
+            _cdRecLog('心跳距今秒数', Math.floor(elapsedSinceHeartbeat / 1000));
+
+            if (elapsedSinceHeartbeat > 24 * 60 * 60 * 1000) {
+                _cdRecLog('超过 24 小时，丢弃');
+                await localforage.removeItem(bestKey).catch(() => {});
+                return;
+            }
+
+            // 把找到的真实 key 存起来，方便弹窗按钮使用
+            window.__cdRecoverFoundKey = bestKey;
+            window.__cdRecoverFoundSession = bestSession;
+
+            _cdRecLog('✓ 准备显示恢复弹窗');
+            if (typeof showCompanionRecoverDialog === 'function') {
+                showCompanionRecoverDialog(bestSession);
+                _cdRecLog('✓ 弹窗函数已调用');
+            } else {
+                _cdRecLog('❌ showCompanionRecoverDialog 函数不存在，等待 2 秒后重试');
+                setTimeout(() => {
+                    if (typeof showCompanionRecoverDialog === 'function') {
+                        showCompanionRecoverDialog(bestSession);
+                        _cdRecLog('✓ 重试成功，弹窗函数已调用');
+                    } else {
+                        _cdRecLog('❌ 重试后仍无 showCompanionRecoverDialog');
+                    }
+                }, 2000);
+            }
+        } catch(e) {
+            _cdRecLog('❌ 异常', String(e && e.message || e));
+        }
+    }
+
+    // 8 秒后启动（给 localforage、SESSION_ID 充足初始化时间）
+    setTimeout(() => doRecoverCheck(1), 8000);
+})();
+
 window.addEventListener('load', function() {
     setTimeout(function() {
         try {
@@ -277,50 +375,6 @@ window.addEventListener('load', function() {
                 checkEnvelopeStatus().catch(function(e) { console.warn('envelope launch check error:', e); });
             }
         } catch(e) { console.warn('envelope launch check error:', e); }
-
-        // 启动时检查闪退未结束的陪伴会话
-        function _cdRecLog(msg, data) {
-            try {
-                const logs = JSON.parse(localStorage.getItem('_cdRecLogs') || '[]');
-                logs.push({ t: new Date().toLocaleTimeString(), msg: msg, data: data === undefined ? '' : JSON.stringify(data) });
-                // 只保留最近 50 条
-                if (logs.length > 50) logs.splice(0, logs.length - 50);
-                localStorage.setItem('_cdRecLogs', JSON.stringify(logs));
-            } catch (e) {}
-            console.log('[companion-recover]', msg, data !== undefined ? data : '');
-        }
-        _cdRecLog('启动检查开始');
-        try {
-            if (!window._companionRecoverModule) {
-                _cdRecLog('❌ _companionRecoverModule 未加载');
-            } else if (!window.localforage) {
-                _cdRecLog('❌ localforage 未加载');
-            } else {
-                const key = window._companionRecoverModule.getLiveSessionKey();
-                _cdRecLog('查询 key', key);
-                localforage.getItem(key).then(function(session) {
-                    _cdRecLog('查询结果', session);
-                    if (!session || !session.mode) {
-                        _cdRecLog('无未结束的会话，结束检查');
-                        return;
-                    }
-                    const elapsedSinceHeartbeat = Date.now() - (session.heartbeatTs || 0);
-                    _cdRecLog('心跳距今秒数', Math.floor(elapsedSinceHeartbeat / 1000));
-                    if (elapsedSinceHeartbeat > 24 * 60 * 60 * 1000) {
-                        _cdRecLog('超过 24 小时，丢弃');
-                        window._companionRecoverModule.clearLiveSession();
-                        return;
-                    }
-                    _cdRecLog('✓ 即将显示恢复弹窗');
-                    showCompanionRecoverDialog(session);
-                    _cdRecLog('✓ 恢复弹窗函数已调用');
-                }).catch(function(err) {
-                    _cdRecLog('❌ getItem 失败', String(err));
-                });
-            }
-        } catch(e) {
-            _cdRecLog('❌ 检查抛出异常', String(e));
-        }
     }, 4500);
 }, { once: true });
 
