@@ -385,10 +385,12 @@
 
     // ─── 陪伴时长统计 ───────────────────────────────────────────────────────
     let _sessionStartTime = null;   // 进陪伴页时记录
+    let _originalSessionStartTime = null; // 最初的开始时间（不受延长影响）
     let _accumulatedExtendTime = 0; // 之前几段陪伴累计时长（继续陪伴时累加）
 
     function startSessionClock() {
         _sessionStartTime = Date.now();
+        _originalSessionStartTime = Date.now();
         _accumulatedExtendTime = 0;
     }
     function getElapsedSeconds() {
@@ -2162,14 +2164,20 @@
     let _lastHeartbeatTs = 0;
     function writeLiveSession() {
         try {
+            // 把累计时间合并到 startTs 里：虚拟起点 = 当前段起点 - 累计延长时间
+            // 这样恢复时直接 (Date.now() - startTs) 就是完整陪伴时长
+            const virtualStartTs = _sessionStartTime
+                ? _sessionStartTime - Math.floor((_accumulatedExtendTime || 0) * 1000)
+                : Date.now();
             const payload = {
-                startTs: _sessionStartTime || Date.now(),
+                startTs: virtualStartTs,
                 heartbeatTs: Date.now(),
                 mode: currentMode,
                 initiator: window._companionSessionInitiator === 'partner' ? 'partner' : 'user',
                 isCountdown: !!isCountdown,
-                totalSeconds: totalSeconds || 0,
-                accumulatedExtendTime: _accumulatedExtendTime || 0
+                // 总时长：当前段 + 累计延长（这样剩余时间也对得上）
+                totalSeconds: (totalSeconds || 0) + Math.floor(_accumulatedExtendTime || 0),
+                accumulatedExtendTime: 0  // 已经合并到 startTs 里
             };
             localforage.setItem(getLiveSessionKey(), payload).catch(() => {});
             _lastHeartbeatTs = Date.now();
