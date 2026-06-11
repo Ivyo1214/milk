@@ -425,29 +425,19 @@ function showCompanionRecoverDialog(session) {
     const startTime = new Date(session.startTs);
     const startTimeStr = ('0' + startTime.getHours()).slice(-2) + ':' + ('0' + startTime.getMinutes()).slice(-2);
 
-    // 用真实墙上时间算已用时间（不再用心跳暂停的时间）
-    const elapsedSec = (typeof session._realElapsedSec === 'number')
-        ? session._realElapsedSec
-        : Math.max(0, Math.floor((Date.now() - session.startTs) / 1000) + (session.accumulatedExtendTime || 0));
-    const elapsedMin = Math.floor(elapsedSec / 60);
-    const elapsedStr = elapsedMin >= 60
-        ? Math.floor(elapsedMin / 60) + 'h ' + (elapsedMin % 60) + 'min'
-        : elapsedMin + 'min';
-
-    // 倒计时模式下计算剩余时间（按真实墙上时间）
-    let remainingStr = '';
-    let canContinue = true;
-    if (session.isCountdown) {
-        const remainingSec = session.totalSeconds - elapsedSec;
-        if (remainingSec <= 0) {
-            canContinue = false;
-        } else {
-            const remainingMin = Math.floor(remainingSec / 60);
-            remainingStr = remainingMin >= 60
-                ? Math.floor(remainingMin / 60) + 'h ' + (remainingMin % 60) + 'min'
-                : remainingMin + 'min';
-        }
+    // 用真实墙上时间算（不再用心跳）
+    function calcElapsedSec() {
+        return Math.max(0, Math.floor((Date.now() - session.startTs) / 1000) + (session.accumulatedExtendTime || 0));
     }
+    function formatMin(sec) {
+        const m = Math.floor(sec / 60);
+        return m >= 60
+            ? Math.floor(m / 60) + 'h ' + (m % 60) + 'min'
+            : m + 'min';
+    }
+
+    let elapsedSec = calcElapsedSec();
+    let canContinue = !(session.isCountdown && session.totalSeconds - elapsedSec <= 0);
 
     const overlay = document.createElement('div');
     overlay.id = 'companion-recover-overlay';
@@ -462,14 +452,13 @@ function showCompanionRecoverDialog(session) {
             <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
                 检测到一次未结束的「${modeName}」陪伴<br>
                 · 开始时间：${startTimeStr}<br>
-                · 已陪伴：${elapsedStr}
-                ${session.isCountdown && canContinue ? '<br>· 剩余时间：约 ' + remainingStr : ''}
+                · 已陪伴：<span id="_cmp_rec_elapsed">${formatMin(elapsedSec)}</span>
+                ${session.isCountdown ? '<br>· 剩余时间：约 <span id="_cmp_rec_remaining">' + formatMin(Math.max(0, session.totalSeconds - elapsedSec)) + '</span>' : ''}
             </div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
-                ${canContinue ? `
-                <button id="_cmp_rec_continue" style="padding:11px;border:none;border-radius:12px;background:var(--accent-color);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-family);">
+            <div style="display:flex;flex-direction:column;gap:8px;" id="_cmp_rec_btns">
+                <button id="_cmp_rec_continue" style="padding:11px;border:none;border-radius:12px;background:var(--accent-color);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-family);${canContinue ? '' : 'display:none;'}">
                     <i class="fas fa-play" style="margin-right:6px;"></i>继续陪伴
-                </button>` : ''}
+                </button>
                 <button id="_cmp_rec_save" style="padding:11px;border:1px solid var(--border-color);border-radius:12px;background:var(--primary-bg);color:var(--text-primary);font-size:13px;cursor:pointer;font-family:var(--font-family);">
                     <i class="fas fa-save" style="margin-right:6px;color:var(--accent-color);"></i>结束并保存到日记
                 </button>
@@ -481,7 +470,52 @@ function showCompanionRecoverDialog(session) {
     `;
     document.body.appendChild(overlay);
 
-    function closeDialog() { overlay.remove(); }
+    // 每秒刷新：让用户看到时间一直在跑
+    const tickHandle = setInterval(() => {
+        const curElapsed = calcElapsedSec();
+        const elEl = document.getElementById('_cmp_rec_elapsed');
+        const remEl = document.getElementById('_cmp_rec_remaining');
+        if (elEl) elEl.textContent = formatMin(curElapsed);
+
+        if (session.isCountdown) {
+            const remainSec = session.totalSeconds - curElapsed;
+            if (remEl) remEl.textContent = formatMin(Math.max(0, remainSec));
+
+            // 如果在弹窗页停留到时间过完了 → 自动转为"已结束"弹窗
+            if (remainSec <= 0) {
+                clearInterval(tickHandle);
+                // 自动完成：写入日记，提示用户
+                (async () => {
+                    if (typeof window._companionRecoverModule !== 'undefined') {
+                        // 用正常字卡逻辑
+                        const partnerNote = (typeof window.pickCompanionDiaryCards === 'function')
+                            ? window.pickCompanionDiaryCards()
+                            : '';
+                        if (typeof window.addCompanionDiaryEntry === 'function') {
+                            await window.addCompanionDiaryEntry({
+                                ts: session.startTs,
+                                mode: session.mode,
+                                duration: session.totalSeconds,
+                                initiator: session.initiator || 'user',
+                                partnerNote: partnerNote,
+                                userNote: ''
+                            });
+                        }
+                        window._companionRecoverModule.clearLiveSession();
+                    }
+                    closeDialog();
+                    if (typeof showCompanionCompletedDialog === 'function') {
+                        showCompanionCompletedDialog(session);
+                    }
+                })();
+            }
+        }
+    }, 1000);
+
+    function closeDialog() {
+        clearInterval(tickHandle);
+        overlay.remove();
+    }
 
     const continueBtn = document.getElementById('_cmp_rec_continue');
     if (continueBtn) {
