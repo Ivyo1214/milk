@@ -1442,7 +1442,8 @@
 
     // ─── 陪伴页面 ────────────────────────────────────────────────────────────
 
-    function openCompanionPage() {
+    function openCompanionPage(opts) {
+        opts = opts || {};
         const cfg = MODES[currentMode];
         const page = $('companion-page');
 
@@ -1479,7 +1480,10 @@
         document.body.style.overflow = 'hidden';
 
         // 启动会话时钟（统计陪伴时长用）
-        startSessionClock();
+        // 注意：恢复闪退会话时不要重置时钟（保留 resumeFromSession 里设置的 _sessionStartTime）
+        if (!opts.isResume) {
+            startSessionClock();
+        }
 
         // 清空本次陪伴的对话记录
         _sessionDialogue = [];
@@ -1490,7 +1494,7 @@
         // 续播上次的白噪音（如果有）
         resumeLastNoise();
 
-        console.log('[companion] 陪伴页面已打开');
+        console.log('[companion] 陪伴页面已打开' + (opts.isResume ? '（闪退恢复）' : ''));
     }
 
     function renderCompanionBackground(bg) {
@@ -2211,7 +2215,7 @@
                 // 把 session 起点追回到原本的起点
                 _sessionStartTime = session.startTs;
                 _accumulatedExtendTime = 0;
-                openCompanionPage();
+                openCompanionPage({ isResume: true });
                 return true;
             } catch (e) {
                 console.warn('[companion] resume failed', e);
@@ -2228,13 +2232,17 @@
                 duration = session.totalSeconds;
             }
             if (duration < 30) return; // 太短，不记
+            // 走正常字卡逻辑（30% 不写、70% 抽 1-2 句）
+            const partnerNote = (typeof window.pickCompanionDiaryCards === 'function')
+                ? window.pickCompanionDiaryCards()
+                : '';
             if (typeof window.addCompanionDiaryEntry === 'function') {
                 await window.addCompanionDiaryEntry({
                     ts: session.startTs,
                     mode: session.mode,
                     duration: duration,
                     initiator: session.initiator || 'user',
-                    partnerNote: '', // 闪退恢复 → 梦角不写字卡
+                    partnerNote: partnerNote,
                     userNote: ''
                 });
             }
@@ -2461,7 +2469,7 @@
 
     // ─── 倒计时归零后：梦角先发起延长 ──────────────────────────────────────
     const EXTEND_INVITE_LINES = [
-        '时间过得好快，再陪我一会儿？',
+        '时间过得好看，再陪我一会儿？',
         '舍不得你走，再来一会儿？',
         '刚刚状态正好，可以继续？',
         '我还想你陪着我，再一会儿可以吗？'
