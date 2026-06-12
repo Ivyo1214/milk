@@ -382,6 +382,61 @@ if (myStickerQuickUpload) {
 
     // 8 秒后启动（给 localforage、SESSION_ID 充足初始化时间）
     setTimeout(() => doRecoverCheck(1), 8000);
+
+    // 通话闪退恢复（独立于陪伴的）
+    async function doCallRecoverCheck(attempt) {
+        attempt = attempt || 1;
+        try {
+            if (!window.localforage) {
+                if (attempt < 5) setTimeout(() => doCallRecoverCheck(attempt + 1), 2000);
+                return;
+            }
+            if (!window._callModule || !window._callModule.getCallSessionKey) {
+                if (attempt < 5) setTimeout(() => doCallRecoverCheck(attempt + 1), 2000);
+                return;
+            }
+
+            // 扫描 callLiveSession 相关 key
+            const allKeys = await localforage.keys();
+            const sessionKeys = allKeys.filter(k => k.indexOf('callLiveSession') !== -1);
+            if (sessionKeys.length === 0) return;
+
+            // 取最新的
+            let bestSession = null;
+            let bestKey = null;
+            for (const k of sessionKeys) {
+                const s = await localforage.getItem(k);
+                if (s && s.startTs && s.heartbeatTs) {
+                    if (!bestSession || s.heartbeatTs > bestSession.heartbeatTs) {
+                        bestSession = s;
+                        bestKey = k;
+                    }
+                }
+            }
+
+            if (!bestSession) {
+                // 清理无效数据
+                for (const k of sessionKeys) {
+                    await localforage.removeItem(k).catch(() => {});
+                }
+                return;
+            }
+
+            // 直接恢复通话（不弹任何窗），并弹一个 toast 提示
+            const ok = window._callModule.resumeFromSession(bestSession);
+            if (ok) {
+                if (typeof showNotification === 'function') {
+                    showNotification('通话已恢复', 'success', 3000);
+                }
+            } else {
+                // 恢复失败 → 清掉这个 session
+                await localforage.removeItem(bestKey).catch(() => {});
+            }
+        } catch (e) {
+            console.warn('[call-recover] error:', e);
+        }
+    }
+    setTimeout(() => doCallRecoverCheck(1), 8500);
 })();
 
 window.addEventListener('load', function() {
