@@ -556,7 +556,17 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
         writeCallSession();
     }
     function clearCallSession() {
-        try { localforage.removeItem(getCallSessionKey()).catch(() => {}); } catch (e) {}
+        try {
+            // 用扫描方式删除所有 callLiveSession 相关 key
+            localforage.keys().then(function(keys) {
+                const targets = keys.filter(function(k) {
+                    return k.indexOf('callLiveSession') !== -1;
+                });
+                Promise.all(targets.map(function(k) {
+                    return localforage.removeItem(k).catch(function() {});
+                }));
+            }).catch(function() {});
+        } catch (e) {}
         _lastCallHeartbeatTs = 0;
     }
 
