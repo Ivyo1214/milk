@@ -3590,32 +3590,50 @@
                 const target = e.target;
                 if (!target) return;
 
+                // 诊断日志
+                console.log('[sticker-close] click target:', target.tagName,
+                    target.id || '', target.className || '',
+                    '| inside picker:', !!target.closest('#user-sticker-picker'),
+                    '| inside emoji btn:', !!target.closest('#companion-emoji-btn'));
+
                 // 点在面板内：判断是否要关闭
                 if (target.closest('#user-sticker-picker')) {
                     // 点 tab、设置、添加按钮 → 不关
                     if (target.closest('.combo-tab-btn') ||
                         target.closest('#sticker-add-btn') ||
-                        target.closest('.combo-tabs-header')) return;
+                        target.closest('.combo-tabs-header')) {
+                        console.log('[sticker-close] skip: tab/add/header');
+                        return;
+                    }
                     // 点表情/拍一拍 item → 延迟关闭（让发送跑完）
                     if (target.closest('.picker-item') ||
                         target.closest('.sticker-item') ||
                         target.closest('.poke-item')) {
+                        console.log('[sticker-close] sticker clicked, will close in 150ms');
                         setTimeout(() => {
                             picker.classList.remove('active');
                             picker.style.display = 'none';
+                            console.log('[sticker-close] closed after sticker click');
                         }, 150);
+                        return;
                     }
+                    console.log('[sticker-close] click inside picker, no rule matched, keeping open');
                     return;
                 }
 
                 // 点表情按钮本身 → 让按钮自己的 handler 处理（不在这里关）
-                if (target.closest('#companion-emoji-btn')) return;
+                if (target.closest('#companion-emoji-btn')) {
+                    console.log('[sticker-close] emoji btn clicked, let its handler decide');
+                    return;
+                }
 
                 // 点了陪伴页其他地方（任何按钮、空白处等）→ 立即关闭
+                console.log('[sticker-close] clicked outside picker, closing');
                 picker.classList.remove('active');
                 picker.style.display = 'none';
             }, true);  // capture 阶段
             window.__companionStickerCloseInstalled = true;
+            console.log('[sticker-close] handler installed');
         }
 
         // 输入框获得焦点 → 关闭表情面板
