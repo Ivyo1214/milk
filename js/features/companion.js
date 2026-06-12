@@ -3534,31 +3534,55 @@
                     return;
                 }
 
-                // 已展开就收起
-                if (picker.classList.contains('active') && picker.dataset.companionMoved === '1') {
+                // 已经在陪伴页里显示 → 收起
+                if (picker.dataset.companionMoved === '1' && picker.classList.contains('active')) {
                     picker.classList.remove('active');
+                    picker.style.display = 'none';
                     return;
                 }
 
-                // 触发打开（让主聊天的逻辑正常初始化面板）
+                // 先记录原位置（第一次移动时）
+                if (picker.dataset.companionMoved !== '1') {
+                    window.__stickerPickerOriginalParent = picker.parentNode;
+                    window.__stickerPickerOriginalNextSibling = picker.nextSibling;
+                }
+
+                // 触发主聊天的初始化逻辑（让面板内容渲染好）
                 mainComboBtn.click();
 
-                // 把面板物理移动到陪伴页里 + 设浮在陪伴输入区上方的样式
-                if (picker.dataset.companionMoved !== '1') {
-                    // 记下原位置
-                    picker.dataset.originalParent = '';
-                    if (picker.parentNode) {
-                        // 保存原父节点（用 data-* 不行因为是 DOM 节点，只能存引用到 window）
-                        window.__stickerPickerOriginalParent = picker.parentNode;
-                        window.__stickerPickerOriginalNextSibling = picker.nextSibling;
-                    }
-                }
+                // 物理移到陪伴页里
                 const companionPage = document.getElementById('companion-page');
                 if (companionPage) {
                     companionPage.appendChild(picker);
                     picker.dataset.companionMoved = '1';
-                    // 强制定位浮在陪伴输入区上方
-                    picker.style.cssText = 'position: absolute !important; left: 16px !important; right: 16px !important; bottom: 80px !important; top: auto !important; width: auto !important; max-width: none !important; max-height: 320px !important; z-index: 200 !important; display: flex !important;';
+                    picker.classList.add('active');
+                    // 浮在陪伴输入区上方 + 圆角
+                    picker.style.cssText = 'position: absolute !important; left: 16px !important; right: 16px !important; bottom: 80px !important; top: auto !important; width: auto !important; max-width: none !important; max-height: 320px !important; z-index: 200 !important; display: flex !important; border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 8px 32px rgba(0,0,0,0.25) !important;';
+
+                    // 监听点击事件：点击表情/拍一拍后自动关闭面板
+                    if (!picker.dataset.companionAutoCloseBinded) {
+                        picker.addEventListener('click', (e) => {
+                            // 只有当点击发生在"可发送项"上时才关闭：表情/拍一拍 item
+                            const target = e.target;
+                            if (!target) return;
+                            // 排除 tab 切换、设置按钮、添加按钮等
+                            if (target.closest('.combo-tab-btn') ||
+                                target.closest('#sticker-add-btn') ||
+                                target.closest('.combo-tabs-header button')) return;
+                            // 表情或拍一拍的图片/按钮被点击 → 关闭面板
+                            if (target.closest('.sticker-item') ||
+                                target.closest('.poke-item') ||
+                                target.closest('img') ||
+                                target.tagName === 'IMG') {
+                                // 延迟一点让主聊天的发送逻辑跑完
+                                setTimeout(() => {
+                                    picker.classList.remove('active');
+                                    picker.style.display = 'none';
+                                }, 100);
+                            }
+                        }, true);
+                        picker.dataset.companionAutoCloseBinded = '1';
+                    }
                 }
             } catch (e) { console.warn('[companion] emoji click failed', e); }
         });
