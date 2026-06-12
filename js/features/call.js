@@ -524,7 +524,40 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
         const b = document.getElementById('call-mini-timer');
         if (a) a.textContent = t;
         if (b) b.textContent = t;
+        // 闪退恢复用：节流写盘心跳
+        tryHeartbeatCallSession();
         S.timerRAF = requestAnimationFrame(tick);
+    }
+
+    // ─── 通话闪退恢复：live session 持久化 ─────────────
+    function getCallSessionKey() {
+        return (typeof getStorageKey === 'function')
+            ? getStorageKey('callLiveSession')
+            : (window.APP_PREFIX || 'CHAT_APP_V3_') + 'callLiveSession';
+    }
+    let _lastCallHeartbeatTs = 0;
+    function writeCallSession() {
+        try {
+            const payload = {
+                startTs: S.startTime || Date.now(),
+                heartbeatTs: Date.now(),
+                isPartnerCall: !!S.isPartnerCall,
+                bgImage: S.bgImage || null,
+                immersive: !!S.immersive,
+                minimized: !!S.minimized
+            };
+            localforage.setItem(getCallSessionKey(), payload).catch(() => {});
+            _lastCallHeartbeatTs = Date.now();
+        } catch (e) {}
+    }
+    function tryHeartbeatCallSession() {
+        if (!S.startTime) return; // 连接中阶段不写心跳
+        if (Date.now() - _lastCallHeartbeatTs < 10000) return; // 10秒节流
+        writeCallSession();
+    }
+    function clearCallSession() {
+        try { localforage.removeItem(getCallSessionKey()).catch(() => {}); } catch (e) {}
+        _lastCallHeartbeatTs = 0;
     }
 
     function applyBg() {
@@ -626,6 +659,8 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
                 S.startTime = Date.now();
                 if (conn) conn.classList.remove('visible');
                 if (body) body.style.display = '';
+                // 通话接通：立即写入第一次心跳
+                writeCallSession();
                 tick();
             }, 1400 + Math.random() * 1400);
         }
@@ -637,6 +672,9 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
         S.active = false; S.startTime = null;
         cancelAnimationFrame(S.timerRAF);
         clearTimeout(S.connectingTimer); clearTimeout(S.incomingTimer);
+
+        // 清除闪退恢复用的 live session
+        clearCallSession();
 
         ['call-window','call-mini-pill','call-incoming-overlay'].forEach(id => {
             const e = document.getElementById(id);
@@ -951,5 +989,44 @@ html:not([data-theme="dark"])[data-color-theme="black-white"] .message-sent{
             if (S.enabled && !S.active) showIncomingCall();
         },
         isEnabled: () => S.enabled,
+
+        // 闪退恢复用
+        getCallSessionKey: getCallSessionKey,
+        clearCallSession: clearCallSession,
+        // 直接恢复一个通话（不弹来电、不弹窗，直接进入通话页面）
+        resumeFromSession: function(session) {
+            if (!session || !S.enabled) return false;
+            if (S.active) return false; // 已经在通话中，不打扰
+            try {
+                S.active = true;
+                S.startTime = session.startTs;  // 沿用真实开始时间，时长自动接续
+                S.elapsed = Date.now() - session.startTs;
+                S.minimized = !!session.minimized;
+                S.isPartnerCall = !!session.isPartnerCall;
+                S.immersive = !!session.immersive;
+                if (session.bgImage) S.bgImage = session.bgImage;
+
+                document.getElementById('call-window')?.classList.remove('immersive');
+                ['call-inc-avatar','call-conn-avatar','call-win-avatar','call-mini-av'].forEach(fillAv);
+                ['call-conn-name','call-win-name','call-mini-name'].forEach(fillNm);
+                applyBg(); positionWindow();
+
+                const win  = document.getElementById('call-window');
+                const body = document.getElementById('call-window-body');
+                const conn = document.getElementById('call-connecting-state');
+                if (win)    win.classList.add('visible');
+                if (conn)   conn.classList.remove('visible'); // 跳过"连接中"
+                if (body)   body.style.display = '';
+
+                if (session.immersive && win) win.classList.add('immersive');
+
+                // 重新启动 tick
+                tick();
+                return true;
+            } catch (e) {
+                console.warn('[call] resume failed', e);
+                return false;
+            }
+        }
     };
 })();
