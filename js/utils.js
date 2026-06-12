@@ -515,6 +515,12 @@ async function importAllData(file) {
                 indexedDBNeedles: [],
                 localStorageNeedles: ['dg_custom_data', 'dg_status_pool', 'weekly_fortune', 'daily_fortune'],
                 localStoragePrefixes: ['customWeather_']
+            },
+            {
+                id: 'diary',
+                label: '陪伴日记',
+                indexedDBNeedles: ['companionDiary', 'companionDiaryBg', 'companionDiaryBgGallery'],
+                localStorageNeedles: []
             }
         ];
 
