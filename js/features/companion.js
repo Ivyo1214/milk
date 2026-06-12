@@ -284,6 +284,11 @@
         return img ? img.src : null;
     }
 
+    function getMyAvatarSrc() {
+        const img = document.querySelector('#my-avatar img,.my-avatar img');
+        return img ? img.src : null;
+    }
+
     function sendChatEvent(icon, label, detail) {
         // 复用原项目通话事件的接口，往聊天里加一条记录
         if (typeof window._addCallEvent === 'function') {
@@ -2746,14 +2751,7 @@
         bubble.className = 'companion-bubble' + (isUser ? ' companion-bubble-user' : '');
 
         // 头像：用户用用户头像，梦角用梦角头像
-        let avSrc;
-        if (isUser) {
-            try {
-                avSrc = (typeof settings !== 'undefined' && settings.myAvatar) ? settings.myAvatar : '';
-            } catch (e) { avSrc = ''; }
-        } else {
-            avSrc = getPartnerAvatarSrc();
-        }
+        const avSrc = isUser ? getMyAvatarSrc() : getPartnerAvatarSrc();
         const avatarHtml = avSrc
             ? `<img src="${avSrc}">`
             : `<i class="fas fa-user"></i>`;
@@ -2836,10 +2834,7 @@
 
         const partnerAvSrc = getPartnerAvatarSrc();
         const partnerAvatarHtml = partnerAvSrc ? `<img src="${partnerAvSrc}">` : `<i class="fas fa-user"></i>`;
-        let userAvSrc = '';
-        try {
-            userAvSrc = (typeof settings !== 'undefined' && settings.myAvatar) ? settings.myAvatar : '';
-        } catch (e) {}
+        const userAvSrc = getMyAvatarSrc();
         const userAvatarHtml = userAvSrc ? `<img src="${userAvSrc}">` : `<i class="fas fa-user"></i>`;
 
         let listHtml = '';
@@ -3577,25 +3572,25 @@
 
                     // 监听点击事件：点击表情/拍一拍后自动关闭面板
                     if (!picker.dataset.companionAutoCloseBinded) {
+                        // 注意：不能用 capture 阶段也不能 stopPropagation，
+                        // 否则会阻止 sticker-item 的 onclick 跑（发送逻辑就没了）
                         picker.addEventListener('click', (ev) => {
-                            // 排除 tab 切换、设置按钮、添加按钮等
                             const target = ev.target;
                             if (!target) return;
+                            // 排除 tab 切换、设置按钮、添加按钮等
                             if (target.closest('.combo-tab-btn') ||
                                 target.closest('#sticker-add-btn') ||
-                                target.closest('.combo-tabs-header button')) return;
-                            // 表情或拍一拍的图片/按钮被点击 → 关闭面板
-                            if (target.closest('.sticker-item') ||
-                                target.closest('.poke-item') ||
-                                target.closest('img') ||
-                                target.tagName === 'IMG') {
+                                target.closest('.combo-tabs-header')) return;
+                            // 表情或拍一拍 item 被点击 → 延迟关闭面板（不影响发送）
+                            if (target.closest('.picker-item') ||
+                                target.closest('.sticker-item') ||
+                                target.closest('.poke-item')) {
                                 setTimeout(() => {
                                     picker.classList.remove('active');
                                     picker.style.display = 'none';
-                                }, 100);
+                                }, 150);
                             }
-                            ev.stopPropagation();
-                        }, true);
+                        });
                         picker.dataset.companionAutoCloseBinded = '1';
                     }
                 }
@@ -3607,13 +3602,34 @@
             const picker = document.getElementById('user-sticker-picker');
             if (!picker || picker.dataset.companionMoved !== '1') return;
             if (!picker.classList.contains('active')) return;
-            // 点击发生在面板内部、表情按钮、或键盘按钮上 → 不关闭
+            // 点击发生在面板内部、表情按钮上 → 不关闭
             if (e.target.closest('#user-sticker-picker')) return;
             if (e.target.closest('#companion-emoji-btn')) return;
             picker.classList.remove('active');
             picker.style.display = 'none';
         };
         page.addEventListener('click', closeStickerPickerIfOpen);
+
+        // 额外保险：点其他陪伴页内的按钮时主动关闭
+        // （某些按钮可能 stopPropagation 导致冒泡不到 page）
+        const otherCompanionButtons = [
+            'companion-noise-btn',
+            'companion-history-btn',
+            'companion-keyboard-btn',
+            'companion-image-btn',
+            'companion-exit-btn'
+        ];
+        otherCompanionButtons.forEach(id => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                const picker = document.getElementById('user-sticker-picker');
+                if (picker && picker.dataset.companionMoved === '1' && picker.classList.contains('active')) {
+                    picker.classList.remove('active');
+                    picker.style.display = 'none';
+                }
+            }, true); // 用 capture，比按钮自身的 click 早触发，确保关闭
+        });
 
         // 输入框获得焦点 → 关闭表情面板
         field.addEventListener('focus', () => {
