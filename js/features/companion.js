@@ -2834,22 +2834,37 @@
         modal.id = 'companion-history-modal';
         modal.className = 'companion-history-modal active';
 
-        const partnerName = getPartnerName();
-        const avSrc = getPartnerAvatarSrc();
-        const avatarHtml = avSrc ? `<img src="${avSrc}">` : `<i class="fas fa-user"></i>`;
+        const partnerAvSrc = getPartnerAvatarSrc();
+        const partnerAvatarHtml = partnerAvSrc ? `<img src="${partnerAvSrc}">` : `<i class="fas fa-user"></i>`;
+        let userAvSrc = '';
+        try {
+            userAvSrc = (typeof settings !== 'undefined' && settings.myAvatar) ? settings.myAvatar : '';
+        } catch (e) {}
+        const userAvatarHtml = userAvSrc ? `<img src="${userAvSrc}">` : `<i class="fas fa-user"></i>`;
 
         let listHtml = '';
         if (_sessionDialogue.length === 0) {
             listHtml = `<div class="companion-history-empty">暂无对话</div>`;
         } else {
             listHtml = _sessionDialogue.map(m => {
-                const contentHtml = m.image
-                    ? `<img src="${m.image}">`
-                    : escapeHtml(m.text || '');
+                const isUser = m.sender === 'user';
+                const avatarHtml = isUser ? userAvatarHtml : partnerAvatarHtml;
+                const itemClass = isUser
+                    ? 'companion-history-item companion-history-item-user'
+                    : 'companion-history-item';
+                // 图片/表情 → 不装气泡，直接显示原图（跟陪伴页气泡一致）
+                if (m.image) {
+                    return `
+                        <div class="${itemClass} companion-history-item-image">
+                            <div class="companion-bubble-avatar">${avatarHtml}</div>
+                            <img class="companion-bubble-image-raw" src="${m.image}">
+                        </div>
+                    `;
+                }
                 return `
-                    <div class="companion-history-item">
+                    <div class="${itemClass}">
                         <div class="companion-bubble-avatar">${avatarHtml}</div>
-                        <div class="companion-bubble-content">${contentHtml}</div>
+                        <div class="companion-bubble-content">${escapeHtml(m.text || '')}</div>
                     </div>
                 `;
             }).join('');
@@ -3525,7 +3540,8 @@
         });
 
         // 表情包按钮 → 触发主聊天的表情面板，并把面板移到陪伴页里浮起来显示
-        emojiBtn.addEventListener('click', () => {
+        emojiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             try {
                 const mainComboBtn = document.getElementById('combo-btn');
                 const picker = document.getElementById('user-sticker-picker');
@@ -3561,11 +3577,10 @@
 
                     // 监听点击事件：点击表情/拍一拍后自动关闭面板
                     if (!picker.dataset.companionAutoCloseBinded) {
-                        picker.addEventListener('click', (e) => {
-                            // 只有当点击发生在"可发送项"上时才关闭：表情/拍一拍 item
-                            const target = e.target;
-                            if (!target) return;
+                        picker.addEventListener('click', (ev) => {
                             // 排除 tab 切换、设置按钮、添加按钮等
+                            const target = ev.target;
+                            if (!target) return;
                             if (target.closest('.combo-tab-btn') ||
                                 target.closest('#sticker-add-btn') ||
                                 target.closest('.combo-tabs-header button')) return;
@@ -3574,17 +3589,39 @@
                                 target.closest('.poke-item') ||
                                 target.closest('img') ||
                                 target.tagName === 'IMG') {
-                                // 延迟一点让主聊天的发送逻辑跑完
                                 setTimeout(() => {
                                     picker.classList.remove('active');
                                     picker.style.display = 'none';
                                 }, 100);
                             }
+                            ev.stopPropagation();
                         }, true);
                         picker.dataset.companionAutoCloseBinded = '1';
                     }
                 }
             } catch (e) { console.warn('[companion] emoji click failed', e); }
+        });
+
+        // 点击陪伴页其他任何地方 → 关闭表情面板
+        const closeStickerPickerIfOpen = (e) => {
+            const picker = document.getElementById('user-sticker-picker');
+            if (!picker || picker.dataset.companionMoved !== '1') return;
+            if (!picker.classList.contains('active')) return;
+            // 点击发生在面板内部、表情按钮、或键盘按钮上 → 不关闭
+            if (e.target.closest('#user-sticker-picker')) return;
+            if (e.target.closest('#companion-emoji-btn')) return;
+            picker.classList.remove('active');
+            picker.style.display = 'none';
+        };
+        page.addEventListener('click', closeStickerPickerIfOpen);
+
+        // 输入框获得焦点 → 关闭表情面板
+        field.addEventListener('focus', () => {
+            const picker = document.getElementById('user-sticker-picker');
+            if (picker && picker.dataset.companionMoved === '1' && picker.classList.contains('active')) {
+                picker.classList.remove('active');
+                picker.style.display = 'none';
+            }
         });
 
         // 图片按钮 → 触发主聊天的图片输入
