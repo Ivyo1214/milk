@@ -1647,20 +1647,17 @@ html[data-theme="dark"] .companion-mode-card i {
     color: #fff;
 }
 
-/* 表情面板浮在陪伴页之上：陪伴页激活时表情面板的样式 */
-#companion-page.active ~ * #user-sticker-picker.active,
-body:has(#companion-page.active) #user-sticker-picker.active {
-    z-index: 200 !important;
+/* 表情面板浮起：靠 JS 动态把 picker 移到陪伴页里 + 设内联样式 */
+
+/* 图片/表情消息：无气泡容器，直接显示原图 */
+.companion-bubble.companion-bubble-image .companion-bubble-image-raw {
+    max-width: 120px;
+    max-height: 120px;
+    border-radius: 10px;
+    object-fit: contain;
+    display: block;
 }
-/* 当陪伴输入区激活时，表情面板位置贴在陪伴输入框上方 */
-#companion-page.companion-input-active.active ~ #user-sticker-picker.active,
-body:has(#companion-page.companion-input-active) #user-sticker-picker.active {
-    position: fixed !important;
-    bottom: 80px !important;
-    left: 16px !important;
-    right: 16px !important;
-    max-width: none !important;
-    width: auto !important;
-    z-index: 200 !important;
-    max-height: 320px !important;
+/* 浅色背景下，图片不需要任何背景，保留原样 */
+#companion-page.companion-light-bg .companion-bubble.companion-bubble-image {
+    background: transparent;
 }
