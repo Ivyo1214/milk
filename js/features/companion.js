@@ -2220,7 +2220,18 @@
         writeLiveSession();
     }
     function clearLiveSession() {
-        try { localforage.removeItem(getLiveSessionKey()).catch(() => {}); } catch (e) {}
+        try {
+            // 用扫描方式删除所有 companionLiveSession 相关 key
+            // 不依赖 getLiveSessionKey()，避免 SESSION_ID 异步问题或伪造测试数据残留
+            localforage.keys().then(function(keys) {
+                const targets = keys.filter(function(k) {
+                    return k.indexOf('companionLiveSession') !== -1;
+                });
+                Promise.all(targets.map(function(k) {
+                    return localforage.removeItem(k).catch(function() {});
+                }));
+            }).catch(function() {});
+        } catch (e) {}
         _lastHeartbeatTs = 0;
     }
     // 暴露给外部（启动时检测用）
