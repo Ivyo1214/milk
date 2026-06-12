@@ -1661,3 +1661,21 @@ html[data-theme="dark"] .companion-mode-card i {
 #companion-page.companion-light-bg .companion-bubble.companion-bubble-image {
     background: transparent;
 }
+
+/* 历史聊天：图片消息不带气泡 */
+.companion-history-item-image {
+    /* 这条 item 仅包含头像 + 图片，不需要 content 背景 */
+}
+.companion-history-item.companion-history-item-image .companion-bubble-image-raw {
+    max-width: 140px;
+    max-height: 140px;
+    border-radius: 10px;
+    object-fit: contain;
+    display: block;
+}
+
+/* 历史聊天：用户消息靠左对齐但用主题色背景区分（保持跟现有风格一致） */
+.companion-history-item.companion-history-item-user .companion-bubble-content {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.45);
+    color: #fff;
+}
