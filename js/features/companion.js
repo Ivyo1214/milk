@@ -2882,12 +2882,16 @@
         modal.querySelector('.companion-history-close').addEventListener('click', () => {
             modal.classList.remove('active');
             setTimeout(() => { if (modal.isConnected) modal.remove(); }, 300);
+            const historyBtn = document.getElementById('companion-history-btn');
+            if (historyBtn) historyBtn.classList.remove('active');
         });
         // 点背景关闭
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.classList.remove('active');
                 setTimeout(() => { if (modal.isConnected) modal.remove(); }, 300);
+                const historyBtn = document.getElementById('companion-history-btn');
+                if (historyBtn) historyBtn.classList.remove('active');
             }
         });
 
@@ -3479,6 +3483,7 @@
         if (historyBtn) {
             historyBtn.addEventListener('click', (e) => {
                 e.stopPropagation();  // 阻止冒泡
+                historyBtn.classList.add('active');
                 openCompanionHistory();
             });
         }
@@ -3570,66 +3575,48 @@
                     // 浮在陪伴输入区上方 + 圆角
                     picker.style.cssText = 'position: absolute !important; left: 16px !important; right: 16px !important; bottom: 80px !important; top: auto !important; width: auto !important; max-width: none !important; max-height: 320px !important; z-index: 200 !important; display: flex !important; border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 8px 32px rgba(0,0,0,0.25) !important;';
 
-                    // 监听点击事件：点击表情/拍一拍后自动关闭面板
-                    if (!picker.dataset.companionAutoCloseBinded) {
-                        // 注意：不能用 capture 阶段也不能 stopPropagation，
-                        // 否则会阻止 sticker-item 的 onclick 跑（发送逻辑就没了）
-                        picker.addEventListener('click', (ev) => {
-                            const target = ev.target;
-                            if (!target) return;
-                            // 排除 tab 切换、设置按钮、添加按钮等
-                            if (target.closest('.combo-tab-btn') ||
-                                target.closest('#sticker-add-btn') ||
-                                target.closest('.combo-tabs-header')) return;
-                            // 表情或拍一拍 item 被点击 → 延迟关闭面板（不影响发送）
-                            if (target.closest('.picker-item') ||
-                                target.closest('.sticker-item') ||
-                                target.closest('.poke-item')) {
-                                setTimeout(() => {
-                                    picker.classList.remove('active');
-                                    picker.style.display = 'none';
-                                }, 150);
-                            }
-                        });
-                        picker.dataset.companionAutoCloseBinded = '1';
-                    }
+                    // 关闭逻辑已统一到 document-level（在外面注册），这里不重复绑定
                 }
             } catch (e) { console.warn('[companion] emoji click failed', e); }
         });
 
-        // 点击陪伴页其他任何地方 → 关闭表情面板
-        const closeStickerPickerIfOpen = (e) => {
-            const picker = document.getElementById('user-sticker-picker');
-            if (!picker || picker.dataset.companionMoved !== '1') return;
-            if (!picker.classList.contains('active')) return;
-            // 点击发生在面板内部、表情按钮上 → 不关闭
-            if (e.target.closest('#user-sticker-picker')) return;
-            if (e.target.closest('#companion-emoji-btn')) return;
-            picker.classList.remove('active');
-            picker.style.display = 'none';
-        };
-        page.addEventListener('click', closeStickerPickerIfOpen);
-
-        // 额外保险：点其他陪伴页内的按钮时主动关闭
-        // （某些按钮可能 stopPropagation 导致冒泡不到 page）
-        const otherCompanionButtons = [
-            'companion-noise-btn',
-            'companion-history-btn',
-            'companion-keyboard-btn',
-            'companion-image-btn',
-            'companion-exit-btn'
-        ];
-        otherCompanionButtons.forEach(id => {
-            const btn = document.getElementById(id);
-            if (!btn) return;
-            btn.addEventListener('click', () => {
+        // ── 表情面板统一关闭逻辑 ───────────────────────────────
+        // 用 document capture 监听所有点击，从根本上判断是否关闭
+        if (!window.__companionStickerCloseInstalled) {
+            document.addEventListener('click', (e) => {
                 const picker = document.getElementById('user-sticker-picker');
-                if (picker && picker.dataset.companionMoved === '1' && picker.classList.contains('active')) {
-                    picker.classList.remove('active');
-                    picker.style.display = 'none';
+                if (!picker || picker.dataset.companionMoved !== '1') return;
+                if (!picker.classList.contains('active')) return;
+                const target = e.target;
+                if (!target) return;
+
+                // 点在面板内：判断是否要关闭
+                if (target.closest('#user-sticker-picker')) {
+                    // 点 tab、设置、添加按钮 → 不关
+                    if (target.closest('.combo-tab-btn') ||
+                        target.closest('#sticker-add-btn') ||
+                        target.closest('.combo-tabs-header')) return;
+                    // 点表情/拍一拍 item → 延迟关闭（让发送跑完）
+                    if (target.closest('.picker-item') ||
+                        target.closest('.sticker-item') ||
+                        target.closest('.poke-item')) {
+                        setTimeout(() => {
+                            picker.classList.remove('active');
+                            picker.style.display = 'none';
+                        }, 150);
+                    }
+                    return;
                 }
-            }, true); // 用 capture，比按钮自身的 click 早触发，确保关闭
-        });
+
+                // 点表情按钮本身 → 让按钮自己的 handler 处理（不在这里关）
+                if (target.closest('#companion-emoji-btn')) return;
+
+                // 点了陪伴页其他地方（任何按钮、空白处等）→ 立即关闭
+                picker.classList.remove('active');
+                picker.style.display = 'none';
+            }, true);  // capture 阶段
+            window.__companionStickerCloseInstalled = true;
+        }
 
         // 输入框获得焦点 → 关闭表情面板
         field.addEventListener('focus', () => {
