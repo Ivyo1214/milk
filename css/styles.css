@@ -11360,6 +11360,18 @@ body #user-sticker-picker .empty-sticker-tip {
     margin: 12px 8px;
     border-radius: var(--radius-sm);
 }
+/* 背景蒙层固定为浅色，深色模式下主题文字会变浅看不清，这里强制深色文字保证可读 */
+.cd-pages.cd-has-bg .cd-month-label,
+.cd-pages.cd-has-bg .cd-day,
+.cd-pages.cd-has-bg .cd-note-text {
+    color: #3a342e !important;
+}
+.cd-pages.cd-has-bg .cd-weekday,
+.cd-pages.cd-has-bg .cd-time-dur,
+.cd-pages.cd-has-bg .cd-note-empty,
+.cd-pages.cd-has-bg .cd-empty {
+    color: #6f6359 !important;
+}
 
 .cd-month-label {
     font-size: 11px;
