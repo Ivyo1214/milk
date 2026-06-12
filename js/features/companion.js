@@ -1620,6 +1620,23 @@
         if (kbBtn) kbBtn.classList.remove('active');
         $('companion-page').classList.remove('companion-input-active');
         if (inputField) inputField.value = '';
+
+        // 把表情面板放回原位置（如果被陪伴页占用了）
+        try {
+            const picker = document.getElementById('user-sticker-picker');
+            if (picker && picker.dataset.companionMoved === '1') {
+                picker.classList.remove('active');
+                picker.style.cssText = ''; // 清除内联样式
+                if (window.__stickerPickerOriginalParent) {
+                    if (window.__stickerPickerOriginalNextSibling) {
+                        window.__stickerPickerOriginalParent.insertBefore(picker, window.__stickerPickerOriginalNextSibling);
+                    } else {
+                        window.__stickerPickerOriginalParent.appendChild(picker);
+                    }
+                }
+                picker.dataset.companionMoved = '0';
+            }
+        } catch (e) { console.warn('[companion] restore picker failed', e); }
     }
 
     // ─── 白噪音 ──────────────────────────────────────────────────────────────
@@ -2742,17 +2759,21 @@
             : `<i class="fas fa-user"></i>`;
 
         // 文字 or 图片（sticker）
-        let contentHtml = '';
-        if (message.image) {
-            contentHtml = `<img src="${message.image}">`;
+        // 文字 → 装在气泡里（带背景圆角）
+        // 图片/表情 → 不要气泡容器，直接显示原图（跟主页一样）
+        const isImage = !!message.image;
+        if (isImage) {
+            bubble.classList.add('companion-bubble-image');
+            bubble.innerHTML = `
+                <div class="companion-bubble-avatar">${avatarHtml}</div>
+                <img class="companion-bubble-image-raw" src="${message.image}">
+            `;
         } else {
-            contentHtml = escapeHtml(message.text || '');
+            bubble.innerHTML = `
+                <div class="companion-bubble-avatar">${avatarHtml}</div>
+                <div class="companion-bubble-content">${escapeHtml(message.text || '')}</div>
+            `;
         }
-
-        bubble.innerHTML = `
-            <div class="companion-bubble-avatar">${avatarHtml}</div>
-            <div class="companion-bubble-content">${contentHtml}</div>
-        `;
         area.appendChild(bubble);
 
         // 8 秒显示后启动 2s 渐隐 → 共 10s
@@ -3503,19 +3524,41 @@
             }
         });
 
-        // 表情包按钮 → 触发主聊天的表情按钮，但表情面板会浮在陪伴页上
+        // 表情包按钮 → 触发主聊天的表情面板，并把面板移到陪伴页里浮起来显示
         emojiBtn.addEventListener('click', () => {
             try {
                 const mainComboBtn = document.getElementById('combo-btn');
-                if (mainComboBtn) {
-                    mainComboBtn.click();
-                    // 把表情面板提升到陪伴页之上
-                    const picker = document.getElementById('user-sticker-picker');
-                    if (picker) {
-                        picker.classList.add('companion-elevated');
+                const picker = document.getElementById('user-sticker-picker');
+                if (!mainComboBtn || !picker) {
+                    if (typeof showNotification === 'function') showNotification('表情功能加载失败', 'error');
+                    return;
+                }
+
+                // 已展开就收起
+                if (picker.classList.contains('active') && picker.dataset.companionMoved === '1') {
+                    picker.classList.remove('active');
+                    return;
+                }
+
+                // 触发打开（让主聊天的逻辑正常初始化面板）
+                mainComboBtn.click();
+
+                // 把面板物理移动到陪伴页里 + 设浮在陪伴输入区上方的样式
+                if (picker.dataset.companionMoved !== '1') {
+                    // 记下原位置
+                    picker.dataset.originalParent = '';
+                    if (picker.parentNode) {
+                        // 保存原父节点（用 data-* 不行因为是 DOM 节点，只能存引用到 window）
+                        window.__stickerPickerOriginalParent = picker.parentNode;
+                        window.__stickerPickerOriginalNextSibling = picker.nextSibling;
                     }
-                } else if (typeof showNotification === 'function') {
-                    showNotification('表情功能加载失败', 'error');
+                }
+                const companionPage = document.getElementById('companion-page');
+                if (companionPage) {
+                    companionPage.appendChild(picker);
+                    picker.dataset.companionMoved = '1';
+                    // 强制定位浮在陪伴输入区上方
+                    picker.style.cssText = 'position: absolute !important; left: 16px !important; right: 16px !important; bottom: 80px !important; top: auto !important; width: auto !important; max-width: none !important; max-height: 320px !important; z-index: 200 !important; display: flex !important;';
                 }
             } catch (e) { console.warn('[companion] emoji click failed', e); }
         });
