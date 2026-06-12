@@ -1511,3 +1511,134 @@ html[data-theme="dark"] .companion-mode-card i {
 #companion-voice-section {
     display: none !important;
 }
+
+/* ============================================
+   陪伴页：键盘按钮 + 输入区
+   ============================================ */
+.companion-keyboard-corner {
+    position: absolute;
+    right: 20px;
+    bottom: calc(max(30px, env(safe-area-inset-bottom, 30px)) + 104px);
+    z-index: 5;
+    background: rgba(0,0,0,0.35) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    color: rgba(255,255,255,0.92) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.companion-keyboard-corner.active {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+    color: #fff !important;
+    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.5) !important;
+    box-shadow: 0 4px 16px rgba(var(--accent-color-rgb, 197,164,126), 0.4);
+}
+#companion-page.companion-light-bg .companion-keyboard-corner {
+    color: #6a5340 !important;
+    background: rgba(255,255,255,0.55) !important;
+    border-color: rgba(106,83,64,0.18) !important;
+}
+#companion-page.companion-light-bg .companion-keyboard-corner.active {
+    color: #fff !important;
+}
+
+/* 陪伴输入区：默认隐藏，激活时从下往上滑出 */
+.companion-input-bar {
+    position: absolute;
+    left: 16px;
+    right: 80px; /* 给右侧按钮列让位 */
+    bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 24px;
+    padding: 5px 6px;
+    z-index: 6;
+    animation: companionInputSlideUp 0.28s ease-out;
+}
+.companion-input-bar.visible {
+    display: flex;
+}
+@keyframes companionInputSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.companion-input-field {
+    flex: 1;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    outline: none;
+    border-radius: 16px;
+    padding: 8px 14px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    min-width: 0;
+}
+.companion-input-field::placeholder {
+    color: rgba(255,255,255,0.5);
+}
+.companion-input-btn {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.92);
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.15s;
+    padding: 0;
+}
+.companion-input-btn:hover {
+    background: rgba(255,255,255,0.22);
+}
+.companion-input-btn.companion-input-send {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85);
+    color: #fff;
+}
+.companion-input-btn.companion-input-send:hover {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 1);
+}
+
+/* 浅色背景适配 */
+#companion-page.companion-light-bg .companion-input-bar {
+    background: rgba(255,255,255,0.65);
+    border-color: rgba(106,83,64,0.18);
+}
+#companion-page.companion-light-bg .companion-input-field {
+    background: rgba(255,255,255,0.7);
+    color: #4a3a2a;
+}
+#companion-page.companion-light-bg .companion-input-field::placeholder {
+    color: rgba(74,58,42,0.4);
+}
+#companion-page.companion-light-bg .companion-input-btn {
+    background: rgba(255,255,255,0.6);
+    color: #6a5340;
+}
+
+/* 输入区激活时，气泡区上移避免被挡 */
+#companion-page.companion-input-active .companion-bubble-area {
+    bottom: 80px;
+}
+
+/* 用户消息气泡（区别于梦角的） */
+.companion-bubble.companion-bubble-user {
+    align-self: flex-start;
+}
+.companion-bubble.companion-bubble-user .companion-bubble-content {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.45);
+    color: #fff;
+}
+#companion-page.companion-light-bg .companion-bubble.companion-bubble-user .companion-bubble-content {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.6);
+    color: #fff;
+}
