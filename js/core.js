@@ -1257,6 +1257,10 @@ const addMessage = (message) => {
     if (message.sender !== 'user' && message.type === 'normal' && typeof window._onPartnerMessage === 'function') {
         try { window._onPartnerMessage(message); } catch (e) { console.warn('[onPartnerMessage]', e); }
     }
+    // 钩子：通知陪伴模块"用户刚发了一条消息"，让陪伴页气泡同步显示
+    if (message.sender === 'user' && message.type === 'normal' && typeof window._onUserMessage === 'function') {
+        try { window._onUserMessage(message); } catch (e) { console.warn('[onUserMessage]', e); }
+    }
 };
 
         window._addCallEvent = (icon, label, detail) => {
