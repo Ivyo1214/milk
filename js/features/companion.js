@@ -3473,9 +3473,8 @@
         const field = document.getElementById('companion-input-field');
         const emojiBtn = document.getElementById('companion-emoji-btn');
         const imageBtn = document.getElementById('companion-image-btn');
-        const sendBtn = document.getElementById('companion-send-btn');
         const page = document.getElementById('companion-page');
-        if (!kbBtn || !bar || !field || !sendBtn || !page) return;
+        if (!kbBtn || !bar || !field || !page) return;
 
         // 切换显示/隐藏
         kbBtn.addEventListener('click', () => {
@@ -3485,6 +3484,9 @@
                 kbBtn.classList.remove('active');
                 page.classList.remove('companion-input-active');
                 field.blur();
+                // 收起时也关闭表情面板
+                const picker = document.getElementById('user-sticker-picker');
+                if (picker) picker.classList.remove('active');
             } else {
                 bar.classList.add('visible');
                 kbBtn.classList.add('active');
@@ -3501,22 +3503,19 @@
             }
         });
 
-        // 发送按钮
-        sendBtn.addEventListener('click', doCompanionSend);
-
-        // 表情包按钮 → 直接打开主聊天的表情面板
+        // 表情包按钮 → 触发主聊天的表情按钮，但表情面板会浮在陪伴页上
         emojiBtn.addEventListener('click', () => {
             try {
-                // 触发主聊天的表情按钮（去通用入口找）
-                const mainStickerBtn = document.getElementById('sticker-btn')
-                    || document.getElementById('emoji-btn')
-                    || document.querySelector('[data-action="sticker"]');
-                if (mainStickerBtn) {
-                    mainStickerBtn.click();
-                } else if (typeof window.openStickerPicker === 'function') {
-                    window.openStickerPicker();
+                const mainComboBtn = document.getElementById('combo-btn');
+                if (mainComboBtn) {
+                    mainComboBtn.click();
+                    // 把表情面板提升到陪伴页之上
+                    const picker = document.getElementById('user-sticker-picker');
+                    if (picker) {
+                        picker.classList.add('companion-elevated');
+                    }
                 } else if (typeof showNotification === 'function') {
-                    showNotification('请在主聊天页发送表情', 'info');
+                    showNotification('表情功能加载失败', 'error');
                 }
             } catch (e) { console.warn('[companion] emoji click failed', e); }
         });
