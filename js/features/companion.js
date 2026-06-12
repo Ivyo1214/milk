@@ -3599,15 +3599,14 @@
                         target.tagName === 'INPUT') {
                         return;
                     }
-                    // 点表情图片本身（IMG）或者表情 item 容器 → 延迟关闭（让发送跑完）
+                    // 点表情图片本身（IMG）或者表情 item 容器 → 立即隐藏面板（发送照常进行）
                     if (target.tagName === 'IMG' ||
                         target.closest('.sticker-grid-item') ||
                         target.closest('.picker-item') ||
                         target.closest('.poke-item')) {
-                        setTimeout(() => {
-                            picker.classList.remove('active');
-                            picker.style.display = 'none';
-                        }, 150);
+                        // 立即隐藏（让用户感觉点了就发了）
+                        picker.classList.remove('active');
+                        picker.style.display = 'none';
                     }
                     return;
                 }
