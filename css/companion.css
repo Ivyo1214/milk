@@ -1282,6 +1282,21 @@ html[data-theme="dark"] .companion-mode-card i {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
+.companion-history-corner.active {
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+    color: #fff !important;
+    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.5) !important;
+    box-shadow: 0 4px 16px rgba(var(--accent-color-rgb, 197,164,126), 0.4);
+}
+#companion-page.companion-light-bg .companion-history-corner {
+    color: #6a5340 !important;
+    background: rgba(255,255,255,0.55) !important;
+    border-color: rgba(106,83,64,0.18) !important;
+}
+#companion-page.companion-light-bg .companion-history-corner.active {
+    color: #fff !important;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+}
 
 /* ────────────────────────────────────────────────────────────────
    陪伴页：梦角气泡（点击触发的字卡回复气泡）
