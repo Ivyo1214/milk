@@ -752,28 +752,28 @@ html[data-theme="dark"] .companion-mode-card i {
     bottom: calc(max(30px, env(safe-area-inset-bottom, 30px)) + 52px);
     right: 20px;
     z-index: 5;
-    background: rgba(0,0,0,0.35) !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    color: rgba(255,255,255,0.92) !important;
+    background: rgba(40,40,40,0.65) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: #fff !important;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
 .companion-noise-corner.active {
-    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.95) !important;
     color: #fff !important;
-    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.5) !important;
+    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.6) !important;
     box-shadow: 0 4px 16px rgba(var(--accent-color-rgb, 197,164,126), 0.4);
 }
 
 /* 浅色背景下按钮文字色 */
 #companion-page.companion-light-bg .companion-noise-corner {
-    color: #6a5340 !important;
-    background: rgba(255,255,255,0.55) !important;
-    border-color: rgba(106,83,64,0.18) !important;
+    color: #fff !important;
+    background: rgba(40,40,40,0.65) !important;
+    border-color: rgba(255,255,255,0.2) !important;
 }
 #companion-page.companion-light-bg .companion-noise-corner.active {
     color: #fff !important;
-    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.95) !important;
 }
 
 /* 白噪音选择卡片（中间弹出）*/
@@ -1274,28 +1274,28 @@ html[data-theme="dark"] .companion-mode-card i {
 .companion-history-corner {
     position: absolute;
     right: 20px;
-    bottom: calc(max(30px, env(safe-area-inset-bottom, 30px)) + 104px);  /* 音乐按钮上方 */
+    bottom: calc(max(30px, env(safe-area-inset-bottom, 30px)) + 104px);
     z-index: 5;
-    background: rgba(0,0,0,0.35) !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    color: rgba(255,255,255,0.92) !important;
+    background: rgba(40,40,40,0.65) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: #fff !important;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
 .companion-history-corner.active {
-    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.95) !important;
     color: #fff !important;
-    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.5) !important;
+    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.6) !important;
     box-shadow: 0 4px 16px rgba(var(--accent-color-rgb, 197,164,126), 0.4);
 }
 #companion-page.companion-light-bg .companion-history-corner {
-    color: #6a5340 !important;
-    background: rgba(255,255,255,0.55) !important;
-    border-color: rgba(106,83,64,0.18) !important;
+    color: #fff !important;
+    background: rgba(40,40,40,0.65) !important;
+    border-color: rgba(255,255,255,0.2) !important;
 }
 #companion-page.companion-light-bg .companion-history-corner.active {
     color: #fff !important;
-    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.95) !important;
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -1535,25 +1535,26 @@ html[data-theme="dark"] .companion-mode-card i {
     right: 20px;
     bottom: max(30px, env(safe-area-inset-bottom, 30px));
     z-index: 5;
-    background: rgba(0,0,0,0.35) !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    color: rgba(255,255,255,0.92) !important;
+    background: rgba(40,40,40,0.65) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: #fff !important;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
 .companion-keyboard-corner.active {
-    background: rgba(var(--accent-color-rgb, 197,164,126), 0.85) !important;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.95) !important;
     color: #fff !important;
-    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.5) !important;
+    border-color: rgba(var(--accent-color-rgb, 197,164,126), 0.6) !important;
     box-shadow: 0 4px 16px rgba(var(--accent-color-rgb, 197,164,126), 0.4);
 }
 #companion-page.companion-light-bg .companion-keyboard-corner {
-    color: #6a5340 !important;
-    background: rgba(255,255,255,0.55) !important;
-    border-color: rgba(106,83,64,0.18) !important;
+    color: #fff !important;
+    background: rgba(40,40,40,0.65) !important;
+    border-color: rgba(255,255,255,0.2) !important;
 }
 #companion-page.companion-light-bg .companion-keyboard-corner.active {
     color: #fff !important;
+    background: rgba(var(--accent-color-rgb, 197,164,126), 0.95) !important;
 }
 
 /* 陪伴输入区：默认隐藏，激活时从下往上滑出 */
